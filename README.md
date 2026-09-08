@@ -31,6 +31,36 @@ Proyecto en etapa de definición y construcción inicial.
 
 Consulta [docs/brief-ejecucion.md](docs/brief-ejecucion.md) para la estrategia por etapas, [docs/equipo-agentes.md](docs/equipo-agentes.md) para el flujo TL/PO–Diseño–Dev–QA y [docs/arquitectura.md](docs/arquitectura.md) para la arquitectura objetivo.
 
+## Base fixture-first de PuntoTicket
+
+La base técnica del scraper está en `src/puntoticket`. Es deliberadamente pura:
+recibe HTML, extrae referencias o detalles, y normaliza sin red, Playwright ni
+persistencia. Las URLs `source_url` y `purchase_url` se conservan separadas; el
+segundo enlace solo se identifica y nunca se sigue.
+
+Requisitos: Node.js >=20.18.1. Este mínimo coincide con la dependencia efectiva
+`cheerio@1.2.0` declarada en `package-lock.json`.
+
+```bash
+npm install
+npm test
+npm run typecheck
+npm run lint
+```
+
+Los fixtures sintéticos de `tests/puntoticket.test.ts` cubren rutas de evento
+relativas y absolutas, landings respaldadas por tarjetas estructurales,
+deduplicación, funciones múltiples, estados, cola de compra, JSON-LD inválido
+y zona horaria `America/Santiago`, incluyendo identificadores por performance,
+fechas calendario inválidas, ruta raíz y tipos JSON-LD `Event` completos. Los
+enlaces de compra solo se conservan si son `http`/`https` del origen permitido
+de PuntoTicket. La extracción reporta JSON-LD inválido y funciones rechazadas
+por fecha en `ExtractionResult.errors` sin perder el HTML crudo.
+
+Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-first-puntoticket.md)
+para la instalación normal y limpia, el alcance detallado de las pruebas,
+troubleshooting y el handoff para QA.
+
 ## Uso con Codex
 
 1. Descomprime este archivo.
