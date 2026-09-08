@@ -32,6 +32,9 @@ export interface ExtractedDetail {
   price?: { min?: number; max?: number; currency?: string };
 }
 
+type PerformanceCandidate = ExtractedDetail["performances"][number] & { saleRank?: number };
+const saleRanks = new WeakMap<object, number>();
+
 export function extractDetail(detail: RawEventDetail): ExtractionResult<ExtractedDetail> {
   const $ = cheerio.load(detail.html);
   const errors: string[] = [];
@@ -49,17 +52,20 @@ export function extractDetail(detail: RawEventDetail): ExtractionResult<Extracte
     if (!date) return;
     const href = current.attr("data-purchase-url") ?? current.find("a[href]").first().attr("href");
     const purchaseUrl = href && allowedPurchaseUrl(href, detail.source_url) ? href : undefined;
-    addPerformance(performances, { date, status: statusFrom(current.attr("data-status") ?? text), ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
+    const status = statusFrom(current.attr("data-status") ?? text);
+    addPerformance(performances, { date, status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}), saleRank: saleRank(text) }, errors);
   });
   for (const item of events) {
     for (const subEvent of values(item.subEvent)) {
       if (!isRecord(subEvent) || typeof subEvent.startDate !== "string") continue;
       const purchaseUrl = offerUrl(subEvent.offers, detail.source_url);
-      addPerformance(performances, { date: subEvent.startDate, status: statusFrom(offerAvailability(subEvent.offers)), ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
+      const status = statusFrom(offerAvailability(subEvent.offers));
+      addPerformance(performances, { date: subEvent.startDate, status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
     }
     if (typeof item.startDate === "string") {
       const purchaseUrl = offerUrl(item.offers, detail.source_url);
-      addPerformance(performances, { date: item.startDate, status: statusFrom(offerAvailability(item.offers)), ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
+      const status = statusFrom(offerAvailability(item.offers));
+      addPerformance(performances, { date: item.startDate, status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
     }
   }
   const geo = place.geo && typeof place.geo === "object" ? place.geo : {};
@@ -117,7 +123,7 @@ function nameOf(value: unknown): string | undefined { return typeof value === "s
 function unique(valuesToDeduplicate: string[]): string[] { return [...new Set(valuesToDeduplicate)]; }
 function asEvents(value: unknown): Record<string, any>[] { if (!isRecord(value)) return []; const graph = Array.isArray(value["@graph"]) ? value["@graph"] : [value]; return graph.filter((item): item is Record<string, any> => isRecord(item) && values(item["@type"]).some((type) => type === "Event" || type === "https://schema.org/Event")); }
 function dateFrom(value: string): string | undefined { return value.match(/\d{4}-\d\d-\d\d(?:[T ][^\s<]+)?/)?.[0] ?? value.match(/\d{1,2}[/-]\d{1,2}[/-]\d{4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?/)?.[0]; }
-function addPerformance(list: ExtractedDetail["performances"], candidate: ExtractedDetail["performances"][number], errors: string[]): void {
+function addPerformance(list: ExtractedDetail["performances"], candidate: PerformanceCandidate, errors: string[]): void {
   const candidateInstant = instantKey(candidate.date);
   if (candidateInstant === undefined) {
     errors.push(`invalid_performance_date: ${candidate.date}`);
@@ -128,10 +134,24 @@ function addPerformance(list: ExtractedDetail["performances"], candidate: Extrac
     const existingInstant = instantKey(item.date);
     return existingInstant !== undefined && candidateInstant !== undefined && existingInstant === candidateInstant;
   });
-  if (!existing) { list.push(candidate); return; }
-  if (existing.status === "unknown" && candidate.status !== "unknown") existing.status = candidate.status;
-  if (!existing.performance_code && candidate.performance_code) existing.performance_code = candidate.performance_code;
-  if (!existing.purchase_url && candidate.purchase_url) existing.purchase_url = candidate.purchase_url;
+  if (!existing) {
+    const { saleRank: _saleRank, ...performance } = candidate;
+    list.push(performance);
+    if (_saleRank !== undefined) saleRanks.set(list[list.length - 1], _saleRank);
+    return;
+  }
+  const currentRank = statusRank(existing.status);
+  const candidateRank = statusRank(candidate.status);
+  if (candidateRank > currentRank) existing.status = candidate.status;
+  if (candidate.purchase_url && (!existing.purchase_url || (candidate.saleRank ?? 0) > (saleRanks.get(existing) ?? 0))) {
+    existing.purchase_url = candidate.purchase_url;
+    existing.performance_code = candidate.performance_code;
+    if (candidate.saleRank !== undefined) saleRanks.set(existing, candidate.saleRank);
+  } else if (!existing.performance_code && candidate.performance_code) existing.performance_code = candidate.performance_code;
+}
+function statusRank(status: EventStatus): number { return status === "available" ? 4 : status === "upcoming" ? 3 : status === "sold_out" ? 2 : 1; }
+function saleRank(value: string): number {
+  return /venta\s+general|venta\s+normal|general sale/i.test(value) ? 2 : /preventa|banco|medio\s+de\s+pago|tarjeta/i.test(value) ? 1 : 0;
 }
 function queueCode(value: string, baseUrl: string): string | undefined { return allowedPurchaseUrl(value, baseUrl)?.match(QUEUE)?.[1]; }
 // Publication identity requires an explicit publication/event marker; function queue links are never evidence for source_code.

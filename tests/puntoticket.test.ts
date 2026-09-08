@@ -57,6 +57,35 @@ describe("PuntoTicket listing parser", () => {
 });
 
 describe("PuntoTicket detail extraction and normalization", () => {
+  it("consolida modalidades de una función y conserva la alternativa comprable", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-01T20:00:00-03:00"><a>AGOTADO</a></div>
+      <div class="button-block" data-performance-date="2026-11-01T20:00:00-03:00"><a href="/queue/enqueue/AVAILABLE">DISPONIBLE</a></div>
+    `, "https://www.puntoticket.com/evento/modalidades").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([{ date: "2026-11-01T20:00:00-03:00", status: "available", performance_code: "AVAILABLE", purchase_url: "/queue/enqueue/AVAILABLE" }]);
+  });
+
+  it("no considera comprable una disponibilidad sin URL válida", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-02T20:00:00-03:00" data-status="DISPONIBLE"><a href="/tickets/no-valido">COMPRAR</a></div>
+    `, "https://www.puntoticket.com/evento/modalidad-invalida").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances[0]).toEqual({ date: "2026-11-02T20:00:00-03:00", status: "unknown" });
+  });
+
+  it("prefiere venta general y ordena funciones por inicio normalizado", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-03T23:00:00Z"><span>PREVENTA</span><a href="/queue/enqueue/PRE">DISPONIBLE</a></div>
+      <div class="button-block" data-performance-date="2026-11-03T20:00:00-03:00"><span>VENTA GENERAL</span><a href="/queue/enqueue/GEN">DISPONIBLE</a></div>
+      <div class="button-block" data-performance-date="2026-11-04T20:00:00-03:00"><span>VENTA GENERAL</span><a href="/queue/enqueue/NEXT">DISPONIBLE</a></div>
+    `, "https://www.puntoticket.com/evento/modalidades-orden").value!;
+    const normalized = normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
+    expect(normalized.performances.map(({ starts_at, performance_code }) => [starts_at, performance_code])).toEqual([
+      ["2026-11-03T20:00:00-03:00", "GEN"], ["2026-11-04T20:00:00-03:00", "NEXT"]
+    ]);
+  });
+
   it("extracts valid HTTPS image and coordinates without downloading the image", () => {
     const raw = parseEventDetail(metadataFixture, "https://www.puntoticket.com/evento/metadatos").value!;
     const extracted = extractDetail(raw).value!;
@@ -220,8 +249,8 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(extractedResult.errors).toEqual(["invalid_performance_date: 2026-09-06T00:30:00"]);
     const normalized = normalizeEvent(raw, extractedResult.value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.performances.map((performance) => performance.starts_at)).toEqual([
-      "2026-09-06T01:30:00-03:00",
       "2026-06-15T20:00:00-04:00",
+      "2026-09-06T01:30:00-03:00",
       "2026-12-15T20:00:00-03:00"
     ]);
   });
@@ -236,7 +265,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ]}</script>
     `, "https://www.puntoticket.com/evento/availability").value!;
     expect(extractDetail(raw).value!.performances.map((performance) => performance.status)).toEqual([
-      "upcoming", "upcoming", "available", "sold_out"
+      "upcoming", "upcoming", "unknown", "sold_out"
     ]);
   });
 
@@ -250,6 +279,6 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ["2026-09-14T20:00:00", "PERF-B"]
     ]);
     const normalized = normalizeEvent(raw, extractedResult.value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
-    expect(normalized.performances.map(({ performance_code }) => performance_code)).toEqual(["PERF-C", "PERF-A", "PERF-B"]);
+    expect(normalized.performances.map(({ performance_code }) => performance_code)).toEqual(["PERF-A", "PERF-B", "PERF-C"]);
   });
 });

@@ -9,7 +9,7 @@ export function normalizeEvent(detail: RawEventDetail, extracted: ExtractedDetai
     starts_at: toSantiago(performance.date), timezone: "America/Santiago", status: performance.status,
     ...(performance.performance_code ? { performance_code: performance.performance_code } : {}),
     ...(performance.purchase_url ? (() => { const url = allowedPurchaseUrl(performance.purchase_url!, sourceUrl); return url ? { purchase_url: url } : {}; })() : {})
-  }));
+  })).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const purchaseUrl = detail.purchase_url ? allowedPurchaseUrl(detail.purchase_url, sourceUrl) : undefined;
   const imageUrl = validHttpsUrl(extracted.image_url);
   const venue = normalizeVenue(extracted.venue);
