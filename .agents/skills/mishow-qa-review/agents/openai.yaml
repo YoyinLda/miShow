@@ -1,0 +1,4 @@
+interface:
+  display_name: "miShow · QA"
+  short_description: "Valida criterios, ejecuta pruebas y reporta evidencia"
+  default_prompt: "Valida esta historia de miShow y entrega un veredicto QA con evidencia."

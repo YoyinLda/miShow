@@ -1,0 +1,16 @@
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+interrupt_message = true
+
+[agents.designer]
+description = "Diseñador UX/UI mobile-first de miShow."
+config_file = "agents/designer.toml"
+
+[agents.dev]
+description = "Desarrollador encargado de implementar historias aprobadas de miShow."
+config_file = "agents/dev.toml"
+
+[agents.qa]
+description = "QA independiente para validar cambios de miShow con evidencia."
+config_file = "agents/qa.toml"

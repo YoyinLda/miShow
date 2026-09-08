@@ -1,0 +1,4 @@
+interface:
+  display_name: "miShow · Diseño"
+  short_description: "Diseña flujos mobile-first y criterios visuales"
+  default_prompt: "Diseña esta funcionalidad de miShow y entrega una especificación lista para Dev y QA."

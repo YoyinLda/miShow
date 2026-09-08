@@ -1,0 +1,4 @@
+interface:
+  display_name: "miShow · Implementar"
+  short_description: "Implementa una historia aprobada y la entrega a QA"
+  default_prompt: "Implementa esta historia de miShow siguiendo sus criterios y prepara el handoff para QA."
