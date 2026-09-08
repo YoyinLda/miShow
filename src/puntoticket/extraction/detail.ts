@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { EventStatus, ExtractionResult, RawEventDetail } from "../contracts.js";
 import { instantKey } from "../time.js";
-import { allowedPurchaseUrl } from "../url.js";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "../url.js";
 
 const QUEUE = /\/queue\/enqueue\/([^/?#]+)/i;
 const FUNCTION_BLOCK_SELECTOR = "[data-performance-date], [data-function-date], [data-event-date], .performance, .funcion, .event-date, [data-function], .button-block";
@@ -9,6 +9,7 @@ const PUBLICATION_CODE_SELECTOR = "[data-publication-code], [data-source-code], 
 const statuses: Array<[RegExp, EventStatus]> = [[/agotad|sold[ -]?out/i, "sold_out"], [/pr[oó]ximamente|coming soon|\bpreorder\b|https?:\/\/schema\.org\/preorder(?:\b|$)/i, "upcoming"], [/comprar|disponible|venta|in[ -]?stock/i, "available"]];
 
 export function parseEventDetail(html: string, sourceUrl: string): ExtractionResult<RawEventDetail> {
+  const canonicalUrl = canonicalSourceUrl(sourceUrl);
   const $ = cheerio.load(html);
   const jsonLd: unknown[] = [];
   const errors: string[] = [];
@@ -21,12 +22,12 @@ export function parseEventDetail(html: string, sourceUrl: string): ExtractionRes
     }
   });
   const sourceCode = publicationCode($);
-  const purchaseUrl = publicationPurchaseUrl($, sourceUrl);
-  return { value: { source_url: sourceUrl, html, json_ld: jsonLd, source_code: sourceCode, purchase_url: purchaseUrl }, errors };
+  const purchaseUrl = publicationPurchaseUrl($, canonicalUrl);
+  return { value: { source_url: canonicalUrl, html, json_ld: jsonLd, source_code: sourceCode, purchase_url: purchaseUrl }, errors };
 }
 
 export interface ExtractedDetail {
-  name?: string; artists: string[]; venue?: { name?: string; address?: string; city?: string };
+  name?: string; artists: string[]; image_url?: string; venue?: { name?: string; address?: string; city?: string; latitude?: number; longitude?: number };
   performances: Array<{ date: string; status: EventStatus; performance_code?: string; purchase_url?: string }>;
   price?: { min?: number; max?: number; currency?: string };
 }
@@ -61,7 +62,12 @@ export function extractDetail(detail: RawEventDetail): ExtractionResult<Extracte
       addPerformance(performances, { date: item.startDate, status: statusFrom(offerAvailability(item.offers)), ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
     }
   }
-  return { value: { name: event.name ?? ($("h1").first().text().trim() || undefined), artists, venue: { name: place.name, address: address.streetAddress, city: address.addressLocality }, performances, price: priceFrom(events.flatMap(offersInEvent)) }, errors };
+  const geo = place.geo && typeof place.geo === "object" ? place.geo : {};
+  const latitude = coordinate(geo.latitude, -90, 90);
+  const longitude = coordinate(geo.longitude, -180, 180);
+  const venue = { name: place.name, address: address.streetAddress, city: address.addressLocality, ...(latitude !== undefined ? { latitude } : {}), ...(longitude !== undefined ? { longitude } : {}) };
+  const imageUrl = image(event.image);
+  return { value: { name: event.name ?? ($("h1").first().text().trim() || undefined), artists, ...(imageUrl ? { image_url: imageUrl } : {}), venue, performances, price: priceFrom(events.flatMap(offersInEvent)) }, errors };
 }
 
 function statusFrom(value: string): EventStatus { return statuses.find(([pattern]) => pattern.test(value))?.[1] ?? "unknown"; }
@@ -86,7 +92,25 @@ function priceFrom(offers: unknown[]): ExtractedDetail["price"] | undefined {
   const currencies = records.map((offer) => offer.priceCurrency ?? offer.PriceCurrency ?? offer.currency).find((value): value is string => typeof value === "string");
   return { min: mins.length ? Math.min(...mins) : undefined, max: maxs.length ? Math.max(...maxs) : undefined, ...(currencies ? { currency: currencies } : {}) };
 }
-function number(value: unknown): number | undefined { const parsed = typeof value === "number" ? value : Number(value); return Number.isFinite(parsed) ? parsed : undefined; }
+function number(value: unknown): number | undefined {
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
+  if (typeof value === "string" && value.trim() === "") return undefined;
+  const parsed = typeof value === "number" ? value : Number(value.trim());
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+function coordinate(value: unknown, min: number, max: number): number | undefined {
+  const parsed = number(value);
+  return parsed !== undefined && parsed >= min && parsed <= max ? parsed : undefined;
+}
+function image(value: unknown): string | undefined {
+  const candidates = values(value).flatMap((item) => {
+    if (typeof item === "string") return [item];
+    if (isRecord(item)) return [item.url, item.contentUrl].filter((url): url is string => typeof url === "string");
+    return [];
+  });
+  return candidates.find(isHttpsUrl);
+}
+function isHttpsUrl(value: string): boolean { try { const url = new URL(value); return url.protocol === "https:" && Boolean(url.hostname); } catch { return false; } }
 function isRecord(value: unknown): value is Record<string, any> { return Boolean(value && typeof value === "object"); }
 function values(value: unknown): unknown[] { return Array.isArray(value) ? value : value === undefined ? [] : [value]; }
 function nameOf(value: unknown): string | undefined { return typeof value === "string" ? value : isRecord(value) && typeof value.name === "string" ? value.name : undefined; }

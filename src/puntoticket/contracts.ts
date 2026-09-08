@@ -24,11 +24,13 @@ export interface EventPerformance {
 export interface NormalizedEvent {
   source: "puntoticket";
   source_url: string;
+  extracted_at: string;
   purchase_url?: string;
   source_code?: string;
+  image_url?: string;
   name: string;
   artists: string[];
-  venue?: { name?: string; address?: string; city?: string };
+  venue?: { name?: string; address?: string; city?: string; latitude?: number; longitude?: number };
   performances: EventPerformance[];
   status: EventStatus;
   price?: { min?: number; max?: number; currency?: string };

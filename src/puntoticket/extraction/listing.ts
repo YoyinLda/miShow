@@ -1,12 +1,14 @@
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import type { RawEventReference } from "../contracts.js";
+import { canonicalSourceUrl } from "../url.js";
 
 const BASE_URL = "https://www.puntoticket.com";
 const EVENT_PATH = /^\/evento\/[A-Za-z0-9-]+\/?$/i;
 const NON_EVENT_PATH = /^\/(?:musica|conciertos|festivales|recintos|servicios|contacto|ayuda|login|registro|carrito|queue)(?:\/|$)/i;
 
 export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`): RawEventReference[] {
+  const canonicalBaseUrl = canonicalSourceUrl(baseUrl, "base-url");
   const $ = cheerio.load(html);
   const seen = new Set<string>();
   const result: RawEventReference[] = [];
@@ -14,18 +16,16 @@ export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`):
     const raw = $(element).attr("href");
     if (!raw) return;
     let url: URL;
-    try { url = new URL(raw, baseUrl); } catch { return; }
-    if (url.origin !== new URL(baseUrl).origin || url.pathname === "/" || NON_EVENT_PATH.test(url.pathname)) return;
+    try { url = new URL(canonicalSourceUrl(new URL(raw, canonicalBaseUrl).href), canonicalBaseUrl); } catch { return; }
+    if (url.hostname !== "www.puntoticket.com" || url.origin !== new URL(canonicalBaseUrl).origin || url.pathname === "/" || NON_EVENT_PATH.test(url.pathname)) return;
     const isCanonicalEvent = EVENT_PATH.test(url.pathname);
     const isStructuredLanding = !isCanonicalEvent && isEventCardLink(element, $);
     if (!isCanonicalEvent && !isStructuredLanding) return;
-    url.search = "";
-    url.hash = "";
-    url.pathname = url.pathname.replace(/\/$/, "");
-    if (seen.has(url.href)) return;
-    seen.add(url.href);
+    const sourceUrl = canonicalSourceUrl(url.href);
+    if (seen.has(sourceUrl)) return;
+    seen.add(sourceUrl);
     const title = $(element).find("h3, [data-event-title]").first().text().trim() || $(element).attr("title")?.trim();
-    result.push(title ? { source_url: url.href, title } : { source_url: url.href });
+    result.push(title ? { source_url: sourceUrl, title } : { source_url: sourceUrl });
   });
   return result;
 }

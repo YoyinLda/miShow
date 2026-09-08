@@ -16,6 +16,11 @@ Representa el evento canónico, independiente de una ticketera.
 - `created_at`
 - `updated_at`
 
+Durante el flujo fixture-first, el contrato normalizado conserva además
+`extracted_at` (obligatorio), `image_url` HTTPS opcional y coordenadas
+opcionales del recinto. `source_code` es opcional: no debe fabricarse a partir
+de enlaces de compra.
+
 ### Performance
 
 Representa una fecha o función concreta del evento.
@@ -105,6 +110,11 @@ erDiagram
 
 ## Deduplicación
 
+Hasta implementar persistencia, la clave provisional de una publicación es la
+pareja `source` + `source_url` canónica. Es una convención de aplicación, no
+una restricción SQL; la historia de persistencia deberá definir la migración y
+las restricciones PostgreSQL correspondientes.
+
 La deduplicación probablemente combinará:
 
 - Nombre normalizado del evento.
@@ -123,4 +133,3 @@ No debe realizarse una fusión destructiva cuando la coincidencia sea incierta. 
 - Decidir si precios históricos forman parte del MVP.
 - Definir soporte inicial para eventos con fecha o recinto por confirmar.
 - Evaluar búsqueda nativa de PostgreSQL frente a un servicio especializado en fases posteriores.
-

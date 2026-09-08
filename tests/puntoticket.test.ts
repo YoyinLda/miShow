@@ -3,9 +3,11 @@ import { extractDetail, parseEventDetail } from "../src/puntoticket/extraction/d
 import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
 import { normalizeEvent } from "../src/puntoticket/normalization.js";
 import { readFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 
 const functionsFixture = readFileSync(new URL("./fixtures/puntoticket-functions.html", import.meta.url), "utf8");
 const qaRegressionsFixture = readFileSync(new URL("./fixtures/puntoticket-qa-regressions.html", import.meta.url), "utf8");
+const metadataFixture = readFileSync(new URL("./fixtures/puntoticket-metadata.html", import.meta.url), "utf8");
 
 const listing = `
   <a href="/evento/FNA387/"><h3>Caluga</h3></a>
@@ -37,9 +39,68 @@ describe("PuntoTicket listing parser", () => {
   it("always excludes the root path, including event-looking cards", () => {
     expect(parseMusicListing(`<article class="event-card"><a href="/"><h3>Inicio</h3><time>10 OCT</time></a></article>`)).toEqual([]);
   });
+
+  it("canonicalizes the event route before matching it and keeps exclusions", () => {
+    expect(parseMusicListing(`
+      <a href="/evento/FNA387///?ref=qa#card"><h3>Caluga</h3></a>
+      <a href="/musica///?ref=qa#card"><h3>Categoría</h3></a>
+      <a href="https://evil.example/evento/EXTERNO///?ref=qa#card"><h3>Externo</h3></a>
+    `)).toEqual([{ source_url: "https://www.puntoticket.com/evento/FNA387", title: "Caluga" }]);
+  });
+
+  it("canonicalizes the base URL and rejects an external base host", () => {
+    expect(parseMusicListing(`<a href="/evento/FNA387/?x=1#card"><h3>Evento</h3></a>`, "https://www.puntoticket.com/musica/?page=2")).toEqual([
+      { source_url: "https://www.puntoticket.com/evento/FNA387", title: "Evento" }
+    ]);
+    expect(() => parseMusicListing("<a href='/evento/FNA387'>Evento</a>", "https://evil.example/musica")).toThrow("base-url debe usar el host exacto www.puntoticket.com");
+  });
 });
 
 describe("PuntoTicket detail extraction and normalization", () => {
+  it("extracts valid HTTPS image and coordinates without downloading the image", () => {
+    const raw = parseEventDetail(metadataFixture, "https://www.puntoticket.com/evento/metadatos").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.image_url).toBe("https://cdn.example.test/event.jpg");
+    expect(extracted.venue).toMatchObject({ latitude: -33.45, longitude: -70.66 });
+    expect(extracted.price).toEqual({ min: undefined, max: 0, currency: "CLP" });
+    expect(normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" })).toMatchObject({
+      image_url: "https://cdn.example.test/event.jpg",
+      extracted_at: "2026-09-08T12:00:00.000Z"
+    });
+  });
+
+  it("canonicalizes and requires a PuntoTicket source URL", () => {
+    const result = parseEventDetail("<h1>Evento</h1>", "https://www.puntoticket.com/evento/x/?ref=qa#detail");
+    expect(result.value?.source_url).toBe("https://www.puntoticket.com/evento/x");
+    expect(() => parseEventDetail("<h1>Evento</h1>", "https://evil.example/evento/x")).toThrow("source_url debe usar el host exacto www.puntoticket.com");
+    expect(() => parseEventDetail("<h1>Evento</h1>", "")).toThrow("source_url es obligatorio");
+  });
+
+  it("protects normalized image, price and coordinate fields", () => {
+    const raw = parseEventDetail("<h1>Protegido</h1>", "https://www.puntoticket.com/evento/protegido").value!;
+    const normalized = normalizeEvent(raw, {
+      name: "Protegido", artists: [], image_url: "http://example.test/image.jpg", venue: { latitude: 91, longitude: -181 },
+      performances: [], price: { min: true as unknown as number, max: "  " as unknown as number, currency: "CLP" }
+    }, { extracted_at: "2026-09-08T12:00:00.000Z" });
+    expect(normalized).not.toHaveProperty("image_url");
+    expect(normalized).not.toHaveProperty("price");
+    expect(normalized.venue).toMatchObject({ latitude: undefined, longitude: undefined });
+  });
+
+  it("emits JSON-only CLI stdout when invoked with npm --silent run", () => {
+    const result = spawnSync("npm", ["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-metadata.html"], { encoding: "utf8" });
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+  });
+
+  it("does not convert empty, whitespace, null or non-numeric prices to zero", () => {
+    const raw = parseEventDetail(`<script type="application/ld+json">{"@type":"Event","startDate":"2026-10-01T20:00:00-03:00","offers":[{"lowPrice":null,"highPrice":"   "},{"price":"nope"}]}</script>`, "https://www.puntoticket.com/evento/precios").value!;
+    expect(extractDetail(raw).value!.price).toBeUndefined();
+    const zeroRaw = parseEventDetail(`<script type="application/ld+json">{"@type":"Event","startDate":"2026-10-01T20:00:00-03:00","offers":{"price":0}}</script>`, "https://www.puntoticket.com/evento/cero").value!;
+    expect(extractDetail(zeroRaw).value!.price).toMatchObject({ min: 0, max: 0 });
+  });
+
   it("extracts Spanish function blocks and merges JSON-LD without propagating publication URLs", () => {
     const raw = parseEventDetail(functionsFixture, "https://www.puntoticket.com/evento/sintetico").value!;
     expect(raw.source_code).toBe("PUB");
@@ -50,7 +111,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ["2026-12-12T20:00:00", "available", "PERF", "/queue/enqueue/PERF"],
       ["2026-12-13T20:00:00", "available", "PERF2", "/queue/enqueue/PERF2"]
     ]);
-    const normalized = normalizeEvent(raw, extracted);
+    const normalized = normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.source_code).toBe("PUB");
     expect(normalized).not.toHaveProperty("purchase_url");
     expect(normalized.performances[0]).not.toHaveProperty("purchase_url");
@@ -74,7 +135,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(extracted.performances.map((p) => [p.date, p.status])).toEqual([
       ["2026-12-11T20:00:00-03:00", "sold_out"], ["2026-12-12T20:00:00-03:00", "available"]
     ]);
-    const normalized = normalizeEvent(raw, extracted);
+    const normalized = normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.source_code).toBeUndefined();
     expect(normalized.source_url).not.toBe(normalized.performances[1].purchase_url);
     expect(normalized.status).toBe("available");
@@ -95,7 +156,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
     const raw = parseEventDetail(`<script type="application/ld+json">{"@type":"Event","name":"TBD","startDate":"2026-10-01T20:00:00-03:00"}</script>`, "https://www.puntoticket.com/evento/TBD").value!;
     const extracted = extractDetail(raw).value!;
     expect(extracted.performances[0].status).toBe("unknown");
-    expect(normalizeEvent(raw, extracted).performances[0]).not.toHaveProperty("purchase_url");
+    expect(normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" }).performances[0]).not.toHaveProperty("purchase_url");
   });
 
   it("does not propagate unsafe or external purchase URLs", () => {
@@ -113,7 +174,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(extracted.performances[3].purchase_url).toBe("/queue/enqueue/SAFE");
     expect(extracted.performances.slice(4).every((performance) => !performance.purchase_url)).toBe(true);
     raw.purchase_url = "javascript:alert(1)";
-    expect(normalizeEvent(raw, extracted)).not.toHaveProperty("purchase_url");
+    expect(normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" })).not.toHaveProperty("purchase_url");
   });
 
   it("extracts independent HTML availability, JSON-LD functions and PriceCurrency", () => {
@@ -141,7 +202,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
   it("interprets an offset-less local date in Santiago and keeps publication purchase_url", () => {
     const raw = parseEventDetail(`<script type="application/ld+json">{"@type":"Event","name":"Local","startDate":"2026-12-12T20:00:00"}</script>`, "https://www.puntoticket.com/evento/local").value!;
     raw.purchase_url = "https://www.puntoticket.com/queue/enqueue/LOCAL";
-    const normalized = normalizeEvent(raw, extractDetail(raw).value!);
+    const normalized = normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.purchase_url).toBe(raw.purchase_url);
     expect(normalized.performances[0].starts_at).toBe("2026-12-12T20:00:00-03:00");
   });
@@ -157,7 +218,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
     `, "https://www.puntoticket.com/evento/dst").value!;
     const extractedResult = extractDetail(raw);
     expect(extractedResult.errors).toEqual(["invalid_performance_date: 2026-09-06T00:30:00"]);
-    const normalized = normalizeEvent(raw, extractedResult.value!);
+    const normalized = normalizeEvent(raw, extractedResult.value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.performances.map((performance) => performance.starts_at)).toEqual([
       "2026-09-06T01:30:00-03:00",
       "2026-06-15T20:00:00-04:00",
@@ -188,7 +249,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ["2026-09-13T20:00:00", "PERF-A"],
       ["2026-09-14T20:00:00", "PERF-B"]
     ]);
-    const normalized = normalizeEvent(raw, extractedResult.value!);
+    const normalized = normalizeEvent(raw, extractedResult.value!, { extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(normalized.performances.map(({ performance_code }) => performance_code)).toEqual(["PERF-C", "PERF-A", "PERF-B"]);
   });
 });

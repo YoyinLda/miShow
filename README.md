@@ -43,16 +43,29 @@ Requisitos: Node.js >=20.18.1. Este mínimo coincide con la dependencia efectiva
 
 ```bash
 npm install
+npm run dev
 npm test
 npm run typecheck
 npm run lint
+npm run qa
+npm --silent run puntoticket:listing -- <ruta-html> [base-url]
+npm --silent run puntoticket:detail -- <ruta-html> <source-url> [extracted-at]
 ```
+
+`npm run dev` ejecuta Vitest en modo observación sobre los fixtures; actualmente
+no existe un frontend, API ni proceso de persistencia que justifique un
+`npm start`. `npm run qa` ejecuta typecheck, lint y tests en una sola orden.
+Las CLI de PuntoTicket leen únicamente HTML local, escriben JSON en stdout (por
+eso los comandos documentados usan `npm --silent run`) y
+no hacen solicitudes de red; la fecha `extracted_at` del detalle puede fijarse
+para obtener salidas reproducibles.
 
 Los fixtures sintéticos de `tests/puntoticket.test.ts` cubren rutas de evento
 relativas y absolutas, landings respaldadas por tarjetas estructurales,
 deduplicación, funciones múltiples, estados, cola de compra, JSON-LD inválido
 y zona horaria `America/Santiago`, incluyendo identificadores por performance,
-fechas calendario inválidas, ruta raíz y tipos JSON-LD `Event` completos. Los
+fechas calendario inválidas, ruta raíz, tipos JSON-LD `Event` completos,
+metadatos HTTPS/coordenadas y precios límite. Los
 enlaces de compra solo se conservan si son `http`/`https` del origen permitido
 de PuntoTicket. La extracción reporta JSON-LD inválido y funciones rechazadas
 por fecha en `ExtractionResult.errors` sin perder el HTML crudo.
@@ -60,6 +73,10 @@ por fecha en `ExtractionResult.errors` sin perder el HTML crudo.
 Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-first-puntoticket.md)
 para la instalación normal y limpia, el alcance detallado de las pruebas,
 troubleshooting y el handoff para QA.
+
+La identidad provisional de persistencia durante este incremento es la pareja
+`source` + `source_url` canónica; todavía no existe SQL ni una capa de
+persistencia en este flujo.
 
 ## Uso con Codex
 

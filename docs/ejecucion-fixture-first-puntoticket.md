@@ -113,12 +113,15 @@ comprueba, entre otros casos:
 - JSON-LD inválido reportado en `ExtractionResult.errors` sin perder el HTML;
 - fechas calendario inválidas y fechas locales deterministas en
   `America/Santiago`;
-- precio, moneda, artistas, fuente y URL original en la normalización.
+- precio, moneda, artistas, fuente y URL original en la normalización;
+- imagen HTTPS, coordenadas, `extracted_at` obligatorio y precios vacíos o
+  inválidos sin conversión accidental a cero.
 
 Los fixtures son HTML sintético mantenido en:
 
 - `tests/fixtures/puntoticket-functions.html`;
-- `tests/fixtures/puntoticket-qa-regressions.html`.
+- `tests/fixtures/puntoticket-qa-regressions.html`;
+- `tests/fixtures/puntoticket-metadata.html`.
 
 Además, el archivo de tests construye casos HTML pequeños directamente para
 cubrir regresiones y límites específicos. Ningún fixture representa una
@@ -131,6 +134,26 @@ La separación actual es:
 2. normalización: datos extraídos a eventos con contratos del dominio;
 3. persistencia: todavía fuera de esta base fixture-first;
 4. presentación/publicación: todavía fuera de esta base.
+
+## CLI local sin red
+
+Las entradas CLI reutilizan los extractores y el normalizador; no contienen
+lógica de parsing duplicada:
+
+```bash
+npm --silent run puntoticket:listing -- <ruta-html> [base-url]
+npm --silent run puntoticket:detail -- <ruta-html> <source-url> [extracted-at]
+```
+
+Ambas muestran ayuda con `--help`, escriben JSON válido en stdout cuando se
+invocan con `npm --silent run` (el banner normal de `npm run` no es JSON), y reportan
+errores de argumentos o archivos con código distinto de cero. La CLI de
+detalle usa la fecha proporcionada para `extracted_at`; si se omite, genera la
+marca en el borde del comando. Las advertencias de JSON-LD o fechas rechazadas
+se informan en stderr sin descargar imágenes ni seguir enlaces.
+
+La validación manual de HTML real de `.local` es solo local y no versiona ni
+copia esos archivos. Los fixtures versionados son mínimos y sintéticos.
 
 ## Restricciones deliberadas
 
