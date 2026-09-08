@@ -1,5 +1,6 @@
 const PUNTOTICKET_HOST = "www.puntoticket.com";
 const QUEUE_PATH = /^\/queue\/enqueue\/[^/?#]+$/i;
+const BUY_PATH = /^\/comprar\/evento\/[^/?#]+\/cal\/[^/?#]+$/i;
 
 export function canonicalSourceUrl(value: unknown, label = "source_url"): string {
   if (typeof value !== "string" || value.trim() === "") {
@@ -31,8 +32,8 @@ export function allowedPurchaseUrl(value: string, baseUrl: string): string | und
   } catch {
     return undefined;
   }
-  const standardPort = url.port === "" || (url.protocol === "http:" && url.port === "80") || (url.protocol === "https:" && url.port === "443");
+  const standardPort = url.port === "" || url.port === "443";
   if (url.username !== "" || url.password !== "") return undefined;
-  if (!["http:", "https:"].includes(url.protocol) || url.hostname.toLowerCase() !== PUNTOTICKET_HOST || !standardPort || !QUEUE_PATH.test(url.pathname)) return undefined;
+  if (url.protocol !== "https:" || url.hostname !== PUNTOTICKET_HOST || !standardPort || (!QUEUE_PATH.test(url.pathname) && !BUY_PATH.test(url.pathname))) return undefined;
   return url.href;
 }

@@ -66,7 +66,7 @@ describe("PuntoTicket HTTP acquisition client", () => {
   });
 
   it("rejects redirects to external hosts, blocked routes and excessive chains", async () => {
-    for (const location of ["https://evil.example/evento/X", "/queue/enqueue/BUY"]) {
+    for (const location of ["https://evil.example/evento/X", "/queue/enqueue/BUY", "/comprar/evento/FNA387/cal/1"]) {
       const client = new PuntoTicketHttpClient({ transport: async () => response(302, "", { location }), sleep: async () => undefined });
       await expect(client.getHtml("https://www.puntoticket.com/evento/X", "detail")).rejects.toMatchObject({ code: "redirect_rejected" });
     }
@@ -219,6 +219,7 @@ describe("PuntoTicket scrape orchestrator", () => {
     expect(result.summary).toEqual({ discovered: 2, attempted: 2, succeeded: 1, failed: 1 });
     expect(result.errors).toMatchObject([{ stage: "detail", source_url: "https://www.puntoticket.com/evento/MISSING", code: "http_error" }]);
     expect(calls).not.toContain("https://www.puntoticket.com/queue/enqueue/A");
+    expect(calls).not.toContain("https://www.puntoticket.com/comprar/evento/A/cal/1");
   });
 
   it("treats a listing failure as global failure with no partial JSON result", async () => {
@@ -273,5 +274,5 @@ async function scrapeWith(options: { transport: HttpTransport; maxEvents?: numbe
 }
 
 function detailHtml(name: string, startDate: string, code: string): string {
-  return `<h1>${name}</h1><script type="application/ld+json">{"@type":"Event","name":"${name}","startDate":"${startDate}","offers":{"url":"/queue/enqueue/${code}","availability":"https://schema.org/InStock"}}</script>`;
+  return `<h1>${name}</h1><script type="application/ld+json">{"@type":"Event","name":"${name}","startDate":"${startDate}","offers":{"url":"/queue/enqueue/${code}","availability":"https://schema.org/InStock"}}</script><a href="/comprar/evento/${code}/cal/1">Comprar</a>`;
 }

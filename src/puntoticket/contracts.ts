@@ -11,6 +11,10 @@ export interface RawEventDetail {
   json_ld: unknown[];
   source_code?: string;
   purchase_url?: string;
+  availability_evidence?: {
+    status: EventStatus;
+    reason: "valid_publication_purchase_link";
+  };
 }
 
 export interface EventPerformance {

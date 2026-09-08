@@ -65,16 +65,20 @@ deduplicación, funciones múltiples, estados, cola de compra, JSON-LD inválido
 y zona horaria `America/Santiago`, incluyendo identificadores por performance,
 fechas calendario inválidas, ruta raíz, tipos JSON-LD `Event` completos,
 metadatos HTTPS/coordenadas y precios límite. Los
-enlaces de compra solo se conservan si son `http`/`https` del origen permitido
-de PuntoTicket. La extracción reporta JSON-LD inválido y funciones rechazadas
-por fecha en `ExtractionResult.errors` sin perder el HTML crudo.
+enlaces de compra solo se conservan si son HTTPS del host exacto
+`www.puntoticket.com` y usan rutas permitidas
+`/queue/enqueue/<codigo>` o `/comprar/evento/<codigo>/cal/<calendario>`.
+Nunca se siguen durante adquisición. La extracción reporta JSON-LD inválido y
+funciones rechazadas por fecha en `ExtractionResult.errors` sin perder el HTML
+crudo.
 
 Las funciones se identifican por su fecha y hora normalizadas. Los bloques
 comerciales sin fecha se asocian únicamente cuando existe una sola función
-conocida; si hay varias, se reportan como `unassociated_commercial_block` y no
-se asignan arbitrariamente. Las fechas mencionadas en textos legales de venta
-no se interpretan como fechas de función. `extracted_at` debe ser un timestamp
-ISO-8601 con zona horaria.
+conocida; si la asociación no es segura, se reporta
+`ambiguous performance purchase mapping`, el evento puede quedar globalmente
+`available` y la función permanece `unknown` sin `purchase_url`. Las fechas
+mencionadas en textos legales de venta no se interpretan como fechas de
+función. `extracted_at` debe ser un timestamp ISO-8601 con zona horaria.
 
 Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-first-puntoticket.md)
 para la instalación normal y limpia, el alcance detallado de las pruebas,

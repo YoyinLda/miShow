@@ -214,7 +214,28 @@ Las pruebas deben continuar siendo locales, deterministas e idempotentes:
 - no incorporan cobros ni servicios de infraestructura.
 
 Los enlaces de fuente y compra se analizan como datos. La URL de compra solo se
-conserva cuando cumple las reglas del adaptador de PuntoTicket; no se abre.
+conserva cuando cumple las reglas del adaptador de PuntoTicket; no se abre. Hoy
+solo se acepta `https://www.puntoticket.com/queue/enqueue/<codigo>` o
+`https://www.puntoticket.com/comprar/evento/<codigo>/cal/<calendario>`, sin
+credenciales, sin hosts parecidos, sin HTTP y sin puertos alternativos. Para la
+ruta `/comprar/evento/.../cal/...`, el `performance_code` corresponde al codigo
+del evento, no al calendario.
+
+El extractor reconoce disponibilidad comprable desde controles visibles y
+habilitados, incluyendo `data-buyLink` con variaciones de mayusculas/minusculas
+en el nombre del atributo, `.icon-status.available` dentro de un bloque de
+funcion y enlaces validos de compra a nivel publicacion. Botones `disabled`,
+`aria-disabled` u ocultos no generan disponibilidad comprable por si solos.
+
+`horasPorFecha` solo se procesa cuando el valor asignado es un literal JSON
+estricto, acotado y determinista. De ese bloque se usan solamente filas con
+`Fecha`, `Hora`, `Disabled:false`, `URL`, `Codigo` y `Calendario` explicitos y
+consistentes con la URL permitida. No se ejecuta JavaScript, no se usa `eval` y
+no se infieren asociaciones desde `cal`, `ct`, imagenes, posicion visual o texto
+legal. Cuando existen enlaces de compra validos pero no hay relacion segura con
+funciones especificas, el evento puede quedar globalmente `available`, las
+funciones quedan `unknown` y se reporta la advertencia exacta
+`ambiguous performance purchase mapping`.
 
 ## Troubleshooting básico
 
