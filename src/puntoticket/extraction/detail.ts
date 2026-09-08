@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import type { AnyNode } from "domhandler";
 import type { EventStatus, ExtractionResult, RawEventDetail } from "../contracts.js";
 import { instantKey } from "../time.js";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "../url.js";
@@ -44,16 +45,16 @@ export function extractDetail(detail: RawEventDetail): ExtractionResult<Extracte
   const place = event.location && typeof event.location === "object" ? event.location : {};
   const address = place.address && typeof place.address === "object" ? place.address : {};
   const performances: ExtractedDetail["performances"] = [];
+  const undatedModalities: Array<Omit<PerformanceCandidate, "date">> = [];
   const referenceDate = events.map((item) => item.startDate).find((value): value is string => typeof value === "string");
   $(FUNCTION_BLOCK_SELECTOR).each((_, node) => {
     const current = $(node);
-    const text = current.html()?.replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]+>/g, " ").trim() ?? current.text().trim();
-    const date = current.attr("data-performance-date") ?? current.attr("data-function-date") ?? current.attr("data-event-date") ?? dateFromSpanish(text, referenceDate);
-    if (!date) return;
-    const href = current.attr("data-purchase-url") ?? current.find("a[href]").first().attr("href");
-    const purchaseUrl = href && allowedPurchaseUrl(href, detail.source_url) ? href : undefined;
-    const status = statusFrom(current.attr("data-status") ?? text);
-    addPerformance(performances, { date, status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}), saleRank: saleRank(text) }, errors);
+    const text = nodeText(current);
+    const date = explicitFunctionDate(current) ?? datedHeading(current, referenceDate) ?? (current.find(".legal_btn").length ? undefined : dateFromSpanish(text, referenceDate));
+    const modality = commercialCandidate(current, detail.source_url, text);
+    if (!modality) return;
+    if (date) addPerformance(performances, { date, ...modality }, errors);
+    else undatedModalities.push(modality);
   });
   for (const item of events) {
     for (const subEvent of values(item.subEvent)) {
@@ -68,6 +69,10 @@ export function extractDetail(detail: RawEventDetail): ExtractionResult<Extracte
       addPerformance(performances, { date: item.startDate, status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, detail.source_url), purchase_url: purchaseUrl } : {}) }, errors);
     }
   }
+  if (undatedModalities.length) {
+    if (performances.length === 1) for (const modality of undatedModalities) addPerformance(performances, { date: performances[0].date, ...modality }, errors);
+    else errors.push(...undatedModalities.map(() => "unassociated_commercial_block"));
+  }
   const geo = place.geo && typeof place.geo === "object" ? place.geo : {};
   const latitude = coordinate(geo.latitude, -90, 90);
   const longitude = coordinate(geo.longitude, -180, 180);
@@ -77,6 +82,20 @@ export function extractDetail(detail: RawEventDetail): ExtractionResult<Extracte
 }
 
 function statusFrom(value: string): EventStatus { return statuses.find(([pattern]) => pattern.test(value))?.[1] ?? "unknown"; }
+function nodeText(current: cheerio.Cheerio<AnyNode>): string { return current.html()?.replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() ?? current.text().trim(); }
+function explicitFunctionDate(current: cheerio.Cheerio<AnyNode>): string | undefined {
+  return current.attr("data-performance-date") ?? current.attr("data-function-date") ?? current.attr("data-event-date");
+}
+function datedHeading(current: cheerio.Cheerio<AnyNode>, referenceDate?: string): string | undefined {
+  const heading = current.find("h1,h2,h3,h4,h5,h6,time,[data-date]").first();
+  return heading.length ? dateFromSpanish(heading.text().trim(), referenceDate) : undefined;
+}
+function commercialCandidate(current: cheerio.Cheerio<AnyNode>, baseUrl: string, text: string): Omit<PerformanceCandidate, "date"> | undefined {
+  const href = current.attr("data-purchase-url") ?? current.find("a[href]").first().attr("href");
+  const purchaseUrl = href && allowedPurchaseUrl(href, baseUrl) ? href : undefined;
+  const status = statusFrom(current.attr("data-status") ?? text);
+  return { status: status === "available" && !purchaseUrl ? "unknown" : status, ...(purchaseUrl ? { performance_code: queueCode(purchaseUrl, baseUrl), purchase_url: purchaseUrl } : {}), saleRank: saleRank(text) };
+}
 function dateFromSpanish(value: string, referenceDate?: string): string | undefined {
   const explicit = dateFrom(value);
   if (explicit || !referenceDate) return explicit;

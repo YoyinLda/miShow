@@ -66,6 +66,30 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(extracted.performances).toEqual([{ date: "2026-11-01T20:00:00-03:00", status: "available", performance_code: "AVAILABLE", purchase_url: "/queue/enqueue/AVAILABLE" }]);
   });
 
+  it("asocia bloques comerciales sin fecha a la única función del JSON-LD", () => {
+    const raw = parseEventDetail(`
+      <script type="application/ld+json">{"@type":"Event","startDate":"2026-12-01T21:00:00"}</script>
+      <section class="button-block"><p>AGOTADO</p><a href=""></a></section>
+      <section class="button-block"><p>DISPONIBLE</p><a href="/queue/enqueue/REAL"></a></section>
+    `, "https://www.puntoticket.com/evento/una-funcion").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([{ date: "2026-12-01T21:00:00", status: "available", performance_code: "REAL", purchase_url: "/queue/enqueue/REAL" }]);
+  });
+
+  it("no asigna bloques sin fecha cuando existen varias funciones", () => {
+    const result = extractDetail(parseEventDetail(`
+      <script type="application/ld+json">{"@type":"Event","subEvent":[{"startDate":"2026-12-01T21:00:00"},{"startDate":"2026-12-02T21:00:00"}]}</script>
+      <section class="button-block"><p>DISPONIBLE</p><a href="/queue/enqueue/AMBIGUO"></a></section>
+    `, "https://www.puntoticket.com/evento/multiples").value!);
+    expect(result.errors).toEqual(["unassociated_commercial_block"]);
+    expect(result.value!.performances.every((performance) => !performance.purchase_url)).toBe(true);
+  });
+
+  it("rechaza extracted_at que no sea un timestamp ISO válido", () => {
+    const raw = parseEventDetail("<h1>Evento</h1>", "https://www.puntoticket.com/evento/fecha").value!;
+    expect(() => normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "no-es-fecha" })).toThrow("extracted_at");
+  });
+
   it("no considera comprable una disponibilidad sin URL válida", () => {
     const raw = parseEventDetail(`
       <div class="button-block" data-performance-date="2026-11-02T20:00:00-03:00" data-status="DISPONIBLE"><a href="/tickets/no-valido">COMPRAR</a></div>

@@ -4,6 +4,7 @@ import { toSantiago } from "./time.js";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "./url.js";
 
 export function normalizeEvent(detail: RawEventDetail, extracted: ExtractedDetail, { extracted_at }: { extracted_at: string }): NormalizedEvent {
+  if (!isIsoTimestamp(extracted_at)) throw new Error("extracted_at debe ser una fecha ISO-8601 válida.");
   const sourceUrl = canonicalSourceUrl(detail.source_url);
   const performances = extracted.performances.map((performance) => ({
     starts_at: toSantiago(performance.date), timezone: "America/Santiago", status: performance.status,
@@ -15,6 +16,10 @@ export function normalizeEvent(detail: RawEventDetail, extracted: ExtractedDetai
   const venue = normalizeVenue(extracted.venue);
   const price = normalizePrice(extracted.price);
   return { source: "puntoticket", source_url: sourceUrl, extracted_at, ...(purchaseUrl ? { purchase_url: purchaseUrl } : {}), ...(detail.source_code ? { source_code: detail.source_code } : {}), ...(imageUrl ? { image_url: imageUrl } : {}), name: clean(extracted.name ?? "Evento sin nombre"), artists: [...new Set(extracted.artists.map(clean).filter(Boolean))].sort(), venue, performances, status: overallStatus(performances.map((p) => p.status)), ...(price ? { price } : {}) };
+}
+
+function isIsoTimestamp(value: string): boolean {
+  return typeof value === "string" && /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)$/.test(value) && Number.isFinite(Date.parse(value));
 }
 
 function clean(value: string): string { return value.replace(/\s+/g, " ").trim(); }
