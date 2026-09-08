@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { extractDetail, parseEventDetail } from "../src/puntoticket/extraction/detail.js";
 import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
 import { normalizeEvent } from "../src/puntoticket/normalization.js";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "../src/puntoticket/url.js";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
@@ -88,6 +89,10 @@ describe("PuntoTicket detail extraction and normalization", () => {
   it("rechaza extracted_at que no sea un timestamp ISO válido", () => {
     const raw = parseEventDetail("<h1>Evento</h1>", "https://www.puntoticket.com/evento/fecha").value!;
     expect(() => normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "no-es-fecha" })).toThrow("extracted_at");
+    expect(() => normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "2026-02-30T12:00:00Z" })).toThrow("extracted_at");
+    for (const extracted_at of ["2026-06-15T20:00:00-04:00", "2026-12-15T20:00:00-03:00"]) {
+      expect(normalizeEvent(raw, extractDetail(raw).value!, { extracted_at }).extracted_at).toBe(extracted_at);
+    }
   });
 
   it("no considera comprable una disponibilidad sin URL válida", () => {
@@ -127,6 +132,42 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(result.value?.source_url).toBe("https://www.puntoticket.com/evento/x");
     expect(() => parseEventDetail("<h1>Evento</h1>", "https://evil.example/evento/x")).toThrow("source_url debe usar el host exacto www.puntoticket.com");
     expect(() => parseEventDetail("<h1>Evento</h1>", "")).toThrow("source_url es obligatorio");
+  });
+
+  it("rejects userinfo centrally for source and purchase URLs without sanitizing", () => {
+    for (const value of [
+      "https://user:pass@www.puntoticket.com/evento/x",
+      "https://user@www.puntoticket.com/evento/x",
+      "https://:pass@www.puntoticket.com/evento/x"
+    ]) {
+      expect(() => canonicalSourceUrl(value)).toThrow();
+      expect(allowedPurchaseUrl(value.replace("/evento/x", "/queue/enqueue/USERINFO"), "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    }
+    expect(canonicalSourceUrl("https://www.puntoticket.com/evento/x")).toBe("https://www.puntoticket.com/evento/x");
+    expect(allowedPurchaseUrl("/queue/enqueue/VALID", "https://www.puntoticket.com/evento/x")).toBe("https://www.puntoticket.com/queue/enqueue/VALID");
+    expect(allowedPurchaseUrl("//user:pass@www.puntoticket.com/queue/enqueue/USERINFO", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+  });
+
+  it("does not propagate userinfo purchases or buyable availability from HTML, JSON-LD or normalization", () => {
+    const raw = parseEventDetail(`
+      <div data-publication-purchase-url="https://user:pass@www.puntoticket.com/queue/enqueue/PUBLICATION"></div>
+      <div class="button-block" data-performance-date="2026-10-01T20:00:00-03:00" data-status="DISPONIBLE">
+        <a href="https://user@www.puntoticket.com/queue/enqueue/HTML">COMPRAR</a>
+      </div>
+      <script type="application/ld+json">{"@type":"Event","startDate":"2026-10-01T20:00:00-03:00","offers":{"availability":"https://schema.org/InStock","url":"https://:pass@www.puntoticket.com/queue/enqueue/JSON"}}</script>
+    `, "https://www.puntoticket.com/evento/userinfo").value!;
+    expect(raw.purchase_url).toBeUndefined();
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([{ date: "2026-10-01T20:00:00-03:00", status: "unknown" }]);
+
+    const normalized = normalizeEvent(raw, {
+      ...extracted,
+      performances: [{ date: "2026-10-01T20:00:00-03:00", status: "available", performance_code: "USERINFO", purchase_url: "https://user:pass@www.puntoticket.com/queue/enqueue/USERINFO" }]
+    }, { extracted_at: "2026-09-08T12:00:00.000Z" });
+    expect(normalized).not.toHaveProperty("purchase_url");
+    expect(normalized.performances[0]).toMatchObject({ status: "unknown" });
+    expect(normalized.performances[0]).not.toHaveProperty("purchase_url");
+    expect(normalized.performances[0]).not.toHaveProperty("performance_code");
   });
 
   it("protects normalized image, price and coordinate fields", () => {
@@ -174,6 +215,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ["listing", ["--", "tests/fixtures/puntoticket-functions.html", "extra", "too-much"]],
       ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://evil.example/evento/x", "2026-09-08T12:00:00.000Z"]],
       ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "not-a-date"]],
+      ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-02-30T12:00:00Z"]],
       ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z", "extra"]]
     ] as const;
     for (const [command, args] of cases) {

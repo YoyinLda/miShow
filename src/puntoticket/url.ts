@@ -14,7 +14,7 @@ export function canonicalSourceUrl(value: unknown, label = "source_url"): string
   }
 
   const standardPort = url.port === "" || (url.protocol === "http:" && url.port === "80") || (url.protocol === "https:" && url.port === "443");
-  if (!["http:", "https:"].includes(url.protocol) || url.hostname !== PUNTOTICKET_HOST || !standardPort || url.username || url.password) {
+  if (!["http:", "https:"].includes(url.protocol) || url.hostname !== PUNTOTICKET_HOST || !standardPort || url.username !== "" || url.password !== "") {
     throw new Error(`${label} debe usar el host exacto www.puntoticket.com.`);
   }
 
@@ -32,6 +32,7 @@ export function allowedPurchaseUrl(value: string, baseUrl: string): string | und
     return undefined;
   }
   const standardPort = url.port === "" || (url.protocol === "http:" && url.port === "80") || (url.protocol === "https:" && url.port === "443");
+  if (url.username !== "" || url.password !== "") return undefined;
   if (!["http:", "https:"].includes(url.protocol) || url.hostname.toLowerCase() !== PUNTOTICKET_HOST || !standardPort || !QUEUE_PATH.test(url.pathname)) return undefined;
   return url.href;
 }

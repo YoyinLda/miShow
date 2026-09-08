@@ -114,6 +114,7 @@ comprueba, entre otros casos:
 - fechas calendario inválidas y fechas locales deterministas en
   `America/Santiago`;
 - precio, moneda, artistas, fuente y URL original en la normalización;
+- rechazo de URLs de performance inválidas sin conservar estado comprable;
 - imagen HTTPS, coordenadas, `extracted_at` obligatorio y precios vacíos o
   inválidos sin conversión accidental a cero.
 
@@ -142,15 +143,17 @@ lógica de parsing duplicada:
 
 ```bash
 npm --silent run puntoticket:listing -- <ruta-html> [base-url]
-npm --silent run puntoticket:detail -- <ruta-html> <source-url> [extracted-at]
+npm --silent run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>
 ```
 
 Ambas muestran ayuda con `--help`, escriben JSON válido en stdout cuando se
 invocan con `npm --silent run` (el banner normal de `npm run` no es JSON), y reportan
 errores de argumentos o archivos con código distinto de cero. La CLI de
-detalle usa la fecha proporcionada para `extracted_at`; si se omite, genera la
-marca en el borde del comando. Las advertencias de JSON-LD o fechas rechazadas
-se informan en stderr sin descargar imágenes ni seguir enlaces.
+detalle exige `<extracted-at>` como timestamp ISO-8601 con zona horaria y
+calendario real, y usa exactamente ese valor para `extracted_at`; no lo genera
+automáticamente. Si se omite o es inválido, termina con código distinto de
+cero. Las advertencias de JSON-LD o fechas rechazadas se informan en stderr sin
+descargar imágenes ni seguir enlaces.
 
 La validación manual de HTML real de `.local` es solo local y no versiona ni
 copia esos archivos. Los fixtures versionados son mínimos y sintéticos.
