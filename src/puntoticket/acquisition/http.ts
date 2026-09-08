@@ -1,4 +1,4 @@
-import { acquisitionConfig, type AcquisitionConfig, type AcquisitionStage, validateAcquisitionUrl } from "./policy.js";
+import { acquisitionConfig, type AcquisitionConfig, type AcquisitionStage, type AcquisitionUrlContext, validateAcquisitionUrl } from "./policy.js";
 
 export type HttpErrorCode = "http_error" | "invalid_content_type" | "response_too_large" | "redirect_rejected" | "too_many_redirects" | "timeout" | "network_error";
 
@@ -46,8 +46,8 @@ export class PuntoTicketHttpClient {
   private readonly transport: HttpTransport;
   private readonly nowMs: () => number;
 
-  async getHtml(url: string, stage: AcquisitionStage): Promise<string> {
-    let currentUrl = validateAcquisitionUrl(url, stage);
+  async getHtml(url: string, stage: AcquisitionStage, context: AcquisitionUrlContext = {}): Promise<string> {
+    let currentUrl = validateAcquisitionUrl(url, stage, undefined, context);
     let redirects = 0;
     let attempts = 0;
     let retryDelayMs = 0;
@@ -87,7 +87,7 @@ export class PuntoTicketHttpClient {
         const location = header(response.headers, "location");
         if (!location) throw new HttpAcquisitionError("redirect_rejected", "Redireccion sin Location.", attempts);
         try {
-          currentUrl = validateAcquisitionUrl(location, stage, currentUrl);
+          currentUrl = validateAcquisitionUrl(location, stage, currentUrl, context);
         } catch (error) {
           throw new HttpAcquisitionError("redirect_rejected", safeMessage(error, "Redireccion rechazada."), attempts);
         }

@@ -54,12 +54,21 @@ export async function scrapePuntoTicket(options: PuntoticketScraperOptions): Pro
     throw globalFailure(error);
   }
 
-  const selected = references.slice(0, config.maxEvents);
-  const detailResults = await mapStable(selected, config.concurrency, async (reference) => {
+  const eligibleReferences = references.flatMap((reference) => {
+    const detailContext = { discoveredDetailUrl: reference.source_url };
+    try {
+      return [{ reference, detailContext, detailUrl: validateAcquisitionUrl(reference.source_url, "detail", undefined, detailContext) }];
+    } catch (error) {
+      if (error instanceof AcquisitionPolicyError) return [];
+      throw error;
+    }
+  });
+
+  const selected = eligibleReferences.slice(0, config.maxEvents);
+  const detailResults = await mapStable(selected, config.concurrency, async ({ reference, detailContext, detailUrl }) => {
     const sourceUrl = safeUrlForError(reference.source_url);
     try {
-      const detailUrl = validateAcquisitionUrl(reference.source_url, "detail");
-      const html = await options.client.getHtml(detailUrl, "detail");
+      const html = await options.client.getHtml(detailUrl, "detail", detailContext);
       const parsed = parseEventDetail(html, detailUrl);
       if (!parsed.value) return { errors: [scrapeError("parse", sourceUrl, "parse_error", "No se pudo extraer el detalle.", 1)] };
       const extracted = extractDetail(parsed.value);

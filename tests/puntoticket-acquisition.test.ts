@@ -3,18 +3,20 @@ import { describe, expect, it } from "vitest";
 import { PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/puntoticket/acquisition/http.js";
 import { scrapePuntoTicket } from "../src/puntoticket/acquisition/orchestrator.js";
 import { acquisitionConfig, validateAcquisitionUrl } from "../src/puntoticket/acquisition/policy.js";
+import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
 
 const eventA = detailHtml("Evento A", "2026-12-12T20:00:00-03:00", "A");
 const eventB = detailHtml("Evento B", "2026-12-13T20:00:00-03:00", "B");
 
 describe("PuntoTicket acquisition policy", () => {
-  it("allows only the approved listing and canonical event detail URLs", () => {
+  it("allows the approved listing, canonical event details and discovered root landings", () => {
     expect(validateAcquisitionUrl("https://www.puntoticket.com/musica", "listing")).toBe("https://www.puntoticket.com/musica");
     expect(validateAcquisitionUrl("https://www.puntoticket.com/musica/", "listing")).toBe("https://www.puntoticket.com/musica/");
     expect(validateAcquisitionUrl("https://www.puntoticket.com/evento/ABC-123", "detail")).toBe("https://www.puntoticket.com/evento/ABC-123");
+    expect(validateAcquisitionUrl("https://www.puntoticket.com/maria-becerra", "detail", undefined, { discoveredDetailUrl: "https://www.puntoticket.com/maria-becerra?ref=listing" })).toBe("https://www.puntoticket.com/maria-becerra");
   });
 
-  it("rejects unsafe URLs, similar hosts, non-standard ports, userinfo and blocked purchase routes", () => {
+  it("rejects unsafe URLs, similar hosts, non-standard ports, userinfo, arbitrary root landings and blocked routes", () => {
     for (const [url, stage] of [
       ["http://www.puntoticket.com/musica", "listing"],
       ["https://www.puntoticket.com.attacker.example/musica", "listing"],
@@ -23,6 +25,9 @@ describe("PuntoTicket acquisition policy", () => {
       ["https://user:pass@www.puntoticket.com/musica", "listing"],
       ["https://www.puntoticket.com:8443/musica", "listing"],
       ["https://www.puntoticket.com/queue/enqueue/BUY", "detail"],
+      ["https://www.puntoticket.com/deportes", "detail"],
+      ["https://www.puntoticket.com/%71ueue/enqueue/BUY", "detail"],
+      ["https://www.puntoticket.com/%2e%2e/account", "detail"],
       ["https://www.puntoticket.com/maria-becerra", "detail"]
     ] as const) {
       expect(() => validateAcquisitionUrl(url, stage)).toThrow();
@@ -114,6 +119,36 @@ describe("PuntoTicket HTTP acquisition client", () => {
 });
 
 describe("PuntoTicket scrape orchestrator", () => {
+  it("uses discovered references to fetch canonical and root landing details without requesting rejected links", async () => {
+    const listing = `
+      <article class="event-card"><a href="/evento/FNA387"><h3>Festival A</h3><time datetime="2026-12-12">12 DIC</time></a></article>
+      <article class="event-card"><a href="/maria-becerra"><h3>Maria Becerra</h3><time datetime="2026-12-13">13 DIC</time></a></article>
+      <a href="/noticia-suelta"><h3>No es evento</h3></a>
+      <article class="event-card"><a href="/musica"><h3>Musica</h3><time datetime="2026-12-14">14 DIC</time></a></article>`;
+    expect(parseMusicListing(listing)).toEqual([
+      { source_url: "https://www.puntoticket.com/evento/FNA387", title: "Festival A" },
+      { source_url: "https://www.puntoticket.com/maria-becerra", title: "Maria Becerra" }
+    ]);
+
+    const calls: string[] = [];
+    const result = await scrapeWith({
+      transport: async (request) => {
+        calls.push(request.url);
+        if (request.url.endsWith("/musica")) return response(200, listing);
+        if (request.url.endsWith("/evento/FNA387")) return response(200, eventA);
+        if (request.url.endsWith("/maria-becerra")) return response(200, eventB);
+        throw new Error(`unexpected request ${request.url}`);
+      }
+    });
+    expect(calls).toEqual([
+      "https://www.puntoticket.com/musica",
+      "https://www.puntoticket.com/evento/FNA387",
+      "https://www.puntoticket.com/maria-becerra"
+    ]);
+    expect(result.summary).toEqual({ discovered: 2, attempted: 2, succeeded: 2, failed: 0 });
+    expect(result.events.map((event) => event.name)).toEqual(["Evento A", "Evento B"]);
+  });
+
   it("downloads listing and details, reuses parsers, limits max-events and keeps deterministic timestamps", async () => {
     const calls: string[] = [];
     const result = await scrapeWith({
@@ -128,6 +163,33 @@ describe("PuntoTicket scrape orchestrator", () => {
     expect(result.summary).toEqual({ discovered: 2, attempted: 1, succeeded: 1, failed: 0 });
     expect(result.events[0]).toMatchObject({ source: "puntoticket", name: "Evento A", extracted_at: "2026-09-08T12:00:00.000Z" });
     expect(result.finished_at).toBe("2026-09-08T12:00:10.000Z");
+  });
+
+  it("filters blocked discovered references before applying max-events", async () => {
+    const listing = `
+      <article class="event-card"><a href="/teatro"><h3>Categoria teatro</h3><time datetime="2026-12-11">11 DIC</time></a></article>
+      <article class="event-card"><a href="/evento/A"><h3>A</h3><time datetime="2026-12-12">12 DIC</time></a></article>`;
+    expect(parseMusicListing(listing).map((reference) => reference.source_url)).toEqual([
+      "https://www.puntoticket.com/teatro",
+      "https://www.puntoticket.com/evento/A"
+    ]);
+
+    const calls: string[] = [];
+    const result = await scrapeWith({
+      maxEvents: 1,
+      transport: async (request) => {
+        calls.push(request.url);
+        if (request.url.endsWith("/musica")) return response(200, listing);
+        if (request.url.endsWith("/evento/A")) return response(200, eventA);
+        throw new Error(`unexpected request ${request.url}`);
+      }
+    });
+
+    expect(calls).toEqual(["https://www.puntoticket.com/musica", "https://www.puntoticket.com/evento/A"]);
+    expect(calls).not.toContain("https://www.puntoticket.com/teatro");
+    expect(result.summary).toEqual({ discovered: 2, attempted: 1, succeeded: 1, failed: 0 });
+    expect(result.events.map((event) => event.name)).toEqual(["Evento A"]);
+    expect(result.errors).toEqual([]);
   });
 
   it("preserves discovery order under concurrency and serializes delay through the global limiter", async () => {

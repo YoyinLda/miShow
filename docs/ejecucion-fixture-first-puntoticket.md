@@ -182,7 +182,8 @@ Límites vigentes:
 
 - solo HTTPS en `www.puntoticket.com`, sin userinfo y con puerto estándar;
 - listing permitido: `/musica` o `/musica/`;
-- detalles live permitidos: `/evento/...`;
+- detalles live permitidos: `/evento/...` y landings públicas raíz de un
+  segmento solamente cuando fueron descubiertas por `parseMusicListing`;
 - redirecciones manuales, máximo 3, validando cada `Location`;
 - `Accept: text/html, application/xhtml+xml` y `User-Agent:
   miShow-puntoticket-acquisition/0.1`;

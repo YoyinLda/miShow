@@ -19,6 +19,10 @@ export const PUNTOTICKET_ACQUISITION_DEFAULTS = {
 
 export type AcquisitionStage = "listing" | "detail";
 
+export interface AcquisitionUrlContext {
+  discoveredDetailUrl?: string;
+}
+
 export interface AcquisitionConfig {
   listingUrl: string;
   userAgent: string;
@@ -68,7 +72,7 @@ export function acquisitionConfig(input: Partial<AcquisitionConfig> = {}): Acqui
   return config;
 }
 
-export function validateAcquisitionUrl(value: string, stage: AcquisitionStage, baseUrl?: string): string {
+export function validateAcquisitionUrl(value: string, stage: AcquisitionStage, baseUrl?: string, context: AcquisitionUrlContext = {}): string {
   let url: URL;
   try {
     url = new URL(value, baseUrl);
@@ -80,11 +84,11 @@ export function validateAcquisitionUrl(value: string, stage: AcquisitionStage, b
   if (url.hostname !== "www.puntoticket.com") throw new AcquisitionPolicyError("Host no permitido.");
   if (url.username || url.password) throw new AcquisitionPolicyError("La URL no debe incluir credenciales.");
   if (url.port && url.port !== "443") throw new AcquisitionPolicyError("Puerto no permitido.");
-  if (isBlockedPath(url.pathname)) throw new AcquisitionPolicyError("Ruta bloqueada para adquisicion.");
+  if (isBlockedPath(url.pathname, stage)) throw new AcquisitionPolicyError("Ruta bloqueada para adquisicion.");
   if (stage === "listing" && !isListingPath(url.pathname)) throw new AcquisitionPolicyError("Listing no permitido.");
-  if (stage === "detail" && !isDetailPath(url.pathname)) throw new AcquisitionPolicyError("Detalle no permitido.");
   url.search = "";
   url.hash = "";
+  if (stage === "detail" && !isAllowedDetailUrl(url, context)) throw new AcquisitionPolicyError("Detalle no permitido.");
   return url.href;
 }
 
@@ -110,10 +114,49 @@ function isListingPath(pathname: string): boolean {
   return pathname === "/musica" || pathname === "/musica/";
 }
 
-function isDetailPath(pathname: string): boolean {
+function isAllowedDetailUrl(url: URL, context: AcquisitionUrlContext): boolean {
+  if (isCanonicalDetailPath(url.pathname)) return true;
+  if (!isRootLandingPath(url.pathname) || !context.discoveredDetailUrl) return false;
+  try {
+    const discovered = new URL(context.discoveredDetailUrl);
+    if (discovered.protocol !== "https:") return false;
+    if (discovered.hostname !== "www.puntoticket.com") return false;
+    if (discovered.username || discovered.password) return false;
+    if (discovered.port && discovered.port !== "443") return false;
+    if (isBlockedPath(discovered.pathname, "detail")) return false;
+    discovered.search = "";
+    discovered.hash = "";
+    return discovered.href === url.href && isRootLandingPath(discovered.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function isCanonicalDetailPath(pathname: string): boolean {
   return /^\/evento\/[A-Za-z0-9-]+\/?$/i.test(pathname);
 }
 
-function isBlockedPath(pathname: string): boolean {
-  return /^\/(?:queue|login|registro|carrito|checkout|purchase|payment|pago|confirmacion|cuenta|account|seleccion|tickets)(?:\/|$)/i.test(pathname);
+function isRootLandingPath(pathname: string): boolean {
+  return /^\/[A-Za-z0-9-]+\/?$/.test(pathname);
+}
+
+function isBlockedPath(pathname: string, stage: AcquisitionStage): boolean {
+  const decodedPathname = decodedPath(pathname);
+  if (/(?:^|\/)\.\.(?:\/|$)/.test(decodedPathname) || /%2f|%5c/i.test(pathname)) return true;
+  if (stage === "listing" && isListingPath(decodedPathname)) return false;
+  return /^\/(?:musica|deportes|teatro|familia|todos|especiales|destacados|nuevos|account|cliente|queue|login|registro|carrito|checkout|purchase|payment|pago|confirmacion|cuenta|seleccion|tickets|compra|comprar|auth|authentication)(?:\/|$)/i.test(decodedPathname);
+}
+
+function decodedPath(pathname: string): string {
+  let decoded = pathname;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) return next;
+      decoded = next;
+    } catch {
+      return pathname;
+    }
+  }
+  return decoded;
 }
