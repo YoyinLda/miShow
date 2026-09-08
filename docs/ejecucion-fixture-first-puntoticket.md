@@ -158,6 +158,48 @@ descargar imágenes ni seguir enlaces.
 La validación manual de HTML real de `.local` es solo local y no versiona ni
 copia esos archivos. Los fixtures versionados son mínimos y sintéticos.
 
+## CLI HTTP manual
+
+La adquisición HTTP controlada se ejecuta únicamente con una señal explícita:
+
+```bash
+npm --silent run puntoticket:scrape -- \
+  --live \
+  --listing-url https://www.puntoticket.com/musica \
+  --max-events 2 \
+  --concurrency 1 \
+  --delay-ms 1500 \
+  --timeout-ms 15000
+```
+
+Usar `npm --silent run` evita que el banner de npm contamine stdout. En éxito
+completo o parcial, stdout contiene un único JSON con `source`, timestamps,
+`listing_url`, `summary`, `events` y `errors`. Los fallos globales, argumentos
+inválidos o ausencia de `--live` escriben solo en stderr y terminan con código
+distinto de cero.
+
+Límites vigentes:
+
+- solo HTTPS en `www.puntoticket.com`, sin userinfo y con puerto estándar;
+- listing permitido: `/musica` o `/musica/`;
+- detalles live permitidos: `/evento/...`;
+- redirecciones manuales, máximo 3, validando cada `Location`;
+- `Accept: text/html, application/xhtml+xml` y `User-Agent:
+  miShow-puntoticket-acquisition/0.1`;
+- concurrencia default 1, máximo 2;
+- pausa default 1500 ms, mínimo 1000 ms, aplicada por limitador global;
+- timeout por solicitud default 15000 ms, máximo 30000 ms;
+- máximo 2 reintentos adicionales solo para timeout, error de red y HTTP
+  408/429/500/502/503/504;
+- `Retry-After` se respeta hasta el máximo configurado;
+- HTML máximo 2 MiB y solo `text/html` o `application/xhtml+xml`;
+- `max-events` default 10, máximo 50.
+
+La adquisición no sigue `purchase_url`, no descarga imágenes, no usa cookies,
+Authorization, sesión, Playwright, PostgreSQL ni infraestructura externa. Las
+pruebas reemplazan transporte, reloj y espera para seguir siendo deterministas
+y no abrir sockets.
+
 ## Restricciones deliberadas
 
 Las pruebas deben continuar siendo locales, deterministas e idempotentes:
