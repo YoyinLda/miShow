@@ -14,3 +14,7 @@ config_file = "agents/dev.toml"
 [agents.qa]
 description = "QA independiente para validar cambios de miShow con evidencia."
 config_file = "agents/qa.toml"
+
+[agents.supabase]
+description = "Especialista de miShow para Supabase, PostgreSQL, migraciones, RLS y uso seguro del MCP."
+config_file = "agents/supabase.toml"
