@@ -1,0 +1,25 @@
+{
+  "name": "mishow",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vitest --watch tests",
+    "qa": "npm run typecheck && npm run lint && npm test",
+    "puntoticket:listing": "node --import tsx/esm src/cli/puntoticket-listing.ts",
+    "puntoticket:detail": "node --import tsx/esm src/cli/puntoticket-detail.ts",
+    "test": "vitest run tests",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "eslint": "^9.35.0",
+    "tsx": "4.19.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.42.0",
+    "vitest": "^3.2.4"
+  }
+}

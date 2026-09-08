@@ -9,6 +9,7 @@
 | Diseño | Agente `designer` | Flujo, interacción, UI, accesibilidad y criterios visuales |
 | Desarrollo | Agente `dev` | Implementación y pruebas técnicas dentro del alcance aprobado |
 | QA | Agente `qa` | Validación independiente, evidencia y recomendación de aprobación |
+| Datos | Agente `supabase` | Supabase, PostgreSQL, migraciones, RLS y uso seguro del MCP |
 
 TL/PO conserva la decisión final. Los agentes especializados recomiendan y ejecutan dentro del alcance asignado; no deciden unilateralmente nuevas funcionalidades, gastos o despliegues.
 
@@ -124,5 +125,5 @@ No despliegues ni amplíes el alcance.
 
 Los agentes quedan en `.codex/agents/` y las skills en `.agents/skills/`, ambas dentro del repositorio. Codex las detecta al abrir y confiar en el proyecto. Si no aparecen, reinicia la extensión.
 
-Verifica las skills en Codex con `/skills` o escribiendo `$mishow-`. Para invocar agentes, pide explícitamente al agente principal que use `dev`, `qa` o `designer`.
+Verifica las skills en Codex con `/skills` o escribiendo `$mishow-`. Para invocar agentes, pide explícitamente al agente principal que use `dev`, `qa`, `designer` o `supabase`.
 
