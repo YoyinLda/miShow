@@ -2,7 +2,7 @@
 
 miShow es una plataforma para centralizar conciertos y eventos musicales publicados por distintas ticketeras y fuentes, facilitando su búsqueda y descubrimiento desde una experiencia mobile-first.
 
-Este repositorio contiene el contexto inicial del producto y las decisiones técnicas acordadas. Aún no incluye una aplicación ejecutable: su propósito es servir como base documental para comenzar el desarrollo asistido con Codex en VS Code.
+Este repositorio contiene el contexto inicial del producto y parsers ejecutables de PuntoTicket. La implementación actual es fixture-first; todavía no es un scraper autónomo ni una aplicación completa.
 
 ## Estado
 
@@ -16,7 +16,7 @@ Proyecto en etapa de definición y construcción inicial.
 - Mantener trazabilidad sobre la fuente original.
 - Preparar una arquitectura que pueda crecer sin sobredimensionar el MVP.
 
-## Arquitectura definida
+## Arquitectura propuesta
 
 - Frontend: Next.js, React y Tailwind CSS, con enfoque mobile-first.
 - Hosting frontend: Amazon S3 y CloudFront.
@@ -29,7 +29,7 @@ Proyecto en etapa de definición y construcción inicial.
 - Correos: Amazon SES.
 - Observabilidad: logs estructurados y trazabilidad W3C Trace Context.
 
-Consulta [docs/brief-ejecucion.md](docs/brief-ejecucion.md) para la estrategia por etapas, [docs/equipo-agentes.md](docs/equipo-agentes.md) para el flujo TL/PO–Diseño–Dev–QA y [docs/arquitectura.md](docs/arquitectura.md) para la arquitectura objetivo.
+La arquitectura AWS anterior es una propuesta histórica/alternativa futura, no infraestructura implementada. Consulta [docs/brief-ejecucion.md](docs/brief-ejecucion.md) para la estrategia por etapas y [docs/arquitectura.md](docs/arquitectura.md) para el contexto.
 
 ## Base fixture-first de PuntoTicket
 
@@ -49,16 +49,15 @@ npm run typecheck
 npm run lint
 npm run qa
 npm --silent run puntoticket:listing -- <ruta-html> [base-url]
-npm --silent run puntoticket:detail -- <ruta-html> <source-url> [extracted-at]
+npm --silent run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>
 ```
 
-`npm run dev` ejecuta Vitest en modo observación sobre los fixtures; actualmente
-no existe un frontend, API ni proceso de persistencia que justifique un
-`npm start`. `npm run qa` ejecuta typecheck, lint y tests en una sola orden.
-Las CLI de PuntoTicket leen únicamente HTML local, escriben JSON en stdout (por
-eso los comandos documentados usan `npm --silent run`) y
-no hacen solicitudes de red; la fecha `extracted_at` del detalle puede fijarse
-para obtener salidas reproducibles.
+`npm run dev` ejecuta Vitest en modo observación sobre los fixtures. Las CLI
+ejecutables leen HTML local, escriben únicamente JSON válido en stdout y envían
+errores a stderr; por eso se documentan con `npm --silent run`. Listing devuelve
+`{ count, references, errors }`. Detail requiere siempre
+`<extracted-at>` como timestamp ISO-8601 con zona horaria. Ninguna CLI realiza
+adquisición HTTP programada.
 
 Los fixtures sintéticos de `tests/puntoticket.test.ts` cubren rutas de evento
 relativas y absolutas, landings respaldadas por tarjetas estructurales,
@@ -81,9 +80,9 @@ Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-fi
 para la instalación normal y limpia, el alcance detallado de las pruebas,
 troubleshooting y el handoff para QA.
 
-La identidad provisional de persistencia durante este incremento es la pareja
-`source` + `source_url` canónica; todavía no existe SQL ni una capa de
-persistencia en este flujo.
+No existe todavía persistencia, Supabase, API ni frontend. Tampoco hay base de
+datos ni adquisición HTTP programada. `.local/` y los fixtures reales locales
+no se versionan.
 
 ## Uso con Codex
 
@@ -99,11 +98,10 @@ Lee AGENTS.md y todos los archivos de docs/. Resume tu comprensión del proyecto
 
 ## Próximos pasos sugeridos
 
-1. Definir el alcance exacto del MVP.
-2. Elegir las primeras fuentes o ticketeras.
-3. Definir el modelo de datos inicial.
-4. Crear el monorepo o separar frontend, backend y scrapers.
-5. Implementar una fuente de punta a punta antes de generalizar.
+1. Integrar el parser fixture-first con una adquisición HTTP programada y
+   controlada, después de definir límites y condiciones de la fuente.
+2. Persistir resultados normalizados con idempotencia.
+3. Exponer una API y construir el frontend cuando exista ese flujo de datos.
 
 ## Nombre y marca
 

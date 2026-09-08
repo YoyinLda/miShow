@@ -11,7 +11,8 @@ if (args.length < 1 || args.length > 2) fail("Se requiere una ruta HTML y, opcio
 
 try {
   const html = readFileSync(args[0], "utf8");
-  console.log(JSON.stringify(parseMusicListing(html, args[1]), null, 2));
+  const references = parseMusicListing(html, args[1]);
+  console.log(JSON.stringify({ count: references.length, references, errors: [] }, null, 2));
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }

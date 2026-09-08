@@ -4,11 +4,11 @@ import { normalizeEvent } from "../puntoticket/normalization.js";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {
-  console.log("Uso: npm run puntoticket:detail -- <ruta-html> <source-url> [extracted-at]");
+  console.log("Uso: npm run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>");
   process.exit(0);
 }
 
-if (args.length < 2 || args.length > 3) fail("Se requiere ruta HTML, source-url y extracted-at opcional.");
+if (args.length !== 3) fail("Se requiere ruta HTML, source-url y extracted-at obligatorio.");
 
 try {
   const html = readFileSync(args[0], "utf8");
@@ -20,7 +20,7 @@ try {
     console.error([...parsed.errors, ...extracted.errors].join("\n"));
   }
   console.log(JSON.stringify(normalizeEvent(parsed.value, extracted.value, {
-    extracted_at: args[2] ?? new Date().toISOString()
+    extracted_at: args[2]
   }), null, 2));
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));

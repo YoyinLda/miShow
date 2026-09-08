@@ -144,7 +144,44 @@ describe("PuntoTicket detail extraction and normalization", () => {
     const result = spawnSync("npm", ["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-metadata.html"], { encoding: "utf8" });
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
-    expect(() => JSON.parse(result.stdout)).not.toThrow();
+    expect(JSON.parse(result.stdout)).toMatchObject({ count: 0, references: [], errors: [] });
+  });
+
+  it("returns the listing contract with a matching count", () => {
+    const result = spawnSync("npm", ["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-functions.html"], { encoding: "utf8" });
+    expect(result.status).toBe(0);
+    const output = JSON.parse(result.stdout);
+    expect(output.count).toBe(output.references.length);
+    expect(output.errors).toEqual([]);
+    expect(result.stderr).toBe("");
+  });
+
+  it("keeps detail JSON clean and requires extracted-at", () => {
+    const success = spawnSync("npm", ["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z"], { encoding: "utf8" });
+    expect(success.status).toBe(0);
+    expect(JSON.parse(success.stdout).extracted_at).toBe("2026-09-08T12:00:00.000Z");
+    expect(success.stderr).toBe("");
+    const missing = spawnSync("npm", ["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x"], { encoding: "utf8" });
+    expect(missing.status).not.toBe(0);
+    expect(missing.stdout).toBe("");
+    expect(missing.stderr).toContain("extracted-at obligatorio");
+  });
+
+  it("reports CLI file, argument, URL and timestamp errors only on stderr", () => {
+    const cases = [
+      ["listing", ["--", "tests/fixtures/no-existe.html"]],
+      ["listing", ["--"]],
+      ["listing", ["--", "tests/fixtures/puntoticket-functions.html", "extra", "too-much"]],
+      ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://evil.example/evento/x", "2026-09-08T12:00:00.000Z"]],
+      ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "not-a-date"]],
+      ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z", "extra"]]
+    ] as const;
+    for (const [command, args] of cases) {
+      const result = spawnSync("npm", ["--silent", "run", `puntoticket:${command}`, ...args], { encoding: "utf8" });
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toMatch(/Error:/);
+    }
   });
 
   it("does not convert empty, whitespace, null or non-numeric prices to zero", () => {
