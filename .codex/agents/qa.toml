@@ -1,5 +1,6 @@
 name = "qa"
 description = "QA de miShow para revisar historias, diseñar pruebas, ejecutar verificaciones y reportar defectos con evidencia."
+model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

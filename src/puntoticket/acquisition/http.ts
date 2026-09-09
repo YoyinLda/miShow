@@ -49,11 +49,15 @@ export class PuntoTicketHttpClient {
   async getHtml(url: string, stage: AcquisitionStage, context: AcquisitionUrlContext = {}): Promise<string> {
     let currentUrl = validateAcquisitionUrl(url, stage, undefined, context);
     let redirects = 0;
+    let retriesUsed = 0;
     let attempts = 0;
     let retryDelayMs = 0;
 
     while (true) {
-      if (retryDelayMs > 0) await this.limiter.wait(retryDelayMs);
+      if (retryDelayMs > 0) {
+        await this.limiter.wait(retryDelayMs);
+        retryDelayMs = 0;
+      }
       await this.limiter.wait();
       attempts += 1;
 
@@ -69,12 +73,13 @@ export class PuntoTicketHttpClient {
           }
         });
       } catch (error) {
-        if (error instanceof HttpAcquisitionError && error.code !== "timeout") {
-          throw new HttpAcquisitionError(error.code, error.message, attempts);
+        if (error instanceof HttpAcquisitionError && error.code !== "timeout" && error.code !== "network_error") {
+          throw new HttpAcquisitionError(error.code, safeMessage(error, error.message), attempts);
         }
         const code = transportErrorCode(error);
-        if (code && attempts <= this.config.retries) {
-          retryDelayMs = backoffMs(attempts);
+        if (code && retriesUsed < this.config.retries) {
+          retriesUsed += 1;
+          retryDelayMs = backoffMs(retriesUsed);
           continue;
         }
         throw new HttpAcquisitionError(code ?? "network_error", safeMessage(error, "Error de red durante adquisicion."), attempts);
@@ -95,8 +100,9 @@ export class PuntoTicketHttpClient {
         continue;
       }
 
-      if (isRetryableStatus(response.status) && attempts <= this.config.retries) {
-        retryDelayMs = retryAfterMs(header(response.headers, "retry-after"), this.config.maxRetryAfterMs, this.nowMs()) ?? backoffMs(attempts);
+      if (isRetryableStatus(response.status) && retriesUsed < this.config.retries) {
+        retriesUsed += 1;
+        retryDelayMs = retryAfterMs(header(response.headers, "retry-after"), this.config.maxRetryAfterMs, this.nowMs()) ?? backoffMs(retriesUsed);
         continue;
       }
 
@@ -126,6 +132,7 @@ export function createFetchTransport(fetchImplementation: typeof fetch = fetch):
         body: await readLimitedBody(response, maxBytes)
       };
     } catch (error) {
+      if (error instanceof HttpAcquisitionError) throw error;
       if (isAbortError(error)) throw new HttpAcquisitionError("timeout", "Timeout de solicitud.", 1);
       throw error;
     } finally {
@@ -183,7 +190,7 @@ function backoffMs(attempt: number): number {
 }
 
 function transportErrorCode(error: unknown): "timeout" | "network_error" | undefined {
-  if (error instanceof HttpAcquisitionError) return error.code === "timeout" ? "timeout" : "network_error";
+  if (error instanceof HttpAcquisitionError) return error.code === "timeout" || error.code === "network_error" ? error.code : undefined;
   if (isAbortError(error)) return "timeout";
   return error instanceof Error ? "network_error" : undefined;
 }
@@ -215,7 +222,11 @@ async function readLimitedBody(response: Response, maxBytes: number): Promise<st
     if (!value) continue;
     received += value.byteLength;
     if (received > maxBytes) {
-      await reader.cancel();
+      try {
+        await reader.cancel();
+      } catch {
+        // Cancellation is best-effort; the acquisition error remains deterministic.
+      }
       throw new HttpAcquisitionError("response_too_large", "Respuesta HTML demasiado grande.", 1);
     }
     chunks.push(value);

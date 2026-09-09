@@ -100,8 +100,9 @@ la zona depende de que el runtime de Node.js tenga datos de `Intl` disponibles.
 
 ## Alcance de las pruebas
 
-El comando `npm test` ejecuta Vitest sobre `tests/puntoticket.test.ts`. La suite
-comprueba, entre otros casos:
+El comando `npm test` ejecuta Vitest sobre las suites
+`tests/puntoticket.test.ts` y `tests/puntoticket-acquisition.test.ts`. Las suites
+comprueban, entre otros casos:
 
 - extracción de eventos desde rutas relativas y absolutas;
 - exclusión de rutas que no son eventos y de la ruta raíz;
@@ -228,10 +229,15 @@ funcion y enlaces validos de compra a nivel publicacion. Botones `disabled`,
 `aria-disabled` u ocultos no generan disponibilidad comprable por si solos.
 
 `horasPorFecha` solo se procesa cuando el valor asignado es un literal JSON
-estricto, acotado y determinista. De ese bloque se usan solamente filas con
-`Fecha`, `Hora`, `Disabled:false`, `URL`, `Codigo` y `Calendario` explicitos y
-consistentes con la URL permitida. No se ejecuta JavaScript, no se usa `eval` y
-no se infieren asociaciones desde `cal`, `ct`, imagenes, posicion visual o texto
+estricto, acotado, balanceado y determinista. El extractor acepta la estructura
+real de objeto `fecha -> funciones[]` y conserva compatibilidad con variantes
+planas seguras. En la estructura real, cada funcion debe entregar `Fecha`
+valida y sus `BuyLinks`; solo se consideran links con `Disabled:false`. Para
+`/comprar/evento/<codigo>/cal/<calendario>`, el codigo de funcion se toma de la
+URL permitida y, en la estructura nested con `/comprar/evento/.../cal/...`, `EventoCalendarioId` es obligatorio y debe coincidir con el segmento
+`cal`. Las variantes planas deben mantener `Codigo` y `Calendario` explicitos y
+consistentes con la URL. No se ejecuta JavaScript, no se usa `eval` y no se
+infieren asociaciones desde `cal`, `ct`, imagenes, posicion visual o texto
 legal. Cuando existen enlaces de compra validos pero no hay relacion segura con
 funciones especificas, el evento puede quedar globalmente `available`, las
 funciones quedan `unknown` y se reporta la advertencia exacta

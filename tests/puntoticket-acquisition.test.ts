@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/puntoticket/acquisition/http.js";
+import { createFetchTransport, PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/puntoticket/acquisition/http.js";
 import { scrapePuntoTicket } from "../src/puntoticket/acquisition/orchestrator.js";
 import { acquisitionConfig, validateAcquisitionUrl } from "../src/puntoticket/acquisition/policy.js";
 import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
@@ -9,11 +9,29 @@ const eventA = detailHtml("Evento A", "2026-12-12T20:00:00-03:00", "A");
 const eventB = detailHtml("Evento B", "2026-12-13T20:00:00-03:00", "B");
 
 describe("PuntoTicket acquisition policy", () => {
+  it("rejects listing href external whitespace before normalization and keeps a clean URL", () => {
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(parseMusicListing(`
+        <a href="${whitespace}/evento/PREFIXED"><h3>No prefijo</h3></a>
+        <a href="/evento/SUFFIXED${whitespace}"><h3>No sufijo</h3></a>
+        <a href="/evento/SAFE"><h3>Si</h3></a>
+      `)).toEqual([{ source_url: "https://www.puntoticket.com/evento/SAFE", title: "Si" }]);
+    }
+  });
+
   it("allows the approved listing, canonical event details and discovered root landings", () => {
     expect(validateAcquisitionUrl("https://www.puntoticket.com/musica", "listing")).toBe("https://www.puntoticket.com/musica");
     expect(validateAcquisitionUrl("https://www.puntoticket.com/musica/", "listing")).toBe("https://www.puntoticket.com/musica/");
     expect(validateAcquisitionUrl("https://www.puntoticket.com/evento/ABC-123", "detail")).toBe("https://www.puntoticket.com/evento/ABC-123");
     expect(validateAcquisitionUrl("https://www.puntoticket.com/maria-becerra", "detail", undefined, { discoveredDetailUrl: "https://www.puntoticket.com/maria-becerra?ref=listing" })).toBe("https://www.puntoticket.com/maria-becerra");
+  });
+
+  it("rejects external whitespace in discovered detail URLs before normalization", () => {
+    const detailUrl = "https://www.puntoticket.com/maria-becerra";
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(() => validateAcquisitionUrl(detailUrl, "detail", undefined, { discoveredDetailUrl: `${whitespace}${detailUrl}` })).toThrow();
+      expect(() => validateAcquisitionUrl(detailUrl, "detail", undefined, { discoveredDetailUrl: `${detailUrl}${whitespace}` })).toThrow();
+    }
   });
 
   it("rejects unsafe URLs, similar hosts, non-standard ports, userinfo, arbitrary root landings and blocked routes", () => {
@@ -23,6 +41,7 @@ describe("PuntoTicket acquisition policy", () => {
       ["https://user@www.puntoticket.com/musica", "listing"],
       ["https://:pass@www.puntoticket.com/musica", "listing"],
       ["https://user:pass@www.puntoticket.com/musica", "listing"],
+      ["https://@www.puntoticket.com/musica", "listing"],
       ["https://www.puntoticket.com:8443/musica", "listing"],
       ["https://www.puntoticket.com/queue/enqueue/BUY", "detail"],
       ["https://www.puntoticket.com/deportes", "detail"],
@@ -31,6 +50,23 @@ describe("PuntoTicket acquisition policy", () => {
       ["https://www.puntoticket.com/maria-becerra", "detail"]
     ] as const) {
       expect(() => validateAcquisitionUrl(url, stage)).toThrow();
+    }
+  });
+
+  it("rejects empty and non-empty userinfo on detail URLs while allowing a normal URL", () => {
+    for (const url of [
+      "https://@www.puntoticket.com/evento/X",
+      " \thttps://@www.puntoticket.com/evento/X\n",
+      "https://user@www.puntoticket.com/evento/X",
+      "https://:pass@www.puntoticket.com/evento/X",
+      "https://user:pass@www.puntoticket.com/evento/X"
+    ]) {
+      expect(() => validateAcquisitionUrl(url, "detail")).toThrow();
+    }
+    expect(validateAcquisitionUrl("https://www.puntoticket.com/evento/X", "detail")).toBe("https://www.puntoticket.com/evento/X");
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(() => validateAcquisitionUrl(`${whitespace}https://www.puntoticket.com/evento/X`, "detail")).toThrow();
+      expect(() => validateAcquisitionUrl(`https://www.puntoticket.com/evento/X${whitespace}`, "detail")).toThrow();
     }
   });
 
@@ -65,6 +101,30 @@ describe("PuntoTicket HTTP acquisition client", () => {
     expect(calls).toEqual(["https://www.puntoticket.com/evento/REDIRECT", "https://www.puntoticket.com/evento/SAFE"]);
   });
 
+  it("keeps redirect and retry budgets independent", async () => {
+    const calls: string[] = [];
+    const sleeps: number[] = [];
+    const client = new PuntoTicketHttpClient({
+      config: { retries: 2 },
+      transport: async (request) => {
+        calls.push(request.url);
+        if (calls.length === 1) return response(302, "", { location: "/evento/AFTER-REDIRECT" });
+        if (calls.length < 4) throw new HttpAcquisitionError("network_error", "Fallo de red transitorio.", 1);
+        return response(200, eventA);
+      },
+      sleep: async (ms) => { sleeps.push(ms); }
+    });
+
+    await expect(client.getHtml("https://www.puntoticket.com/evento/REDIRECT-RETRY", "detail")).resolves.toBe(eventA);
+    expect(calls).toEqual([
+      "https://www.puntoticket.com/evento/REDIRECT-RETRY",
+      "https://www.puntoticket.com/evento/AFTER-REDIRECT",
+      "https://www.puntoticket.com/evento/AFTER-REDIRECT",
+      "https://www.puntoticket.com/evento/AFTER-REDIRECT"
+    ]);
+    expect(sleeps).toEqual([1500, 1500, 1000, 1500, 2000, 1500]);
+  });
+
   it("rejects redirects to external hosts, blocked routes and excessive chains", async () => {
     for (const location of ["https://evil.example/evento/X", "/queue/enqueue/BUY", "/comprar/evento/FNA387/cal/1"]) {
       const client = new PuntoTicketHttpClient({ transport: async () => response(302, "", { location }), sleep: async () => undefined });
@@ -79,6 +139,40 @@ describe("PuntoTicket HTTP acquisition client", () => {
     await expect(invalidMime.getHtml("https://www.puntoticket.com/musica", "listing")).rejects.toMatchObject({ code: "invalid_content_type", attempts: 1 });
     const tooLarge = new PuntoTicketHttpClient({ config: { maxHtmlBytes: 10 }, transport: async () => response(200, "01234567890"), sleep: async () => undefined });
     await expect(tooLarge.getHtml("https://www.puntoticket.com/musica", "listing")).rejects.toMatchObject({ code: "response_too_large", attempts: 1 });
+  });
+
+  it("preserves response_too_large from the fetch transport without retrying", async () => {
+    let calls = 0;
+    const transport = createFetchTransport(async () => {
+      calls += 1;
+      return new Response("01234567890", { headers: { "content-type": "text/html" } });
+    });
+    const client = new PuntoTicketHttpClient({ config: { maxHtmlBytes: 10 }, transport, sleep: async () => undefined });
+    await expect(client.getHtml("https://www.puntoticket.com/musica", "listing")).rejects.toMatchObject({ code: "response_too_large", attempts: 1 });
+    expect(calls).toBe(1);
+  });
+
+  it("preserves response_too_large when stream cancellation fails", async () => {
+    let calls = 0;
+    let cancellations = 0;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("01234567890"));
+      },
+      cancel() {
+        cancellations += 1;
+        return Promise.reject(new Error("cancel failed"));
+      }
+    });
+    const transport = createFetchTransport(async () => {
+      calls += 1;
+      return new Response(body, { headers: { "content-type": "text/html" } });
+    });
+    const client = new PuntoTicketHttpClient({ config: { maxHtmlBytes: 10 }, transport, sleep: async () => undefined });
+
+    await expect(client.getHtml("https://www.puntoticket.com/musica", "listing")).rejects.toMatchObject({ code: "response_too_large", attempts: 1 });
+    expect(calls).toBe(1);
+    expect(cancellations).toBe(1);
   });
 
   it("retries timeout, network errors, 429 Retry-After and 500 before succeeding", async () => {
@@ -103,6 +197,24 @@ describe("PuntoTicket HTTP acquisition client", () => {
       sleep: async () => undefined
     });
     await expect(transient.getHtml("https://www.puntoticket.com/evento/B", "detail")).resolves.toBe(eventB);
+  });
+
+  it("retries an injected network_error with the configured backoff", async () => {
+    const sleeps: number[] = [];
+    let calls = 0;
+    const client = new PuntoTicketHttpClient({
+      config: { retries: 2 },
+      transport: async () => {
+        calls += 1;
+        if (calls < 3) throw new HttpAcquisitionError("network_error", "Fallo de red transitorio.", calls);
+        return response(200, eventA);
+      },
+      sleep: async (ms) => { sleeps.push(ms); }
+    });
+
+    await expect(client.getHtml("https://www.puntoticket.com/evento/NETWORK", "detail")).resolves.toBe(eventA);
+    expect(calls).toBe(3);
+    expect(sleeps).toEqual([1500, 1000, 1500, 2000, 1500]);
   });
 
   it("stops after the approved retry budget and does not retry permanent HTTP errors", async () => {

@@ -1,3 +1,5 @@
+import { hasEncodedPathSeparator, hasExternalWhitespace, hasUserinfo } from "../url.js";
+
 export const PUNTOTICKET_ACQUISITION_DEFAULTS = {
   listingUrl: "https://www.puntoticket.com/musica",
   userAgent: "miShow-puntoticket-acquisition/0.1",
@@ -73,6 +75,9 @@ export function acquisitionConfig(input: Partial<AcquisitionConfig> = {}): Acqui
 }
 
 export function validateAcquisitionUrl(value: string, stage: AcquisitionStage, baseUrl?: string, context: AcquisitionUrlContext = {}): string {
+  if (hasExternalWhitespace(value) || (baseUrl !== undefined && hasExternalWhitespace(baseUrl)) || (stage === "detail" && context.discoveredDetailUrl !== undefined && hasExternalWhitespace(context.discoveredDetailUrl))) {
+    throw new AcquisitionPolicyError("URL invalida.");
+  }
   let url: URL;
   try {
     url = new URL(value, baseUrl);
@@ -82,7 +87,7 @@ export function validateAcquisitionUrl(value: string, stage: AcquisitionStage, b
 
   if (url.protocol !== "https:") throw new AcquisitionPolicyError("Solo se permite HTTPS.");
   if (url.hostname !== "www.puntoticket.com") throw new AcquisitionPolicyError("Host no permitido.");
-  if (url.username || url.password) throw new AcquisitionPolicyError("La URL no debe incluir credenciales.");
+  if (url.username || url.password || hasUserinfo(value, baseUrl)) throw new AcquisitionPolicyError("La URL no debe incluir credenciales.");
   if (url.port && url.port !== "443") throw new AcquisitionPolicyError("Puerto no permitido.");
   if (isBlockedPath(url.pathname, stage)) throw new AcquisitionPolicyError("Ruta bloqueada para adquisicion.");
   if (stage === "listing" && !isListingPath(url.pathname)) throw new AcquisitionPolicyError("Listing no permitido.");
@@ -121,7 +126,7 @@ function isAllowedDetailUrl(url: URL, context: AcquisitionUrlContext): boolean {
     const discovered = new URL(context.discoveredDetailUrl);
     if (discovered.protocol !== "https:") return false;
     if (discovered.hostname !== "www.puntoticket.com") return false;
-    if (discovered.username || discovered.password) return false;
+    if (discovered.username || discovered.password || hasUserinfo(context.discoveredDetailUrl)) return false;
     if (discovered.port && discovered.port !== "443") return false;
     if (isBlockedPath(discovered.pathname, "detail")) return false;
     discovered.search = "";
@@ -142,7 +147,7 @@ function isRootLandingPath(pathname: string): boolean {
 
 function isBlockedPath(pathname: string, stage: AcquisitionStage): boolean {
   const decodedPathname = decodedPath(pathname);
-  if (/(?:^|\/)\.\.(?:\/|$)/.test(decodedPathname) || /%2f|%5c/i.test(pathname)) return true;
+  if (/(?:^|\/)\.\.(?:\/|$)/.test(decodedPathname) || hasEncodedPathSeparator(pathname)) return true;
   if (stage === "listing" && isListingPath(decodedPathname)) return false;
   return /^\/(?:musica|deportes|teatro|familia|todos|especiales|destacados|nuevos|account|cliente|queue|login|registro|carrito|checkout|purchase|payment|pago|confirmacion|cuenta|seleccion|tickets|compra|comprar|auth|authentication)(?:\/|$)/i.test(decodedPathname);
 }
