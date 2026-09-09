@@ -7,6 +7,7 @@
     "qa": "npm run typecheck && npm run lint && npm test",
     "puntoticket:listing": "node --import tsx/esm src/cli/puntoticket-listing.ts",
     "puntoticket:detail": "node --import tsx/esm src/cli/puntoticket-detail.ts",
+    "puntoticket:scrape": "node --import tsx/esm src/cli/puntoticket-scrape.ts",
     "test": "vitest run tests",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."

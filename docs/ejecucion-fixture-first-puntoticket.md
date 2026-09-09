@@ -100,8 +100,9 @@ la zona depende de que el runtime de Node.js tenga datos de `Intl` disponibles.
 
 ## Alcance de las pruebas
 
-El comando `npm test` ejecuta Vitest sobre `tests/puntoticket.test.ts`. La suite
-comprueba, entre otros casos:
+El comando `npm test` ejecuta Vitest sobre las suites
+`tests/puntoticket.test.ts` y `tests/puntoticket-acquisition.test.ts`. Las suites
+comprueban, entre otros casos:
 
 - extracción de eventos desde rutas relativas y absolutas;
 - exclusión de rutas que no son eventos y de la ruta raíz;
@@ -158,6 +159,49 @@ descargar imágenes ni seguir enlaces.
 La validación manual de HTML real de `.local` es solo local y no versiona ni
 copia esos archivos. Los fixtures versionados son mínimos y sintéticos.
 
+## CLI HTTP manual
+
+La adquisición HTTP controlada se ejecuta únicamente con una señal explícita:
+
+```bash
+npm --silent run puntoticket:scrape -- \
+  --live \
+  --listing-url https://www.puntoticket.com/musica \
+  --max-events 2 \
+  --concurrency 1 \
+  --delay-ms 1500 \
+  --timeout-ms 15000
+```
+
+Usar `npm --silent run` evita que el banner de npm contamine stdout. En éxito
+completo o parcial, stdout contiene un único JSON con `source`, timestamps,
+`listing_url`, `summary`, `events` y `errors`. Los fallos globales, argumentos
+inválidos o ausencia de `--live` escriben solo en stderr y terminan con código
+distinto de cero.
+
+Límites vigentes:
+
+- solo HTTPS en `www.puntoticket.com`, sin userinfo y con puerto estándar;
+- listing permitido: `/musica` o `/musica/`;
+- detalles live permitidos: `/evento/...` y landings públicas raíz de un
+  segmento solamente cuando fueron descubiertas por `parseMusicListing`;
+- redirecciones manuales, máximo 3, validando cada `Location`;
+- `Accept: text/html, application/xhtml+xml` y `User-Agent:
+  miShow-puntoticket-acquisition/0.1`;
+- concurrencia default 1, máximo 2;
+- pausa default 1500 ms, mínimo 1000 ms, aplicada por limitador global;
+- timeout por solicitud default 15000 ms, máximo 30000 ms;
+- máximo 2 reintentos adicionales solo para timeout, error de red y HTTP
+  408/429/500/502/503/504;
+- `Retry-After` se respeta hasta el máximo configurado;
+- HTML máximo 2 MiB y solo `text/html` o `application/xhtml+xml`;
+- `max-events` default 10, máximo 50.
+
+La adquisición no sigue `purchase_url`, no descarga imágenes, no usa cookies,
+Authorization, sesión, Playwright, PostgreSQL ni infraestructura externa. Las
+pruebas reemplazan transporte, reloj y espera para seguir siendo deterministas
+y no abrir sockets.
+
 ## Restricciones deliberadas
 
 Las pruebas deben continuar siendo locales, deterministas e idempotentes:
@@ -171,7 +215,33 @@ Las pruebas deben continuar siendo locales, deterministas e idempotentes:
 - no incorporan cobros ni servicios de infraestructura.
 
 Los enlaces de fuente y compra se analizan como datos. La URL de compra solo se
-conserva cuando cumple las reglas del adaptador de PuntoTicket; no se abre.
+conserva cuando cumple las reglas del adaptador de PuntoTicket; no se abre. Hoy
+solo se acepta `https://www.puntoticket.com/queue/enqueue/<codigo>` o
+`https://www.puntoticket.com/comprar/evento/<codigo>/cal/<calendario>`, sin
+credenciales, sin hosts parecidos, sin HTTP y sin puertos alternativos. Para la
+ruta `/comprar/evento/.../cal/...`, el `performance_code` corresponde al codigo
+del evento, no al calendario.
+
+El extractor reconoce disponibilidad comprable desde controles visibles y
+habilitados, incluyendo `data-buyLink` con variaciones de mayusculas/minusculas
+en el nombre del atributo, `.icon-status.available` dentro de un bloque de
+funcion y enlaces validos de compra a nivel publicacion. Botones `disabled`,
+`aria-disabled` u ocultos no generan disponibilidad comprable por si solos.
+
+`horasPorFecha` solo se procesa cuando el valor asignado es un literal JSON
+estricto, acotado, balanceado y determinista. El extractor acepta la estructura
+real de objeto `fecha -> funciones[]` y conserva compatibilidad con variantes
+planas seguras. En la estructura real, cada funcion debe entregar `Fecha`
+valida y sus `BuyLinks`; solo se consideran links con `Disabled:false`. Para
+`/comprar/evento/<codigo>/cal/<calendario>`, el codigo de funcion se toma de la
+URL permitida y, en la estructura nested con `/comprar/evento/.../cal/...`, `EventoCalendarioId` es obligatorio y debe coincidir con el segmento
+`cal`. Las variantes planas deben mantener `Codigo` y `Calendario` explicitos y
+consistentes con la URL. No se ejecuta JavaScript, no se usa `eval` y no se
+infieren asociaciones desde `cal`, `ct`, imagenes, posicion visual o texto
+legal. Cuando existen enlaces de compra validos pero no hay relacion segura con
+funciones especificas, el evento puede quedar globalmente `available`, las
+funciones quedan `unknown` y se reporta la advertencia exacta
+`ambiguous performance purchase mapping`.
 
 ## Troubleshooting básico
 

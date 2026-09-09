@@ -20,7 +20,7 @@ export function normalizeEvent(detail: RawEventDetail, extracted: ExtractedDetai
   const imageUrl = validHttpsUrl(extracted.image_url);
   const venue = normalizeVenue(extracted.venue);
   const price = normalizePrice(extracted.price);
-  return { source: "puntoticket", source_url: sourceUrl, extracted_at, ...(purchaseUrl ? { purchase_url: purchaseUrl } : {}), ...(detail.source_code ? { source_code: detail.source_code } : {}), ...(imageUrl ? { image_url: imageUrl } : {}), name: clean(extracted.name ?? "Evento sin nombre"), artists: [...new Set(extracted.artists.map(clean).filter(Boolean))].sort(), venue, performances, status: overallStatus(performances.map((p) => p.status)), ...(price ? { price } : {}) };
+  return { source: "puntoticket", source_url: sourceUrl, extracted_at, ...(purchaseUrl ? { purchase_url: purchaseUrl } : {}), ...(detail.source_code ? { source_code: detail.source_code } : {}), ...(imageUrl ? { image_url: imageUrl } : {}), name: clean(extracted.name ?? "Evento sin nombre"), artists: [...new Set(extracted.artists.map(clean).filter(Boolean))].sort(), venue, performances, status: overallStatus(performances.map((p) => p.status), detail.availability_evidence?.status ?? extracted.availability_evidence?.status), ...(price ? { price } : {}) };
 }
 
 function isIsoTimestamp(value: string): boolean {
@@ -43,7 +43,7 @@ function isLeapYear(year: number): boolean {
 }
 
 function clean(value: string): string { return value.replace(/\s+/g, " ").trim(); }
-function overallStatus(statuses: EventStatus[]): EventStatus { if (statuses.includes("available")) return "available"; if (statuses.length && statuses.every((s) => s === "sold_out")) return "sold_out"; if (statuses.includes("upcoming")) return "upcoming"; return "unknown"; }
+function overallStatus(statuses: EventStatus[], evidence?: EventStatus): EventStatus { if (statuses.includes("available") || evidence === "available") return "available"; if (statuses.length && statuses.every((s) => s === "sold_out")) return "sold_out"; if (statuses.includes("upcoming") || evidence === "upcoming") return "upcoming"; return "unknown"; }
 function finiteNumber(value: unknown): number | undefined {
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   if (typeof value === "string" && value.trim() !== "") {

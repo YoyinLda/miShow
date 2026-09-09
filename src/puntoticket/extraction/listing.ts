@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
 import type { RawEventReference } from "../contracts.js";
-import { canonicalSourceUrl } from "../url.js";
+import { canonicalSourceUrl, hasExternalWhitespace, hasUserinfo } from "../url.js";
 
 const BASE_URL = "https://www.puntoticket.com";
 const EVENT_PATH = /^\/evento\/[A-Za-z0-9-]+\/?$/i;
@@ -14,9 +14,12 @@ export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`):
   const result: RawEventReference[] = [];
   $("a[href]").each((_, element) => {
     const raw = $(element).attr("href");
-    if (!raw) return;
+    if (!raw || hasExternalWhitespace(raw)) return;
     let url: URL;
-    try { url = new URL(canonicalSourceUrl(new URL(raw, canonicalBaseUrl).href), canonicalBaseUrl); } catch { return; }
+    try {
+      if (hasUserinfo(raw)) return;
+      url = new URL(canonicalSourceUrl(new URL(raw, canonicalBaseUrl).href), canonicalBaseUrl);
+    } catch { return; }
     if (url.hostname !== "www.puntoticket.com" || url.origin !== new URL(canonicalBaseUrl).origin || url.pathname === "/" || NON_EVENT_PATH.test(url.pathname)) return;
     const isCanonicalEvent = EVENT_PATH.test(url.pathname);
     const isStructuredLanding = !isCanonicalEvent && isEventCardLink(element, $);

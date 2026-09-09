@@ -67,6 +67,299 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(extracted.performances).toEqual([{ date: "2026-11-01T20:00:00-03:00", status: "available", performance_code: "AVAILABLE", purchase_url: "/queue/enqueue/AVAILABLE" }]);
   });
 
+  it("recognizes data-buyLink regardless of attribute casing and extracts comprar event codes", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-01T20:00:00-03:00">
+        <button data-buyLink="/comprar/evento/FNA387/cal/1">COMPRAR</button>
+      </div>
+      <div class="button-block" data-performance-date="2026-11-02T20:00:00-03:00">
+        <button DATA-BUYLINK="/queue/enqueue/FNA388">COMPRAR</button>
+      </div>
+    `, "https://www.puntoticket.com/evento/data-buy").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances.map(({ date, performance_code, purchase_url }) => [date, performance_code, purchase_url])).toEqual([
+      ["2026-11-01T20:00:00-03:00", "FNA387", "/comprar/evento/FNA387/cal/1"],
+      ["2026-11-02T20:00:00-03:00", "FNA388", "/queue/enqueue/FNA388"]
+    ]);
+    expect(normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" }).performances[0]).toMatchObject({
+      performance_code: "FNA387",
+      purchase_url: "https://www.puntoticket.com/comprar/evento/FNA387/cal/1"
+    });
+  });
+
+  it("skips visible enabled controls without a valid purchase URL", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-03T20:00:00-03:00" data-status="DISPONIBLE">
+        <button data-buyLink="/evento/INVALID">Comprar</button>
+        <a href="/queue/enqueue/VALID-LATER">Comprar</a>
+      </div>
+    `, "https://www.puntoticket.com/evento/control-selection").value!;
+
+    expect(extractDetail(raw).value!.performances).toEqual([
+      { date: "2026-11-03T20:00:00-03:00", status: "available", performance_code: "VALID-LATER", purchase_url: "/queue/enqueue/VALID-LATER" }
+    ]);
+  });
+
+  it("recognizes structural available status only with a visible enabled purchase control", () => {
+    const raw = parseEventDetail(`
+      <div class="button-block" data-performance-date="2026-11-03T20:00:00-03:00">
+        <span class="icon-status available"></span>
+        <button data-buyLink="/comprar/evento/ICON001/cal/1">Comprar</button>
+      </div>
+      <div class="button-block" data-performance-date="2026-11-04T20:00:00-03:00">
+        <button disabled data-buyLink="/comprar/evento/DISABLED/cal/1">Comprar</button>
+      </div>
+      <div class="button-block" data-performance-date="2026-11-05T20:00:00-03:00">
+        <button aria-disabled="true" data-buyLink="/queue/enqueue/ARIA">Comprar</button>
+      </div>
+      <div class="button-block" data-performance-date="2026-11-06T20:00:00-03:00">
+        <a hidden href="/queue/enqueue/HIDDEN">Comprar</a>
+      </div>
+    `, "https://www.puntoticket.com/evento/visible").value!;
+    expect(extractDetail(raw).value!.performances).toEqual([
+      { date: "2026-11-03T20:00:00-03:00", status: "available", performance_code: "ICON001", purchase_url: "/comprar/evento/ICON001/cal/1" },
+      { date: "2026-11-04T20:00:00-03:00", status: "unknown" },
+      { date: "2026-11-05T20:00:00-03:00", status: "unknown" },
+      { date: "2026-11-06T20:00:00-03:00", status: "unknown" }
+    ]);
+  });
+
+  it("ignores purchase controls hidden by an ancestor style", () => {
+    const raw = parseEventDetail(`
+      <section style="display: none">
+        <div class="button-block" data-performance-date="2026-11-10T20:00:00-03:00">
+          <a href="/queue/enqueue/HIDDEN-ANCESTOR">Comprar</a>
+        </div>
+      </section>
+      <section style="visibility: hidden">
+        <div class="button-block" data-performance-date="2026-11-11T20:00:00-03:00">
+          <a href="/queue/enqueue/HIDDEN-VISIBILITY">Comprar</a>
+        </div>
+      </section>
+    `, "https://www.puntoticket.com/evento/hidden-ancestor").value!;
+    expect(extractDetail(raw).value!.performances).toEqual([
+      { date: "2026-11-10T20:00:00-03:00", status: "unknown" },
+      { date: "2026-11-11T20:00:00-03:00", status: "unknown" }
+    ]);
+  });
+
+  it("extracts horasPorFecha only when it is safe bounded JSON with explicit fields", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = [
+          {"Fecha":"2026-11-07","Hora":"21:30","Disabled":false,"URL":"/comprar/evento/HORA001/cal/9","Codigo":"HORA001","Calendario":"9"},
+          {"Fecha":"2026-11-08","Hora":"21:30","Disabled":true,"URL":"/comprar/evento/HORA002/cal/2","Codigo":"HORA002","Calendario":"2"},
+          {"Fecha":"2026-11-09","Hora":"21:30","Disabled":false,"URL":"/comprar/evento/CAL999/cal/3","Codigo":"WRONG","Calendario":"3"}
+        ];
+      </script>
+    `, "https://www.puntoticket.com/evento/horas").value!;
+    expect(extractDetail(raw).value!.performances).toEqual([
+      { date: "2026-11-07T21:30:00", status: "available", performance_code: "HORA001", purchase_url: "/comprar/evento/HORA001/cal/9" }
+    ]);
+  });
+
+  it("extracts real horasPorFecha objects using Fecha, EventoCalendarioId and enabled BuyLinks", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = {
+          "01-11-2026": [{
+            "Fecha": "2026-11-01T21:00:00",
+            "EventoCalendarioId": 7,
+            "BuyLinks": [
+              {"Name":"Preventa","Url":"https://www.puntoticket.com/comprar/evento/TEST123/cal/7","Disabled":false},
+              {"Name":"Agotado","Url":"https://www.puntoticket.com/comprar/evento/DISABLED/cal/7","Disabled":true},
+              {"Name":"Sin estado","Url":"https://www.puntoticket.com/comprar/evento/ABSENT/cal/7"}
+            ]
+          }]
+        };
+      </script>
+    `, "https://www.puntoticket.com/evento/test123").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([
+      {
+        date: "2026-11-01T21:00:00",
+        status: "available",
+        performance_code: "TEST123",
+        purchase_url: "https://www.puntoticket.com/comprar/evento/TEST123/cal/7"
+      }
+    ]);
+    expect(normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" }).performances).toEqual([
+      {
+        starts_at: "2026-11-01T21:00:00-03:00",
+        timezone: "America/Santiago",
+        status: "available",
+        performance_code: "TEST123",
+        purchase_url: "https://www.puntoticket.com/comprar/evento/TEST123/cal/7"
+      }
+    ]);
+  });
+
+  it("rejects unsafe horasPorFecha URLs and calendar mismatches without failing extraction", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = {
+          "01-11-2026": [
+            {"Fecha":"2026-11-01T21:00:00","EventoCalendarioId":8,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/MISMATCH/cal/7","Disabled":false}]},
+            {"Fecha":"2026-11-02T21:00:00","EventoCalendarioId":9,"BuyLinks":[{"Name":"Comprar","Url":"http://www.puntoticket.com/comprar/evento/HTTP/cal/9","Disabled":false}]},
+            {"Fecha":"2026-11-03T21:00:00","EventoCalendarioId":10,"BuyLinks":[{"Name":"Comprar","Url":"https://user@www.puntoticket.com/comprar/evento/USER/cal/10","Disabled":false}]},
+            {"Fecha":"2026-11-04T21:00:00","EventoCalendarioId":11,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com.attacker.example/comprar/evento/HOST/cal/11","Disabled":false}]},
+            {"Fecha":"2026-11-05T21:00:00","EventoCalendarioId":12,"BuyLinks":{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/OBJECT/cal/12","Disabled":false}},
+            {"Fecha":"2026-11-06T21:00:00","BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/MISSING-ID/cal/13","Disabled":false}]},
+            {"Fecha":"2026-11-07T21:00:00","EventoCalendarioId":14,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/ENCODED%2FSLASH/cal/14","Disabled":false}]},
+            {"Fecha":"2026-11-08T21:00:00","EventoCalendarioId":15,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/ENCODED%5CBACKSLASH/cal/15","Disabled":false}]}
+          ]
+        };
+      </script>
+      <script type="application/ld+json">{"@type":"Event","subEvent":[
+        {"startDate":"2026-11-01T21:00:00"},
+        {"startDate":"2026-11-02T21:00:00"},
+        {"startDate":"2026-11-03T21:00:00"},
+        {"startDate":"2026-11-04T21:00:00"},
+        {"startDate":"2026-11-05T21:00:00"},
+        {"startDate":"2026-11-06T21:00:00"},
+        {"startDate":"2026-11-07T21:00:00"},
+        {"startDate":"2026-11-08T21:00:00"}
+      ]}</script>
+    `, "https://www.puntoticket.com/evento/rechazos").value!;
+    const result = extractDetail(raw);
+    expect(result.errors).toEqual([]);
+    expect(result.value!.availability_evidence).toBeUndefined();
+    expect(result.value!.performances).toHaveLength(8);
+    expect(result.value!.performances.every((performance) => !performance.purchase_url && !performance.performance_code && performance.status === "unknown")).toBe(true);
+    expect(normalizeEvent(raw, result.value!, { extracted_at: "2026-09-08T12:00:00.000Z" }).status).toBe("unknown");
+  });
+
+  it("keeps nested queue horasPorFecha links global-only even when the link is unique", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = {
+          "01-11-2026": [{
+            "Fecha": "2026-11-01T21:00:00",
+            "BuyLinks": [
+              {"Name":"Comprar","Url":"https://www.puntoticket.com/queue/enqueue/QUEUE123","Disabled":false},
+              {"Name":"Comprar duplicado","Url":"https://www.puntoticket.com/queue/enqueue/QUEUE123","Disabled":false}
+            ]
+          }]
+        };
+      </script>
+    `, "https://www.puntoticket.com/evento/queue").value!;
+    expect(extractDetail(raw).value).toMatchObject({
+      performances: [{ date: "2026-11-01T21:00:00", status: "unknown" }],
+      availability_evidence: { status: "available", reason: "valid_publication_purchase_link" }
+    });
+  });
+
+  it("keeps nested queue evidence global-only without EventoCalendarioId or verifiable calendar coherence", () => {
+    for (const record of [
+      `{"Fecha":"2026-11-01T21:00:00","BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/queue/enqueue/QUEUE-NO-ID","Disabled":false}]}`,
+      `{"Fecha":"2026-11-01T21:00:00","EventoCalendarioId":7,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/queue/enqueue/QUEUE-ID","Disabled":false}]}`
+    ]) {
+      const raw = parseEventDetail(`
+        <script>
+          const horasPorFecha = {"01-11-2026":[${record}]};
+        </script>
+        <script type="application/ld+json">{"@type":"Event","subEvent":[{"startDate":"2026-11-01T21:00:00"}]}</script>
+      `, "https://www.puntoticket.com/evento/queue-global-only").value!;
+      const result = extractDetail(raw);
+      expect(result.errors).toEqual([]);
+      expect(result.value!.availability_evidence).toEqual({ status: "available", reason: "valid_publication_purchase_link" });
+      expect(result.value!.performances).toEqual([{ date: "2026-11-01T21:00:00", status: "unknown" }]);
+    }
+  });
+
+  it("preserves a nested queue date as unknown even without JSON-LD", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = {"01-11-2026":[{"Fecha":"2026-11-01T21:00:00","BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/queue/enqueue/QUEUE-NO-ID","Disabled":false}]}]};
+      </script>
+    `, "https://www.puntoticket.com/evento/queue-no-jsonld").value!;
+    const result = extractDetail(raw);
+    expect(result.value).toMatchObject({
+      performances: [{ date: "2026-11-01T21:00:00", status: "unknown" }],
+      availability_evidence: { status: "available", reason: "valid_publication_purchase_link" }
+    });
+    expect(result.value!.performances[0]).not.toHaveProperty("purchase_url");
+    expect(result.value!.performances[0]).not.toHaveProperty("performance_code");
+  });
+
+  it("rejects flat queue horasPorFecha links without matching Codigo identity", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = [{"Fecha":"2026-11-01T20:00:00","Disabled":false,"URL":"https://www.puntoticket.com/queue/enqueue/ACTUAL"}];
+      </script>
+    `, "https://www.puntoticket.com/evento/queue-flat-missing-identity").value!;
+    const result = extractDetail(raw);
+    expect(result.errors).toEqual([]);
+    expect(result.value!.performances).toEqual([]);
+    expect(result.value!.availability_evidence).toBeUndefined();
+  });
+
+  it("keeps a flat queue horasPorFecha link with matching Codigo", () => {
+    const raw = parseEventDetail(`
+      <script>
+        const horasPorFecha = [{"Fecha":"2026-11-01T20:00:00","Disabled":false,"Codigo":"ACTUAL","URL":"https://www.puntoticket.com/queue/enqueue/ACTUAL"}];
+      </script>
+    `, "https://www.puntoticket.com/evento/queue-flat-valid").value!;
+    expect(extractDetail(raw).value!.performances).toEqual([
+      {
+        date: "2026-11-01T20:00:00",
+        status: "available",
+        performance_code: "ACTUAL",
+        purchase_url: "https://www.puntoticket.com/queue/enqueue/ACTUAL"
+      }
+    ]);
+  });
+
+  it("keeps Creamfields-like ambiguous queue mappings global only", () => {
+    const raw = parseEventDetail(`
+      <h1>Creamfields-like horas</h1>
+      <script>
+        const horasPorFecha = {
+          "14-11-2026": [{"Fecha":"2026-11-14T12:00:00","BuyLinks":[{"Name":"General","Url":"https://www.puntoticket.com/queue/enqueue/CREAM-GA","Disabled":false}]}],
+          "15-11-2026": [{"Fecha":"2026-11-15T12:00:00","BuyLinks":[{"Name":"General","Url":"https://www.puntoticket.com/queue/enqueue/CREAM-GA","Disabled":false}]}]
+        };
+      </script>
+      <script type="application/ld+json">{"@type":"Event","subEvent":[{"startDate":"2026-11-14T12:00:00"},{"startDate":"2026-11-15T12:00:00"}]}</script>
+    `, "https://www.puntoticket.com/creamfields-like").value!;
+    const result = extractDetail(raw);
+    expect(result.errors).toEqual(["ambiguous performance purchase mapping"]);
+    expect(result.value!.performances.map(({ date, status, purchase_url, performance_code }) => [date, status, purchase_url, performance_code])).toEqual([
+      ["2026-11-14T12:00:00", "unknown", undefined, undefined],
+      ["2026-11-15T12:00:00", "unknown", undefined, undefined]
+    ]);
+    expect(normalizeEvent(raw, result.value!, { extracted_at: "2026-09-08T12:00:00.000Z" }).status).toBe("available");
+  });
+
+  it("degrades malformed, deep, incompatible and invalid-date horasPorFecha without a global failure", () => {
+    const malformed = extractDetail(parseEventDetail(`
+      <script>const horasPorFecha = {"01-11-2026": [{"Fecha": "2026-11-01T21:00:00", }</script>
+      <script type="application/ld+json">{"@type":"Event","startDate":"2026-11-01T21:00:00"}</script>
+    `, "https://www.puntoticket.com/evento/horas-malformado").value!);
+    expect(malformed.errors).toContain("ambiguous performance purchase mapping");
+    expect(malformed.value!.performances).toEqual([{ date: "2026-11-01T21:00:00", status: "unknown" }]);
+
+    const deep = extractDetail(parseEventDetail(`<script>const horasPorFecha = ${"[".repeat(21)}${"]".repeat(21)};</script>`, "https://www.puntoticket.com/evento/horas-profundo").value!);
+    expect(deep.errors).toEqual(["ambiguous performance purchase mapping"]);
+
+    const incompatible = extractDetail(parseEventDetail(`<script>const horasPorFecha = "sin estructura";</script>`, "https://www.puntoticket.com/evento/horas-incompatible").value!);
+    expect(incompatible.errors).toEqual(["ambiguous performance purchase mapping"]);
+
+    const invalidDate = extractDetail(parseEventDetail(`
+      <script>const horasPorFecha = {"01-11-2026":[{"Fecha":"2026-02-30T21:00:00","EventoCalendarioId":1,"BuyLinks":[{"Name":"Comprar","Url":"https://www.puntoticket.com/comprar/evento/BADDATE/cal/1","Disabled":false}]}]};</script>
+    `, "https://www.puntoticket.com/evento/horas-fecha-invalida").value!);
+    expect(invalidDate.errors).toEqual([]);
+    expect(invalidDate.value!.performances).toEqual([]);
+  });
+
+  it("keeps unsafe horasPorFecha unknown and reports the stable limitation", () => {
+    const result = extractDetail(parseEventDetail(`
+      <script>const horasPorFecha = [{Fecha:"2026-11-07", Hora:"21:30", Disabled:false, URL:"/comprar/evento/HORA001/cal/9"}];</script>
+      <script type="application/ld+json">{"@type":"Event","startDate":"2026-11-07T21:30:00"}</script>
+    `, "https://www.puntoticket.com/evento/horas-inseguro").value!);
+    expect(result.errors).toContain("ambiguous performance purchase mapping");
+    expect(result.value!.performances).toEqual([{ date: "2026-11-07T21:30:00", status: "unknown" }]);
+  });
+
   it("asocia bloques comerciales sin fecha a la única función del JSON-LD", () => {
     const raw = parseEventDetail(`
       <script type="application/ld+json">{"@type":"Event","startDate":"2026-12-01T21:00:00"}</script>
@@ -82,8 +375,31 @@ describe("PuntoTicket detail extraction and normalization", () => {
       <script type="application/ld+json">{"@type":"Event","subEvent":[{"startDate":"2026-12-01T21:00:00"},{"startDate":"2026-12-02T21:00:00"}]}</script>
       <section class="button-block"><p>DISPONIBLE</p><a href="/queue/enqueue/AMBIGUO"></a></section>
     `, "https://www.puntoticket.com/evento/multiples").value!);
-    expect(result.errors).toEqual(["unassociated_commercial_block"]);
+    expect(result.errors).toEqual(["ambiguous performance purchase mapping"]);
     expect(result.value!.performances.every((performance) => !performance.purchase_url)).toBe(true);
+  });
+
+  it("marks a Creamfields-like landing globally available without assigning ambiguous purchase links", () => {
+    const raw = parseEventDetail(`
+      <h1>Creamfields sintético</h1>
+      <script type="application/ld+json">{"@type":"Event","subEvent":[{"startDate":"2026-11-14T12:00:00-03:00"},{"startDate":"2026-11-15T12:00:00-03:00"}]}</script>
+      <a href="/queue/enqueue/CREAM-GA?ct=1">General</a>
+      <a href="/queue/enqueue/CREAM-VIP?ct=2">Vip</a>
+    `, "https://www.puntoticket.com/creamfields").value!;
+    expect(raw.availability_evidence).toEqual({ status: "available", reason: "valid_publication_purchase_link" });
+    const result = extractDetail(raw);
+    expect(result.errors).toEqual(["ambiguous performance purchase mapping"]);
+    expect(result.value!.performances.map(({ date, status, purchase_url }) => [date, status, purchase_url])).toEqual([
+      ["2026-11-14T12:00:00-03:00", "unknown", undefined],
+      ["2026-11-15T12:00:00-03:00", "unknown", undefined]
+    ]);
+    expect(normalizeEvent(raw, result.value!, { extracted_at: "2026-09-08T12:00:00.000Z" })).toMatchObject({
+      status: "available",
+      performances: [
+        { status: "unknown" },
+        { status: "unknown" }
+      ]
+    });
   });
 
   it("rechaza extracted_at que no sea un timestamp ISO válido", () => {
@@ -132,10 +448,21 @@ describe("PuntoTicket detail extraction and normalization", () => {
     expect(result.value?.source_url).toBe("https://www.puntoticket.com/evento/x");
     expect(() => parseEventDetail("<h1>Evento</h1>", "https://evil.example/evento/x")).toThrow("source_url debe usar el host exacto www.puntoticket.com");
     expect(() => parseEventDetail("<h1>Evento</h1>", "")).toThrow("source_url es obligatorio");
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(() => parseEventDetail("<h1>Evento</h1>", `${whitespace}https://@www.puntoticket.com/evento/x`)).toThrow();
+    }
+    for (const separator of ["%2F", "%2f", "%5C", "%5c"]) {
+      expect(() => canonicalSourceUrl(`https://www.puntoticket.com/evento/x${separator}y`)).toThrow();
+      expect(() => parseEventDetail("<h1>Evento</h1>", `https://www.puntoticket.com/evento/x${separator}y`)).toThrow();
+    }
+    expect(canonicalSourceUrl("https://www.puntoticket.com/evento/x?next=%2Fqueue%5Cbuy")).toBe("https://www.puntoticket.com/evento/x");
+    expect(parseEventDetail("<h1>Evento</h1>", "https://www.puntoticket.com/evento/x").value?.source_url).toBe("https://www.puntoticket.com/evento/x");
   });
 
   it("rejects userinfo centrally for source and purchase URLs without sanitizing", () => {
     for (const value of [
+      "https://@www.puntoticket.com/evento/x",
+      " \thttps://@www.puntoticket.com/evento/x\n",
       "https://user:pass@www.puntoticket.com/evento/x",
       "https://user@www.puntoticket.com/evento/x",
       "https://:pass@www.puntoticket.com/evento/x"
@@ -145,16 +472,36 @@ describe("PuntoTicket detail extraction and normalization", () => {
     }
     expect(canonicalSourceUrl("https://www.puntoticket.com/evento/x")).toBe("https://www.puntoticket.com/evento/x");
     expect(allowedPurchaseUrl("/queue/enqueue/VALID", "https://www.puntoticket.com/evento/x")).toBe("https://www.puntoticket.com/queue/enqueue/VALID");
+    expect(allowedPurchaseUrl("/comprar/evento/FNA387/cal/1", "https://www.puntoticket.com/evento/x")).toBe("https://www.puntoticket.com/comprar/evento/FNA387/cal/1");
     expect(allowedPurchaseUrl("//user:pass@www.puntoticket.com/queue/enqueue/USERINFO", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("http://www.puntoticket.com/queue/enqueue/HTTP", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://www.puntoticket.com.attacker.example/queue/enqueue/HOST", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://www.puntoticket.com:8443/comprar/evento/FNA387/cal/1", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://user@www.puntoticket.com/comprar/evento/FNA387/cal/1", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://:pass@www.puntoticket.com/queue/enqueue/USERINFO", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://@www.puntoticket.com/comprar/evento/FNA387/cal/1", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(allowedPurchaseUrl(`${whitespace}https://@www.puntoticket.com/comprar/evento/FNA387/cal/1`, "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    }
+    expect(allowedPurchaseUrl("https://user:pass@www.puntoticket.com/comprar/evento/FNA387/cal/1", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://www.puntoticket.com/comprar/evento/FNA387", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://www.puntoticket.com/queue/enqueue/CODE%2FSLASH", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    expect(allowedPurchaseUrl("https://www.puntoticket.com/comprar/evento/FNA387/cal/1%5cBACKSLASH", "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    for (const whitespace of [" ", "\t", "\n"]) {
+      expect(() => canonicalSourceUrl(`${whitespace}https://www.puntoticket.com/evento/x`)).toThrow();
+      expect(() => canonicalSourceUrl(`https://www.puntoticket.com/evento/x${whitespace}`)).toThrow();
+      expect(allowedPurchaseUrl(`${whitespace}/queue/enqueue/OUTER`, "https://www.puntoticket.com/evento/x")).toBeUndefined();
+      expect(allowedPurchaseUrl(`/queue/enqueue/OUTER${whitespace}`, "https://www.puntoticket.com/evento/x")).toBeUndefined();
+    }
   });
 
   it("does not propagate userinfo purchases or buyable availability from HTML, JSON-LD or normalization", () => {
     const raw = parseEventDetail(`
-      <div data-publication-purchase-url="https://user:pass@www.puntoticket.com/queue/enqueue/PUBLICATION"></div>
+      <div data-publication-purchase-url=" \thttps://@www.puntoticket.com/queue/enqueue/PUBLICATION\n"></div>
       <div class="button-block" data-performance-date="2026-10-01T20:00:00-03:00" data-status="DISPONIBLE">
-        <a href="https://user@www.puntoticket.com/queue/enqueue/HTML">COMPRAR</a>
+        <a href=" \thttps://@www.puntoticket.com/queue/enqueue/HTML\n">COMPRAR</a>
       </div>
-      <script type="application/ld+json">{"@type":"Event","startDate":"2026-10-01T20:00:00-03:00","offers":{"availability":"https://schema.org/InStock","url":"https://:pass@www.puntoticket.com/queue/enqueue/JSON"}}</script>
+      <script type="application/ld+json">{"@type":"Event","startDate":"2026-10-01T20:00:00-03:00","offers":{"availability":"https://schema.org/InStock","url":" \thttps://@www.puntoticket.com/queue/enqueue/JSON\n"}}</script>
     `, "https://www.puntoticket.com/evento/userinfo").value!;
     expect(raw.purchase_url).toBeUndefined();
     const extracted = extractDetail(raw).value!;
