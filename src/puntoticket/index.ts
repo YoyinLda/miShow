@@ -5,3 +5,7 @@ export * from "./acquisition/policy.js";
 export * from "./extraction/detail.js";
 export * from "./extraction/listing.js";
 export * from "./normalization.js";
+export * from "./persistence/contracts.js";
+export * from "./persistence/mapping.js";
+export * from "./persistence/supabase-data-api.js";
+export * from "./persistence/workflow.js";

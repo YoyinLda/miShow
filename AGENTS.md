@@ -2,71 +2,44 @@
 
 ## Contexto
 
-miShow busca centralizar conciertos y eventos musicales publicados por múltiples ticketeras y fuentes. El producto debe privilegiar una experiencia rápida y clara en dispositivos móviles.
+miShow: conciertos/eventos múltiples fuentes. Mobile-first, música Chile.
 
-Antes de implementar una tarea, lee este archivo y la documentación relevante dentro de `docs/`.
+## Stack
 
-## Stack acordado
+TypeScript, Next.js, React, Tailwind, AWS Lambda/RDS, SQS, EventBridge, Playwright/Puppeteer, SES, W3C Trace Context.
 
-- TypeScript como lenguaje principal.
-- Next.js, React y Tailwind CSS para el frontend.
-- AWS Lambda y API Gateway para la API pública.
-- Lambda privada para orquestación.
-- Playwright o Puppeteer en ECS Fargate Tasks para scraping.
-- PostgreSQL en Amazon RDS.
-- SQS y EventBridge para procesamiento asíncrono y programación.
-- SES para correo.
-- W3C Trace Context y logs JSON para observabilidad.
+## Reglas globales
 
-## Forma de trabajo
+- **Cambios pequeños, reversibles.** Si falta decisión que afecte comportamiento, modelo, costo o arquitectura: detente (TL/PO decide).
+- **Pruebas:** cuando cambia comportamiento. Ejecuta: typecheck, lint, tests.
+- **Sin riesgos:** no secretos, tokens, credenciales. No despliegues, no recursos externos, no cobros.
+- **Documentación:** actualiza `docs/` si cambia contrato, arquitectura, proceso.
+- **Reutiliza:** tipos, contratos. Evita duplicar modelos.
 
-- Antes de editar, explica brevemente el alcance y los archivos involucrados.
-- No conviertas una decisión pendiente en definitiva sin consultarla.
-- Implementa cambios pequeños, comprobables y fáciles de revertir.
-- Reutiliza tipos y contratos; evita duplicar modelos entre componentes.
-- Agrega o actualiza pruebas cuando cambie el comportamiento.
-- Ejecuta las pruebas, lint y validación de tipos disponibles antes de terminar.
-- Resume los cambios y cualquier verificación que no haya podido ejecutarse.
-- No agregues dependencias sin explicar su propósito.
-- No incluyas secretos, tokens, credenciales ni datos personales en el repositorio.
-- No ejecutes acciones contra producción.
-- No hagas cambios de infraestructura destructivos sin autorización explícita.
+## Equipo
 
-## Equipo y delegación
+- **TL/PO** (Rodrigo + principal): decisión final, alcance, autenticación producto.
+- **designer**: especificaciones UX/UI, lectura solo. MVP: catálogo, búsqueda, filtros, detalle.
+- **dev**: implementa historias aprobadas. Modifica código producto.
+- **qa**: validación independiente, evidencia.
+- **supabase**: migraciones, RLS, schemas (para historias BD).
 
-- Rodrigo y el agente principal actúan como TL/PO y conservan la decisión final.
-- Usa `designer` para especificaciones UX/UI; trabaja en lectura y no implementa.
-- Usa `dev` para una historia aprobada; es el único agente que modifica código de producto.
-- Usa `qa` para validación independiente; no implementa correcciones.
-- Lee `docs/equipo-agentes.md` para contratos de historia, handoffs y prompts.
-- Evita ediciones concurrentes sobre los mismos archivos.
-- Detén el ciclo para aprobación TL/PO después del diseño y antes de implementar.
+## Flujo de trabajo
+
+TL/PO → diseño aprobado → dev → qa → cierre TL/PO.
+
+Evita ediciones concurrentes mismos archivos. Pausa ciclo para aprobación TL/PO después diseño, antes implementar.
 
 ## Criterios del producto
 
-- Diseño mobile-first.
-- Accesibilidad y rendimiento como requisitos de base.
-- Cada evento debe conservar su fuente y URL original.
-- La ingesta debe ser idempotente y tolerar reintentos.
-- Los scrapers deben respetar límites, bloqueos y condiciones de cada fuente.
-- La normalización no debe destruir el dato original obtenido.
-- Fechas y horas deben conservar zona horaria explícita.
-- El sistema debe permitir detectar duplicados entre distintas fuentes.
-
-## Arquitectura
-
-- Evita acoplar el modelo de dominio a la estructura HTML de una ticketera.
-- Separa extracción, normalización, persistencia y publicación.
-- Usa colas para desacoplar procesos lentos o reintentables.
-- Propaga `traceparent` y registra identificadores de correlación.
-- Favorece infraestructura simple durante el MVP y justifica cualquier componente adicional.
+- Mobile-first, accesible, performante.
+- Conserva fuente y URL original cada evento.
+- Ingesta idempotente, tolera reintentos.
+- Scrapers respetan límites, bloqueos, condiciones fuente.
+- Fechas/horas: zona horaria explícita.
+- Detecta duplicados entre fuentes.
 
 ## Definición de terminado
 
-Una tarea se considera terminada cuando:
+Implementada, pruebas, sin secretos, documentación actualizada, diff claro.
 
-1. El comportamiento solicitado está implementado.
-2. Las pruebas relevantes pasan o queda documentado por qué no pudieron ejecutarse.
-3. No se incorporaron secretos ni configuraciones productivas.
-4. La documentación afectada fue actualizada.
-5. El cambio puede revisarse mediante un diff claro.
