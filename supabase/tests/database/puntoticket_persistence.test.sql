@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(65);
+select plan(71);
 
 select has_table('public', 'sources', 'sources exists');
 select has_table('public', 'events', 'events exists');
@@ -341,6 +341,57 @@ select is(
   (select message from public.scrape_errors where code = 'json_secret_error'),
   'SQL sanitization is idempotent'
 );
+
+select lives_ok(
+  $sql$
+    select public.record_scrape_error(
+      (select max(id) from public.scrape_runs),
+      jsonb_build_object(
+        'stage', 'persist',
+        'severity', 'error',
+        'code', 'inspected_secret_error',
+        'message', E'{\n  Authorization: ''Bearer JWT'',\n  Cookie: ''session=COOKIE_JSON; refresh=MORE'',\n  apikey: ''API_JSON'',\n  token: ''TOKEN_JSON'',\n  note: ''safe context''\n}',
+        'attempts', 1
+      )
+    )
+  $sql$,
+  'multiline inspected errors with sensitive keys can be recorded'
+);
+select is(
+  (select message from public.scrape_errors where code = 'inspected_secret_error'),
+  '{ Authorization: ''[REDACTED]'', Cookie: ''[REDACTED]'', apikey: ''[REDACTED]'', token: ''[REDACTED]'', note: ''safe context'' }',
+  'SQL sanitization preserves inspected object fields and shape'
+);
+select lives_ok(
+  $sql$
+    select public.record_scrape_error(
+      (select max(id) from public.scrape_runs),
+      jsonb_build_object(
+        'stage', 'persist',
+        'severity', 'error',
+        'code', 'spaced_json_secret_error',
+        'message', '{ "Authorization" : "Bearer JWT", "Set-Cookie" : "session=SET_COOKIE_JSON; HttpOnly", "status" : 401 }',
+        'attempts', 1
+      )
+    )
+  $sql$,
+  'spaced stringified JSON errors can be recorded'
+);
+select is(
+  (select message from public.scrape_errors where code = 'spaced_json_secret_error'),
+  '{ "Authorization" : "[REDACTED]", "Set-Cookie" : "[REDACTED]", "status" : 401 }',
+  'SQL sanitization retains spacing and non-sensitive JSON fields'
+);
+select lives_ok(
+  $sql$
+    select public.record_scrape_error(
+      (select max(id) from public.scrape_runs),
+      jsonb_build_object('stage', 'persist', 'severity', 'error', 'code', 'long_secret_error', 'message', repeat('x', 2100), 'attempts', 1)
+    )
+  $sql$,
+  'an oversized error message can be recorded'
+);
+select is(length((select message from public.scrape_errors where code = 'long_secret_error')), 2000, 'SQL sanitization bounds stored errors to 2000 characters');
 
 select lives_ok(
   $sql$

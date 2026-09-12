@@ -10,17 +10,17 @@ const QUOTED_SENSITIVE_ASSIGNMENT = new RegExp(
   String.raw`${SENSITIVE_PREFIX}(["']?)(${SENSITIVE_KEY})\2(\s*[:=]\s*)(["'])(?:\\.|(?!\5)[\s\S])*\5`,
   "giu"
 );
-const UNQUOTED_HEADER_ASSIGNMENT = /^([ \t]*)(authorization|proxy-authorization|cookie|set-cookie)[ \t]*[:=][ \t]*(?!["'])[^\r\n]*/gimu;
+const UNQUOTED_HEADER_ASSIGNMENT = /^([ \t]*)(authorization|proxy-authorization|cookie|set-cookie)[ \t]*[:=](?![ \t]*["'])[ \t]*[^\r\n]*/gimu;
 const AUTHORIZATION_ASSIGNMENT = new RegExp(
-  String.raw`${SENSITIVE_PREFIX}(["']?)(authorization|proxy-authorization)\2(\s*[:=]\s*)(?!["'])(?:(?:bearer|basic)\s+)?[^\s,;}]+`,
+  String.raw`${SENSITIVE_PREFIX}(["']?)(authorization|proxy-authorization)\2(\s*[:=](?!\s*["'])\s*)(?:(?:bearer|basic)\s+)?[^\s,;}]+`,
   "giu"
 );
 const COOKIE_ASSIGNMENT = new RegExp(
-  String.raw`${SENSITIVE_PREFIX}(["']?)(cookie|set-cookie)\2(\s*[:=]\s*)(?!["'])[^\r\n,}]+`,
+  String.raw`${SENSITIVE_PREFIX}(["']?)(cookie|set-cookie)\2(\s*[:=](?!\s*["'])\s*)[^\r\n,}]+`,
   "giu"
 );
 const TOKEN_ASSIGNMENT = new RegExp(
-  String.raw`${SENSITIVE_PREFIX}(["']?)(api[-_]?key|(?:[a-z0-9]+[-_])*token)\2(\s*[:=]\s*)(?!["'])(?:bearer\s+)?[^\s,;}]+`,
+  String.raw`${SENSITIVE_PREFIX}(["']?)(api[-_]?key|(?:[a-z0-9]+[-_])*token)\2(\s*[:=](?!\s*["'])\s*)(?:bearer\s+)?[^\s,;}]+`,
   "giu"
 );
 

@@ -1,5 +1,7 @@
 # Instrucciones para agentes — miShow
 
+Un agente único (`mishow`) detecta contexto de la tarea y actúa según rol necesario (diseño, dev, QA, datos).
+
 ## Contexto
 
 miShow: conciertos/eventos múltiples fuentes. Mobile-first, música Chile.
@@ -8,27 +10,28 @@ miShow: conciertos/eventos múltiples fuentes. Mobile-first, música Chile.
 
 TypeScript, Next.js, React, Tailwind, AWS Lambda/RDS, SQS, EventBridge, Playwright/Puppeteer, SES, W3C Trace Context.
 
+## Cómo trabajar
+
+TL/PO describe la tarea naturalmente. El agente detecta automáticamente si necesita diseñar, implementar, validar o tocar BD.
+
+- **Diseño:** "Especifica flujo para..." → Agente genera specs, no edita código.
+- **Desarrollo:** "Implementa..." → Agente edita código con pruebas.
+- **QA:** "Valida cambios..." → Agente verifica, no corrige código.
+- **Datos:** "Migra BD..." → Agente maneja Supabase, RLS, migraciones.
+
 ## Reglas globales
 
-- **Cambios pequeños, reversibles.** Si falta decisión que afecte comportamiento, modelo, costo o arquitectura: detente (TL/PO decide).
-- **Pruebas:** cuando cambia comportamiento. Ejecuta: typecheck, lint, tests.
-- **Sin riesgos:** no secretos, tokens, credenciales. No despliegues, no recursos externos, no cobros.
-- **Documentación:** actualiza `docs/` si cambia contrato, arquitectura, proceso.
-- **Reutiliza:** tipos, contratos. Evita duplicar modelos.
+- Si falta decisión sobre comportamiento, modelo, costo o arquitectura: detente (TL/PO decide).
+- Pruebas cuando cambia comportamiento. Ejecuta: typecheck, lint, tests.
+- Sin secretos, tokens, credenciales. No despliegues, no recursos externos, no cobros.
+- Actualiza docs/ si cambia contrato, arquitectura, proceso.
+- Cambios pequeños, reversibles. Reutiliza tipos/contratos.
 
-## Equipo
+## Flujo
 
-- **TL/PO** (Rodrigo + principal): decisión final, alcance, autenticación producto.
-- **designer**: especificaciones UX/UI, lectura solo. MVP: catálogo, búsqueda, filtros, detalle.
-- **dev**: implementa historias aprobadas. Modifica código producto.
-- **qa**: validación independiente, evidencia.
-- **supabase**: migraciones, RLS, schemas (para historias BD).
+TL/PO → tarea descrita → agente detecta contexto → diseño aprobado → implementación → QA → cierre.
 
-## Flujo de trabajo
-
-TL/PO → diseño aprobado → dev → qa → cierre TL/PO.
-
-Evita ediciones concurrentes mismos archivos. Pausa ciclo para aprobación TL/PO después diseño, antes implementar.
+Evita ediciones concurrentes. Agente pausa para aprobación TL/PO entre fases cuando sea necesario.
 
 ## Criterios del producto
 

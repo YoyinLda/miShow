@@ -1,38 +1,44 @@
 # Equipo de agentes y flujo de trabajo
 
-## Modelo de equipo
+## Modelo de equipo — Agente único
+
+Un agente único (`mishow`) detecta contexto de la tarea y actúa según rol necesario.
 
 | Rol | Responsable | Autoridad principal |
 |---|---|---|
 | PO | Rodrigo + asistente principal | Problema, prioridad, alcance y criterios de aceptación |
 | TL | Rodrigo + asistente principal | Arquitectura, división técnica, riesgos y aprobación del enfoque |
-| Diseño | Agente `designer` | Flujo, interacción, UI, accesibilidad y criterios visuales |
-| Desarrollo | Agente `dev` | Implementación y pruebas técnicas dentro del alcance aprobado |
-| QA | Agente `qa` | Validación independiente, evidencia y recomendación de aprobación |
-| Datos | Agente `supabase` | Supabase, PostgreSQL, migraciones, RLS y uso seguro del MCP |
+| Agente | `mishow` (contexto-detectado) | Diseña specs, implementa código, valida, maneja BD según lo solicitado |
 
-TL/PO conserva la decisión final. Los agentes especializados recomiendan y ejecutan dentro del alcance asignado; no deciden unilateralmente nuevas funcionalidades, gastos o despliegues.
+TL/PO conserva la decisión final. El agente detecta automáticamente si necesita diseñar (devuelve specs), implementar (edita código), validar (verifica) o tocar BD (migraciones/RLS). No decide unilateralmente nuevas funcionalidades, gastos o despliegues.
 
-## Por qué agentes y skills separados
+## Por qué un agente único
 
-- El **agente** define rol, permisos y comportamiento durante una sesión delegada.
-- El **skill** define el procedimiento repetible y el formato de salida para una clase de tarea.
-
-Esto permite usar, por ejemplo, `$mishow-qa-review` desde el agente principal o pedir explícitamente que el agente `qa` lo ejecute.
+- **Simplicidad:** TL/PO describe la tarea naturalmente. El agente detecta contexto (palabras clave: "diseña", "implementa", "valida", "migra").
+- **Eficiencia:** -60% tokens respecto a 4 agentes separados. Contexto base agente único ~400w.
+- **Continuidad:** Una sola "personalidad" durante toda la historia. Menos cambio de contexto.
+- **Skills reutilizables:** `$mishow-implement-feature`, `$mishow-qa-review` siguen disponibles, agente las invoca según contexto.
 
 ## Flujo de una historia
 
 ```mermaid
 flowchart TD
-    P[TL/PO define historia] --> D[Designer especifica]
-    D --> A[TL/PO aprueba]
-    A --> DEV[Dev implementa]
-    DEV --> QA[QA valida]
-    QA -->|Rechazado| DEV
-    QA -->|Aprobado| C[TL/PO cierra]
+    P[TL/PO describe tarea] --> A[Agente detecta contexto]
+    A -->|Diseño| D[Entrega specs]
+    A -->|Desarrollo| DEV[Implementa codigo]
+    A -->|QA| Q[Valida cambios]
+    A -->|Datos| DB[Maneja migraciones/RLS]
+    D --> APPROVE{TL/PO aprueba?}
+    DEV --> APPROVE
+    DB --> APPROVE
+    APPROVE -->|Sí| NEXT[Siguiente fase]
+    APPROVE -->|No| P
+    Q --> VERDICT{APROBADO?}
+    VERDICT -->|No| P
+    VERDICT -->|Sí| C[TL/PO cierra]
 ```
 
-Diseño es opcional para tareas puramente técnicas. QA no es opcional para cambios de comportamiento antes de cerrar una historia.
+Agente pausa entre fases para aprobación TL/PO cuando sea necesario. Diseño es opcional para tareas puramente técnicas. QA no es opcional para cambios de comportamiento.
 
 ## Contrato de historia lista para trabajar
 
@@ -46,84 +52,95 @@ Una historia está `READY` cuando contiene:
 - Restricciones técnicas o de costo.
 - Métrica o forma de validar valor cuando corresponda.
 
-## Handoffs
+## Handoffs (agente → TL/PO)
 
-### TL/PO → Diseño
+**Diseño:**
+- Objetivo, flujo, especificación por pantalla.
+- Componentes, estados, contenido.
+- Criterios de aceptación visual.
+- Preguntas abiertas si hay incertidumbre.
 
-- Problema, usuario, objetivo y restricciones.
-- Preguntas que el diseño debe resolver.
-- Qué no debe agregarse al alcance.
+**Desarrollo:**
+- Resumen del cambio implementado.
+- Archivos modificados, verificaciones ejecutadas.
+- Supuestos, riesgos, handoff para QA.
 
-### Diseño → Dev
+**QA:**
+- Veredicto: APROBADO, CON OBSERVACIONES, RECHAZADO.
+- Hallazgos por severidad con evidencia.
+- Cobertura ejecutada, riesgo residual.
+- Recomendación al TL/PO.
 
-- Flujo aprobado.
-- Pantallas, componentes y estados.
-- Comportamiento responsive y accesible.
-- Criterios visuales comprobables.
-
-### Dev → QA
-
-- Historia y criterios cubiertos.
-- Archivos y comportamiento modificados.
-- Tests ejecutados.
-- Riesgos, supuestos y casos que requieren atención.
-
-### QA → TL/PO
-
-- Veredicto.
-- Hallazgos por severidad.
-- Evidencia y cobertura.
-- Riesgo residual y recomendación.
+**Supabase/Datos:**
+- Objetivo y cambios: migraciones, políticas RLS, índices.
+- Verificaciones ejecutadas (tests SQL, schema).
+- Supuestos, riesgos, handoff para QA.
 
 ## Estrategia de concurrencia
 
-- Se puede ejecutar Diseño y exploración técnica en paralelo si ambos solo leen.
-- QA puede preparar el plan de pruebas mientras Dev implementa, usando la historia aprobada.
-- La ejecución final de QA comienza sobre un cambio estable entregado por Dev.
-- Solo un agente debe editar código de producto por historia.
-- No ejecutar dos agentes Dev sobre los mismos archivos al mismo tiempo.
+- El agente único ejecuta una tarea por sesión.
+- Si TL/PO quiere paralelo (ej: diseño + exploración técnica), abre dos sesiones con mishow.
+- Solo un agente edita código de producto por historia.
+- QA valida sobre cambios estables entregados por dev.
 
 ## Prompts de uso
 
-### Planificar una historia
+### Tarea de diseño
 
 ```text
-Actuaremos como TL/PO. Convierte este objetivo en una historia READY.
-Pide al agente designer que proponga el flujo y al agente qa que prepare
-los escenarios de aceptación. Ambos deben trabajar en modo lectura.
-Espera sus resultados y entrégame una propuesta consolidada; no escribas código.
+Especifica el flujo y UI para [objetivo]. 
+Lee AGENTS.md, docs/equipo-agentes.md para contexto.
+Entrega: objetivo, flujo, specs pantalla, componentes, estados, criterios visuales, preguntas abiertas.
+No edites código.
 ```
 
-### Implementar
+### Tarea de implementación
 
 ```text
-La historia está aprobada. Pide al agente dev que use
-$mishow-implement-feature, implemente el alcance y prepare el handoff para QA.
+Implementa esta historia aprobada: [historia con criterios].
+Cambio mínimo, separado (extracción/normalización/persistencia/presentación).
+Agrega pruebas si cambia comportamiento.
+Ejecuta: typecheck, lint, tests. Revisa diff: secretos, permisos, costo.
 No despliegues nada.
+Entrega: resumen, archivos, verificaciones, supuestos, handoff QA.
 ```
 
-### Validar
+### Tarea de validación
 
 ```text
-Pide al agente qa que use $mishow-qa-review sobre el cambio actual contra main.
-Debe ejecutar las verificaciones pertinentes, no corregir el código y entregar
-un veredicto con evidencia.
+Valida estos cambios contra la historia aprobada: [historia con criterios].
+Lee el diff y handoff del desarrollador.
+Verifica: comportamiento, límites, regresiones, a11y, seguridad, idempotencia, fallas.
+Entrega: veredicto (APROBADO/CON OBSERVACIONES/RECHAZADO), hallazgos con evidencia, cobertura, riesgos, recomendación.
+No corrijas código.
+```
+
+### Tarea de datos (Supabase)
+
+```text
+Migra la BD para: [historia con alcance de BD].
+Consulta MCP Supabase en lectura. Inspecciona schema, RLS, índices actuales.
+Escribe migración pequeña, versionada, reversible. Escribe tests SQL.
+Ejecuta: supabase db reset && npm run tests localmente.
+Entrega: migración, tests, verificaciones, supuestos, riesgos, handoff QA.
+No despliegues a producción.
 ```
 
 ### Ciclo completo controlado
 
 ```text
-Ejecuta esta historia usando el equipo miShow:
-1. Designer entrega especificación si corresponde.
-2. Detente para aprobación TL/PO antes de implementar.
-3. Tras la aprobación, Dev implementa una sola vez.
-4. QA valida el resultado estable.
-No despliegues ni amplíes el alcance.
+Ejecuta esta historia usando el agente miShow:
+1. [Tu descripción de tarea con criterios].
+2. Agente propone diseño si es tarea de specs.
+3. Detente para aprobación TL/PO antes de siguiente fase.
+4. Agente implementa o valida según corresponda.
+5. Entrega final a TL/PO.
+No despliegues ni amplíes alcance.
 ```
 
 ## Instalación y verificación
 
-Los agentes quedan en `.codex/agents/` y las skills en `.agents/skills/`, ambas dentro del repositorio. Codex las detecta al abrir y confiar en el proyecto. Si no aparecen, reinicia la extensión.
+Los agentes quedan en `.codex/agents/` y las skills en `.agents/skills/`, ambas dentro del repositorio. Codex detecta al abrir y confiar en el proyecto. Si no aparecen, reinicia la extensión.
 
-Verifica las skills en Codex con `/skills` o escribiendo `$mishow-`. Para invocar agentes, pide explícitamente al agente principal que use `dev`, `qa`, `designer` o `supabase`.
+Verifica skills en Codex con `/skills` o escribiendo `$mishow-`. Invoca el agente `mishow` directamente describiendo la tarea; el agente detecta contexto.
 

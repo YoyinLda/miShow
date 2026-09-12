@@ -1,42 +1,53 @@
 ---
-applyTo: "supabase/**"
-description: "Supabase-specific rules for migrations, RLS, and schema design"
+applyTo: "**"
+description: "Contextual development rules for miShow agente único: design, development, QA, and Supabase workflows"
 ---
 
-# Supabase Development Rules
+# Contextual Development Rules
 
-Aplica al trabajar en `supabase/` (migraciones, RLS, schemas, functions).
+Aplica globalmente. Agente detecta contexto de la solicitud e invoca reglas pertinentes.
 
-## Migraciones
+## Diseño (si tarea es UX/UI spec)
 
-- **Lectura primero:** inspecciona schema actual, enumeraciones, índices, políticas RLS existentes.
-- **Versionado:** nombra con timestamp (ej: `20260909151251_descripcion.sql`). No edites migraciones anteriores.
-- **Reversible:** incluye `DROP` correspondiente. Testa rollback.
-- **Idempotencia:** usa `IF NOT EXISTS`, `IF EXISTS`. Tolera re-ejecución.
-- **Sin cobros:** evita pg_vector, pg_graphql salvo aprobación. Mantén capa gratuita.
+- Entrega specs, no edites código.
+- Lee TL/PO: problema, usuario, contexto, métrica.
+- MVP: música Chile, catálogo/búsqueda/filtros/detalle. Sin features sin aprobación.
+- Mobile-first, accesible, liviano. Reutiliza patrones.
+- Define: jerarquía, contenido, estados, interacción, responsive, a11y, criterios visuales.
+- Señala supuestos. Preguntas abiertas.
 
-## RLS y Seguridad
+## Desarrollo (si tarea es implementación)
 
-- **Por defecto DENY:** inicia con `ALTER TABLE ... ENABLE ROW LEVEL SECURITY`. Abre solo lo necesario.
-- **Contexto seguro:** lee `auth.uid()`, verifica tenant/project si aplica.
-- **Auditoría:** registra cambios sensibles con `auth.jwt()->'sub'` en logs.
-- **Test explícito:** escribe tests en `supabase/tests/` verificando acceso denegado y permitido.
+- Cambio mínimo, separado (extracción/normalización/persistencia/presentación).
+- Si falta decisión: detente. TL/PO decide.
+- Pruebas si cambia comportamiento.
+- Ejecuta: typecheck, lint, tests. Revisa diff: secretos, permisos, costo.
+- No despliegues, no credenciales productivas.
+- Entrega: resumen, archivos, verificaciones, supuestos, handoff QA.
 
-## Schema Design
+## QA (si tarea es validación)
 
-- **Tipos portables:** evita extensiones propietarias. Usa `smallint`, `integer`, `text`, `timestamp with time zone`.
-- **Zona horaria explícita:** timestamps con `with time zone`. Nunca `without time zone` o `date`.
-- **Índices justificados:** solo para queries medidas, no preventivos. Justifica en comentario.
-- **Foreign keys:** ON DELETE CASCADE si es seguro, else RESTRICT. Documenta.
-- **Nombres:** snake_case, tablas plural (ej: `events`, `scraped_sources`).
+- No corrijas código. Lee historia, diff, handoff dev.
+- Verifica: comportamiento, límites, regresiones, a11y, seguridad, idempotencia, fallas.
+- Hallazgo: severidad, evidencia, pasos, esperado vs actual, área.
+- Veredicto: APROBADO, CON OBSERVACIONES, RECHAZADO + cobertura + riesgos + recomendación.
 
-## Procedimiento
+## Supabase/PostgreSQL (si tarea toca BD)
 
-1. Lee schema actual (migraciones previas, extensiones activas).
-2. Diseña cambio: tabla nueva, alteración, índice, política.
-3. Escribe migración con comentarios de intención.
-4. Escribe test SQL verificando estructura y políticas.
-5. Ejecuta: `supabase db reset && npm run tests` localmente.
-6. Entrega: migración + test + resumen cambio + riesgos.
+- Lectura primero: schema actual, extensiones, RLS, índices.
+- Migraciones: pequeñas, versionadas (timestamp), idempotentes, reversibles.
+- RLS: explícito en toda tabla API. Por defecto DENY. Escribe tests.
+- Schema: tipos portables (smallint, integer, text, timestamp with time zone). Zona horaria explícita.
+- Índices y foreign keys justificados, documentados.
+- Consulta MCP Supabase en lectura. Confirma proyecto antes de escribir.
+- Ejecuta: `supabase db reset && npm run tests` localmente.
+- No despliegues a producción. No credenciales productivas.
+- Entrega: objetivo, archivos/migraciones, verificaciones, supuestos, riesgos.
 
-No despliegues directamente a producción. No uses credenciales productivas. Cambios pasan por dev → staging → producción con TL/PO.
+## Reglas globales (todas las tareas)
+
+- Si falta decisión sobre comportamiento, modelo, costo o arquitectura: detente.
+- Pruebas cuando cambia comportamiento.
+- Sin secretos, tokens, credenciales. No despliegues, no recursos externos, no cobros.
+- Actualiza docs/ si cambia contrato, arquitectura, proceso.
+- Cambios pequeños, reversibles. Reutiliza tipos/contratos.

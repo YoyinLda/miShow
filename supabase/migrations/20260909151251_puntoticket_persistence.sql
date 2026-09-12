@@ -303,22 +303,22 @@ begin
     $replacement$\1\2\3'[REDACTED]'$replacement$,
     'gi'
   );
-  v_message := regexp_replace(v_message, $regex$^([[:blank:]]*)(authorization|proxy-authorization|cookie|set-cookie)[[:blank:]]*[:=][[:blank:]]*[^"'\r\n][^\r\n]*$regex$, '\1\2=[REDACTED]', 'gin');
+  v_message := regexp_replace(v_message, $regex$^([[:blank:]]*)(authorization|proxy-authorization|cookie|set-cookie)[[:blank:]]*[:=](?![[:blank:]]*["'])[[:blank:]]*[^\r\n]*$regex$, '\1\2=[REDACTED]', 'gin');
   v_message := regexp_replace(
     v_message,
-    $regex$(^|[[:space:]{,;])("(?:authorization|proxy-authorization)"|'(?:authorization|proxy-authorization)'|(?:authorization|proxy-authorization))([[:blank:]]*[:=][[:blank:]]*)(?:(?:bearer|basic)[[:blank:]]+)?[^"'[:space:],;}]+$regex$,
+    $regex$(^|[[:space:]{,;])("(?:authorization|proxy-authorization)"|'(?:authorization|proxy-authorization)'|(?:authorization|proxy-authorization))([[:blank:]]*[:=](?![[:blank:]]*["'])[[:blank:]]*)(?:(?:bearer|basic)[[:blank:]]+)?[^[:space:],;}]+$regex$,
     '\1\2\3[REDACTED]',
     'gi'
   );
   v_message := regexp_replace(
     v_message,
-    $regex$(^|[[:space:]{,;])("(?:cookie|set-cookie)"|'(?:cookie|set-cookie)'|(?:cookie|set-cookie))([[:blank:]]*[:=][[:blank:]]*)[^"'\r\n,}][^\r\n,}]*$regex$,
+    $regex$(^|[[:space:]{,;])("(?:cookie|set-cookie)"|'(?:cookie|set-cookie)'|(?:cookie|set-cookie))([[:blank:]]*[:=](?![[:blank:]]*["'])[[:blank:]]*)[^\r\n,}]+$regex$,
     '\1\2\3[REDACTED]',
     'gi'
   );
   v_message := regexp_replace(
     v_message,
-    $regex$(^|[[:space:]{,;])("(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token)"|'(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token)'|(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token))([[:blank:]]*[:=][[:blank:]]*)(?:bearer[[:blank:]]+)?[^"'[:space:],;}]+$regex$,
+    $regex$(^|[[:space:]{,;])("(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token)"|'(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token)'|(?:api[-_]?key|(?:[[:alnum:]]+[-_])*token))([[:blank:]]*[:=](?![[:blank:]]*["'])[[:blank:]]*)(?:bearer[[:blank:]]+)?[^[:space:],;}]+$regex$,
     '\1\2\3[REDACTED]',
     'gi'
   );

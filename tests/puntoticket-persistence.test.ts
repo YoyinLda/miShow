@@ -126,6 +126,13 @@ status=401`, [secret]);
     expect(sanitizePersistenceMessage(sanitized)).toBe(sanitized);
   });
 
+  it("sanitizes spaced JSON without removing harmless fields", () => {
+    const sanitized = sanitizePersistenceMessage('{ "Authorization" : "Bearer JWT", "Set-Cookie" : "session=SET_COOKIE_JSON; HttpOnly", "status" : 401 }');
+    expect(sanitized).toBe('{ "Authorization" : "[REDACTED]", "Set-Cookie" : "[REDACTED]", "status" : 401 }');
+    expect(JSON.parse(sanitized)).toMatchObject({ status: 401 });
+    expect(sanitizePersistenceMessage(sanitized)).toBe(sanitized);
+  });
+
   it("bounds sanitized messages", () => {
     expect(sanitizePersistenceMessage("x".repeat(2100))).toHaveLength(2000);
   });
