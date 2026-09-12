@@ -38,3 +38,6 @@ cdk.out/
 # Local development files
 .local/
 supabase/.temp/
+
+# Kiro MCP config (contains access tokens / secrets)
+.kiro/settings/mcp.json
