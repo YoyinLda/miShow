@@ -8,7 +8,11 @@ Todavía no incluye frontend ni una aplicación pública completa.
 
 ## Estado
 
-Proyecto en etapa de definición y construcción inicial.
+Etapa 0 completa: flujo vertical de una fuente (PuntoTicket) de extremo a
+extremo — adquisición HTTP controlada, extracción, normalización y persistencia
+idempotente en PostgreSQL/Supabase, con pruebas. El esquema puede correr en un
+stack local (Docker) o en un proyecto Supabase remoto. Aún no hay frontend, API
+pública ni scraping programado (Etapa 1).
 
 ## Objetivo inicial
 
@@ -94,27 +98,80 @@ La CLI de scraping mantiene su salida sin persistencia por defecto. Con
 persiste por RPC atómicas. La configuración, migración, RLS, pruebas locales y
 operación están documentadas en
 [docs/persistencia-puntoticket-supabase.md](docs/persistencia-puntoticket-supabase.md).
-No hay despliegue, base remota configurada ni frontend. `.local/`, `.env` y los
-fixtures reales locales no se versionan.
+Todavía no hay frontend, API pública ni scraping programado. `.local/`, `.env`,
+`.kiro/settings/mcp.json` y los fixtures reales locales no se versionan.
 
-## Uso con Codex
+## Base de datos y conexión
 
-1. Descomprime este archivo.
-2. Crea un repositorio vacío en GitHub.
-3. Sube el contenido de esta carpeta a la raíz del repositorio.
-4. Clona o abre el repositorio en VS Code.
-5. Abre Codex y solicita:
+El esquema vive en `supabase/migrations/` y es la única fuente de verdad; no se
+aceptan cambios hechos solo desde un dashboard. La migración crea 7 tablas
+(`sources`, `events`, `performances`, `event_artists`, `event_venues`,
+`scrape_runs`, `scrape_errors`), una vista pública de solo lectura
+(`catalog_events_v1`) y cuatro funciones RPC (`start_scrape_run`,
+`persist_normalized_event`, `record_scrape_error`, `finish_scrape_run`).
+
+La aplicación no usa un cliente pesado: llama a la Data API por HTTP
+(`POST {SUPABASE_URL}/rest/v1/rpc/<funcion>`) con la clave privada en el header
+`apikey`. Las identidades naturales son `events(source_id, source_url)` y
+`performances(event_id, starts_at)`, lo que hace la persistencia idempotente:
+reprocesar el mismo evento actualiza y no duplica.
+
+### Entornos
+
+- **Local (Docker):** `npm run supabase:start` levanta un stack completo y
+  aplica las migraciones. Imprime la URL y las llaves locales, que copias a un
+  `.env` no versionado.
+- **Remoto (Supabase Cloud):** la app apunta al proyecto remoto con las mismas
+  dos variables. El esquema se aplica al remoto con las migraciones de
+  `supabase/migrations/`.
+
+### Dónde están las credenciales (fuera de git)
+
+Por seguridad, el identificador del proyecto remoto y las claves no se versionan.
+Se configuran en dos lugares locales, ambos ignorados por git:
+
+- `.env` — consumido por la app: `SUPABASE_URL` y `SUPABASE_SECRET_KEY`
+  (ver formato en `.env.example`).
+- `.kiro/settings/mcp.json` — servidor MCP de Supabase para el asistente, con su
+  token de acceso.
+
+El `project ref`, la URL del proyecto y las llaves se obtienen del dashboard de
+Supabase (Project Settings → API) o de esos archivos locales. No los copies a
+archivos versionados.
+
+### Persistencia real desde la CLI
+
+La app no carga `.env` automáticamente; exporta las variables al entorno del
+proceso antes de ejecutar:
+
+```bash
+set -a; . ./.env; set +a
+npm --silent run puntoticket:scrape -- --live --persist --max-events 1
+```
+
+La salida JSON incluye `run_id` y `status`. `succeeded`/`partial` terminan con
+exit code `0`; una falla global o configuración inválida terminan con `1`.
+
+## Onboarding para un asistente
+
+Para que un agente (Kiro, Codex u otro) entienda el proyecto:
 
 ```text
 Lee AGENTS.md y todos los archivos de docs/. Resume tu comprensión del proyecto y enumera las decisiones pendientes. No escribas código todavía.
 ```
 
+Documentos clave: [docs/brief-ejecucion.md](docs/brief-ejecucion.md) (estrategia
+por etapas), [docs/modelo-datos.md](docs/modelo-datos.md) y
+[docs/persistencia-puntoticket-supabase.md](docs/persistencia-puntoticket-supabase.md)
+(esquema y operación).
+
 ## Próximos pasos sugeridos
 
-1. Integrar el parser fixture-first con una adquisición HTTP programada y
-   controlada, después de definir límites y condiciones de la fuente.
-2. Persistir resultados normalizados con idempotencia.
-3. Exponer una API y construir el frontend cuando exista ese flujo de datos.
+1. Definir las decisiones abiertas del brief (fuente, cobertura, campos
+   obligatorios, métrica de validación).
+2. Construir el frontend público (Next.js) consumiendo `catalog_events_v1`.
+3. Automatizar el scraping con un cron (GitHub Actions) y añadir un indicador de
+   última actualización.
 
 ## Nombre y marca
 
