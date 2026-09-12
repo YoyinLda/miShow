@@ -8,6 +8,11 @@
     "puntoticket:listing": "node --import tsx/esm src/cli/puntoticket-listing.ts",
     "puntoticket:detail": "node --import tsx/esm src/cli/puntoticket-detail.ts",
     "puntoticket:scrape": "node --import tsx/esm src/cli/puntoticket-scrape.ts",
+    "supabase:start": "supabase start",
+    "supabase:reset": "supabase db reset --local --no-seed",
+    "supabase:test": "supabase test db --local",
+    "supabase:lint": "supabase db lint --local --level warning --fail-on error",
+    "supabase:advisors": "supabase db advisors --local --type all --level info --fail-on error",
     "test": "vitest run tests",
     "typecheck": "tsc --noEmit",
     "lint": "eslint ."
@@ -18,6 +23,7 @@
   "devDependencies": {
     "@types/node": "^24.3.0",
     "eslint": "^9.35.0",
+    "supabase": "2.117.0",
     "tsx": "4.19.1",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.42.0",

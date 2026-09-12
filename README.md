@@ -2,7 +2,9 @@
 
 miShow es una plataforma para centralizar conciertos y eventos musicales publicados por distintas ticketeras y fuentes, facilitando su búsqueda y descubrimiento desde una experiencia mobile-first.
 
-Este repositorio contiene el contexto inicial del producto y parsers ejecutables de PuntoTicket. La implementación actual es fixture-first; todavía no es un scraper autónomo ni una aplicación completa.
+Este repositorio contiene el contexto inicial del producto, parsers ejecutables
+de PuntoTicket, adquisición HTTP controlada y persistencia opcional en Supabase.
+Todavía no incluye frontend ni una aplicación pública completa.
 
 ## Estado
 
@@ -48,6 +50,9 @@ npm test
 npm run typecheck
 npm run lint
 npm run qa
+npm run supabase:start
+npm run supabase:reset
+npm run supabase:test
 npm --silent run puntoticket:listing -- <ruta-html> [base-url]
 npm --silent run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>
 ```
@@ -84,9 +89,13 @@ Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-fi
 para la instalación normal y limpia, el alcance detallado de las pruebas,
 troubleshooting y el handoff para QA.
 
-No existe todavía persistencia, Supabase, API ni frontend. Tampoco hay base de
-datos ni adquisición HTTP programada. `.local/` y los fixtures reales locales
-no se versionan.
+La CLI de scraping mantiene su salida sin persistencia por defecto. Con
+`--persist`, valida `SUPABASE_URL` y `SUPABASE_SECRET_KEY` antes de adquirir y
+persiste por RPC atómicas. La configuración, migración, RLS, pruebas locales y
+operación están documentadas en
+[docs/persistencia-puntoticket-supabase.md](docs/persistencia-puntoticket-supabase.md).
+No hay despliegue, base remota configurada ni frontend. `.local/`, `.env` y los
+fixtures reales locales no se versionan.
 
 ## Uso con Codex
 

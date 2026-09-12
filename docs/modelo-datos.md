@@ -1,6 +1,9 @@
 # Borrador del modelo de datos
 
-Este documento define entidades conceptuales. Los nombres, columnas e índices definitivos se validarán al implementar el primer flujo de ingesta.
+Este documento define entidades conceptuales. El primer esquema ejecutable para
+PuntoTicket se define en la migración Supabase y se documenta en
+[`persistencia-puntoticket-supabase.md`](persistencia-puntoticket-supabase.md);
+este borrador sigue describiendo la evolución canónica entre múltiples fuentes.
 
 ## Entidades principales
 

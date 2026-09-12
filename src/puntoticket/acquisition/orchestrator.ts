@@ -5,7 +5,7 @@ import { normalizeEvent } from "../normalization.js";
 import { HttpAcquisitionError, PuntoTicketHttpClient } from "./http.js";
 import { AcquisitionPolicyError, acquisitionConfig, type AcquisitionConfig, safeUrlForError, validateAcquisitionUrl } from "./policy.js";
 
-export type AcquisitionErrorStage = "listing" | "detail" | "parse" | "normalize";
+export type AcquisitionErrorStage = "listing" | "detail" | "parse" | "normalize" | "persist";
 
 export interface PuntoticketScrapeError {
   stage: AcquisitionErrorStage;
