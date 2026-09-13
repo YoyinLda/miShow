@@ -1,4 +1,4 @@
-import type { CatalogEvent } from "./types";
+import type { CatalogEvent, CatalogFreshness } from "./types";
 
 /**
  * Configuración pública de lectura del catálogo.
@@ -38,8 +38,16 @@ function normalizeConfig(config: CatalogClientConfig): CatalogClientConfig {
 export class CatalogClient {
   private readonly config: CatalogClientConfig;
 
-  constructor(config: CatalogClientConfig, private readonly fetchImpl: typeof fetch = fetch) {
+  private readonly fetchImpl: typeof fetch;
+
+  constructor(config: CatalogClientConfig, fetchImpl?: typeof fetch) {
     this.config = normalizeConfig(config);
+    // Importante: no guardar la referencia global `fetch` desnuda y llamarla como
+    // método (this.fetchImpl(...)). En el navegador eso invoca fetch con
+    // this === CatalogClient y lanza "Illegal invocation". El default envuelve la
+    // llamada para preservar el binding a globalThis; los tests siguen pudiendo
+    // inyectar su propio fetch.
+    this.fetchImpl = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   }
 
   async listEvents(params: { limit?: number; search?: string } = {}): Promise<CatalogEvent[]> {
@@ -55,15 +63,37 @@ export class CatalogClient {
     return rows[0];
   }
 
-  private async request<T>(path: string): Promise<T> {
+  /**
+   * Frescura del catálogo (última corrida succeeded/partial) de una fuente.
+   *
+   * Consulta la RPC pública `catalog_freshness_v1` por la Data API. Devuelve
+   * `undefined` si la fuente aún no tiene corridas publicables. La UI usa esto
+   * para el indicador "actualizado hace X"; su ausencia no debe romper el listado.
+   */
+  async getFreshness(source?: string): Promise<CatalogFreshness | undefined> {
+    const rows = await this.request<CatalogFreshness[]>(
+      "/rest/v1/rpc/catalog_freshness_v1",
+      { p_source: source ?? null }
+    );
+    return rows[0];
+  }
+
+  private async request<T>(path: string, body?: unknown): Promise<T> {
     let response: Response;
     try {
-      response = await this.fetchImpl(`${this.config.url}${path}`, {
+      const init: RequestInit = {
         headers: {
           apikey: this.config.publishableKey,
           accept: "application/json"
         }
-      });
+      };
+      if (body !== undefined) {
+        init.method = "POST";
+        init.headers = { ...(init.headers as Record<string, string>), "content-type": "application/json" };
+        init.body = JSON.stringify(body);
+      }
+      const doFetch = this.fetchImpl;
+      response = await doFetch(`${this.config.url}${path}`, init);
     } catch (error) {
       throw new CatalogClientError(error instanceof Error ? error.message : "Error de red al leer el catálogo.");
     }
