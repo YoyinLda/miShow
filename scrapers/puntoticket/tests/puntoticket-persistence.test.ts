@@ -1,14 +1,14 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-import type { PuntoticketScrapeResult } from "../src/puntoticket/acquisition/orchestrator.js";
-import type { NormalizedEvent } from "../src/puntoticket/contracts.js";
-import { PersistenceError, type EventPersistence, type FinishRunInput, type ScrapeErrorInput } from "../src/puntoticket/persistence/contracts.js";
-import { mapEventForPersistence, sanitizePersistenceMessage } from "../src/puntoticket/persistence/mapping.js";
-import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig, type RpcRequest } from "../src/puntoticket/persistence/supabase-data-api.js";
-import { executePersistedPuntoTicketScrape, PersistedRunError } from "../src/puntoticket/persistence/workflow.js";
+import type { PuntoticketScrapeResult } from "../src/acquisition/orchestrator.js";
+import type { NormalizedEvent } from "@mishow/domain";
+import { PersistenceError, type EventPersistence, type FinishRunInput, type ScrapeErrorInput } from "../src/persistence/contracts.js";
+import { mapEventForPersistence, sanitizePersistenceMessage } from "../src/persistence/mapping.js";
+import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig, type RpcRequest } from "../src/persistence/supabase-data-api.js";
+import { executePersistedPuntoTicketScrape, PersistedRunError } from "../src/persistence/workflow.js";
 
-const migration = readFileSync(new URL("../supabase/migrations/20260909151251_puntoticket_persistence.sql", import.meta.url), "utf8");
+const migration = readFileSync(new URL("../../../supabase/migrations/20260909151251_puntoticket_persistence.sql", import.meta.url), "utf8");
 
 describe("PuntoTicket persistence migration contract", () => {
   it("declares the approved tables, identities and natural uniqueness", () => {

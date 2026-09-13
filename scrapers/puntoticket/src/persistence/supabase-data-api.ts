@@ -1,4 +1,4 @@
-import type { NormalizedEvent } from "../contracts.js";
+import type { NormalizedEvent } from "@mishow/domain";
 import {
   PersistenceError,
   type EventPersistence,

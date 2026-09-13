@@ -1,8 +1,8 @@
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
-import type { EventStatus, ExtractionResult, RawEventDetail } from "../contracts.js";
-import { instantKey } from "../time.js";
-import { allowedPurchaseUrl, canonicalSourceUrl } from "../url.js";
+import type { EventStatus, ExtractionResult, RawEventDetail } from "@mishow/domain";
+import { instantKey } from "@mishow/domain";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 
 const QUEUE = /\/queue\/enqueue\/([^/?#]+)/i;
 const BUY = /\/comprar\/evento\/([^/?#]+)\/cal\/[^/?#]+/i;

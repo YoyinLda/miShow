@@ -1,5 +1,5 @@
-import type { EventPerformance, EventStatus, NormalizedEvent } from "../contracts.js";
-import { allowedPurchaseUrl, canonicalSourceUrl } from "../url.js";
+import type { EventPerformance, EventStatus, NormalizedEvent } from "@mishow/domain";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 import { PersistenceError, type ScrapeErrorInput, type StartRunInput } from "./contracts.js";
 
 const STATUSES = new Set<EventStatus>(["available", "sold_out", "upcoming", "unknown"]);

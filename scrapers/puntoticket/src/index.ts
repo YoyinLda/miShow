@@ -1,4 +1,3 @@
-export * from "./contracts.js";
 export * from "./acquisition/http.js";
 export * from "./acquisition/orchestrator.js";
 export * from "./acquisition/policy.js";

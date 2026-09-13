@@ -1,4 +1,4 @@
-import { hasEncodedPathSeparator, hasExternalWhitespace, hasUserinfo } from "../url.js";
+import { hasEncodedPathSeparator, hasExternalWhitespace, hasUserinfo } from "@mishow/domain";
 
 export const PUNTOTICKET_ACQUISITION_DEFAULTS = {
   listingUrl: "https://www.puntoticket.com/musica",

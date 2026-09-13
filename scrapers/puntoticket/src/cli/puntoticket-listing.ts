@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { parseMusicListing } from "../puntoticket/extraction/listing.js";
+import { parseMusicListing } from "../extraction/listing.js";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {

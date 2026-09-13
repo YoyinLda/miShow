@@ -2,23 +2,24 @@
   "name": "mishow",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "scrapers/*",
+    "apps/*"
+  ],
   "scripts": {
-    "dev": "vitest --watch tests",
     "qa": "npm run typecheck && npm run lint && npm test",
-    "puntoticket:listing": "node --import tsx/esm src/cli/puntoticket-listing.ts",
-    "puntoticket:detail": "node --import tsx/esm src/cli/puntoticket-detail.ts",
-    "puntoticket:scrape": "node --import tsx/esm src/cli/puntoticket-scrape.ts",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "puntoticket:listing": "npm run puntoticket:listing -w @mishow/scraper-puntoticket --",
+    "puntoticket:detail": "npm run puntoticket:detail -w @mishow/scraper-puntoticket --",
+    "puntoticket:scrape": "npm run puntoticket:scrape -w @mishow/scraper-puntoticket --",
     "supabase:start": "supabase start",
     "supabase:reset": "supabase db reset --local --no-seed",
     "supabase:test": "supabase test db --local",
     "supabase:lint": "supabase db lint --local --level warning --fail-on error",
-    "supabase:advisors": "supabase db advisors --local --type all --level info --fail-on error",
-    "test": "vitest run tests",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint ."
-  },
-  "dependencies": {
-    "cheerio": "^1.1.2"
+    "supabase:advisors": "supabase db advisors --local --type all --level info --fail-on error"
   },
   "devDependencies": {
     "@types/node": "^24.3.0",

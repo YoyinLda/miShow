@@ -1,4 +1,4 @@
-import type { NormalizedEvent } from "../contracts.js";
+import type { NormalizedEvent } from "@mishow/domain";
 
 export type ScrapeRunStatus = "running" | "succeeded" | "partial" | "failed";
 export type PersistenceSeverity = "warning" | "error";

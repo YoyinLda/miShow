@@ -1,4 +1,4 @@
-import type { NormalizedEvent, RawEventReference } from "../contracts.js";
+import type { NormalizedEvent, RawEventReference } from "@mishow/domain";
 import { extractDetail, parseEventDetail } from "../extraction/detail.js";
 import { parseMusicListing } from "../extraction/listing.js";
 import { normalizeEvent } from "../normalization.js";

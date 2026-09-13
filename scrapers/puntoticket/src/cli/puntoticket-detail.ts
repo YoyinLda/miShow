@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
-import { extractDetail, parseEventDetail } from "../puntoticket/extraction/detail.js";
-import { normalizeEvent } from "../puntoticket/normalization.js";
+import { extractDetail, parseEventDetail } from "../extraction/detail.js";
+import { normalizeEvent } from "../normalization.js";
 
 const args = process.argv.slice(2);
 if (args.includes("-h") || args.includes("--help")) {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { extractDetail, parseEventDetail } from "../src/puntoticket/extraction/detail.js";
-import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
-import { normalizeEvent } from "../src/puntoticket/normalization.js";
-import { allowedPurchaseUrl, canonicalSourceUrl } from "../src/puntoticket/url.js";
+import { extractDetail, parseEventDetail } from "../src/extraction/detail.js";
+import { parseMusicListing } from "../src/extraction/listing.js";
+import { normalizeEvent } from "../src/normalization.js";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 

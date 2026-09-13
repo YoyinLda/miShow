@@ -1,7 +1,7 @@
 import * as cheerio from "cheerio";
 import type { AnyNode } from "domhandler";
-import type { RawEventReference } from "../contracts.js";
-import { canonicalSourceUrl, hasExternalWhitespace, hasUserinfo } from "../url.js";
+import type { RawEventReference } from "@mishow/domain";
+import { canonicalSourceUrl, hasExternalWhitespace, hasUserinfo } from "@mishow/domain";
 
 const BASE_URL = "https://www.puntoticket.com";
 const EVENT_PATH = /^\/evento\/[A-Za-z0-9-]+\/?$/i;

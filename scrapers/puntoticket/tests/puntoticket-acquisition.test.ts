@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
-import { createFetchTransport, PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/puntoticket/acquisition/http.js";
-import { scrapePuntoTicket } from "../src/puntoticket/acquisition/orchestrator.js";
-import { acquisitionConfig, validateAcquisitionUrl } from "../src/puntoticket/acquisition/policy.js";
-import { parseMusicListing } from "../src/puntoticket/extraction/listing.js";
+import { createFetchTransport, PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/acquisition/http.js";
+import { scrapePuntoTicket } from "../src/acquisition/orchestrator.js";
+import { acquisitionConfig, validateAcquisitionUrl } from "../src/acquisition/policy.js";
+import { parseMusicListing } from "../src/extraction/listing.js";
 
 const eventA = detailHtml("Evento A", "2026-12-12T20:00:00-03:00", "A");
 const eventB = detailHtml("Evento B", "2026-12-13T20:00:00-03:00", "B");

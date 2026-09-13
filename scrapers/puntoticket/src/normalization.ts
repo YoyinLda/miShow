@@ -1,7 +1,7 @@
-import type { EventStatus, NormalizedEvent, RawEventDetail } from "./contracts.js";
+import type { EventStatus, NormalizedEvent, RawEventDetail } from "@mishow/domain";
 import type { ExtractedDetail } from "./extraction/detail.js";
-import { toSantiago } from "./time.js";
-import { allowedPurchaseUrl, canonicalSourceUrl } from "./url.js";
+import { toSantiago } from "@mishow/domain";
+import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 
 export function normalizeEvent(detail: RawEventDetail, extracted: ExtractedDetail, { extracted_at }: { extracted_at: string }): NormalizedEvent {
   if (!isIsoTimestamp(extracted_at)) throw new Error("extracted_at debe ser una fecha ISO-8601 válida.");

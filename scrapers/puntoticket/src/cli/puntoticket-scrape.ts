@@ -1,8 +1,8 @@
-import { createFetchTransport, PuntoTicketHttpClient } from "../puntoticket/acquisition/http.js";
-import { acquisitionConfig, type AcquisitionConfig, PUNTOTICKET_ACQUISITION_DEFAULTS } from "../puntoticket/acquisition/policy.js";
-import { scrapePuntoTicket } from "../puntoticket/acquisition/orchestrator.js";
-import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig } from "../puntoticket/persistence/supabase-data-api.js";
-import { executePersistedPuntoTicketScrape, PersistedRunError } from "../puntoticket/persistence/workflow.js";
+import { createFetchTransport, PuntoTicketHttpClient } from "../acquisition/http.js";
+import { acquisitionConfig, type AcquisitionConfig, PUNTOTICKET_ACQUISITION_DEFAULTS } from "../acquisition/policy.js";
+import { scrapePuntoTicket } from "../acquisition/orchestrator.js";
+import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig } from "../persistence/supabase-data-api.js";
+import { executePersistedPuntoTicketScrape, PersistedRunError } from "../persistence/workflow.js";
 
 const args = process.argv.slice(2);
 
