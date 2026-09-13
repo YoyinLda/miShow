@@ -23,3 +23,4 @@ de tareas con su estado**, que se va marcando a medida que se ejecuta.
 |---|---|---|
 | [001-fuente-ticketmaster.md](001-fuente-ticketmaster.md) | Completado (10/10) | Segunda fuente (Ticketmaster) y arquitectura multi-fuente del scraping. |
 | [002-correcciones-ticketmaster.md](002-correcciones-ticketmaster.md) | Completado (7/7) | Correcciones Ticketmaster: imagen (og:image), precios faltantes (límite de fuente) y documentación. |
+| [003-modelo-canonico-eventos.md](003-modelo-canonico-eventos.md) | Completado | V1 Etapa 2A (P0): modelo canónico Event/EventSource/Performance/Artist/Venue + deduplicación multi-fuente (reescritura de esquema, destructiva + re-scrape). Frontend queda no funcional hasta brief de migración a catalog_events_v2. |

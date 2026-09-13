@@ -1,4 +1,57 @@
-# Borrador del modelo de datos
+# Modelo de datos
+
+> **Estado (2026-09-13): modelo canónico implementado.** El brief 003
+> (`docs/briefs/003-modelo-canonico-eventos.md`) reescribió el esquema de catálogo
+> hacia el modelo canónico descrito conceptualmente más abajo. Esta sección
+> documenta el esquema **real ya aplicado**; el borrador conceptual que sigue se
+> conserva como referencia de la visión.
+
+## Esquema canónico vigente (migración `20260913200727_canonical_events_model`)
+
+Tablas de catálogo (todas con RLS de solo lectura para `anon`/`authenticated`;
+escritura solo `service_role`):
+
+- **`sources`** — ticketera/fuente (`code`, `name`, `base_url`). Se conserva.
+- **`events`** — evento **canónico**, independiente de la fuente:
+  `id, slug (único), match_key (único), name, category (default 'musica'),
+  subcategory, description, venue_id, status, image_url, needs_review,
+  first_seen_at, last_seen_at`.
+- **`event_sources`** — observación de un evento canónico en una fuente:
+  `event_id, source_id, source_url, source_code, purchase_url, status,
+  price_min/max, currency, image_url, *_seen_at`. Único `(source_id, source_url)`.
+- **`artists`** — entidad propia: `id, slug (único), normalized_name (único),
+  name, description, city, country, genre, image_url, links, verified`.
+- **`venues`** — entidad propia: `id, slug (único), normalized_name (único),
+  name, address, city, latitude, longitude, capacity, links, image_url`.
+- **`event_artists`** — N:M `(event_id, artist_id, position)`.
+- **`performances`** — funciones del evento canónico:
+  `event_id, starts_at, timezone, status, performance_code, purchase_url`.
+  Único `(event_id, starts_at)`.
+
+**Deduplicación (implementada, conservadora):** al persistir, el evento canónico
+se resuelve por `match_key = <venue_normalizado>|<nombre_normalizado>`. Solo se
+unen observaciones cuando coinciden **venue y nombre normalizados**; nunca por
+nombre solo. Distintos venues ⇒ eventos distintos (validado: "Alberto Plaza -
+Esencial Tour" en Dreams Valdivia vs Puerto Varas = 2 canónicos). Los helpers SQL
+`unaccent_simple`, `mishow_slugify` y `mishow_unique_slug` derivan slugs estables.
+
+**Contrato de lectura del frontend:** vista **`catalog_events_v2`** (reemplaza a
+`catalog_events_v1`, retirada). Expone por evento canónico: `slug, name, category,
+status, image_url, next_performance_at, artists[] (name, slug), venue (slug…),
+sources[] (source, source_url, purchase_url, status, precios), performances[]`.
+
+> **Frontend transitoriamente no funcional:** `@mishow/catalog-client` y la web
+> aún consumen `catalog_events_v1` (retirada). Se migran a `catalog_events_v2` en
+> un brief posterior (decisión D4=b del brief 003). El cron/persistencia ya operan
+> sobre el modelo canónico.
+
+**Nota conocida:** Ticketmaster no expone `performer` en su JSON-LD, por lo que sus
+eventos no pueblan `artists` todavía (derivar el artista desde el nombre queda como
+mejora futura). PuntoTicket sí puebla artistas.
+
+---
+
+## Borrador conceptual (referencia de la visión)
 
 Este documento define entidades conceptuales. El primer esquema ejecutable para
 PuntoTicket se define en la migración Supabase y se documenta en
