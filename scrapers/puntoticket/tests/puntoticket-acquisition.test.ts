@@ -71,9 +71,9 @@ describe("PuntoTicket acquisition policy", () => {
   });
 
   it("keeps configuration inside the approved ranges", () => {
-    expect(acquisitionConfig({ maxEvents: 50, concurrency: 2, delayMs: 1000, timeoutMs: 30000 })).toMatchObject({ maxEvents: 50, concurrency: 2 });
+    expect(acquisitionConfig({ maxEvents: 200, concurrency: 2, delayMs: 1000, timeoutMs: 30000 })).toMatchObject({ maxEvents: 200, concurrency: 2 });
     for (const config of [
-      { maxEvents: 51 },
+      { maxEvents: 201 },
       { concurrency: 3 },
       { delayMs: 999 },
       { timeoutMs: 30001 },
@@ -349,7 +349,7 @@ describe("PuntoTicket scrape CLI", () => {
   });
 
   it("reports invalid CLI arguments on stderr only", () => {
-    for (const args of [["--live", "--max-events", "51"], ["--live", "--delay-ms", "999"], ["--live", "--listing-url", "https://evil.example/musica"], ["--live", "--unknown", "1"]]) {
+    for (const args of [["--live", "--max-events", "201"], ["--live", "--delay-ms", "999"], ["--live", "--listing-url", "https://evil.example/musica"], ["--live", "--unknown", "1"]]) {
       const result = spawnSync("npm", ["--silent", "run", "puntoticket:scrape", "--", ...args], { encoding: "utf8" });
       expect(result.status).not.toBe(0);
       expect(result.stdout).toBe("");

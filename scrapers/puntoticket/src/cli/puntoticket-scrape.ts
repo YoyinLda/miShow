@@ -11,11 +11,14 @@ if (args.includes("-h") || args.includes("--help")) {
 
 Opciones:
   --listing-url <url>   Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.listingUrl}
-  --max-events <n>      Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxEvents}, maximo ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxEventsLimit}
+  --max-events <n>      Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxEvents} (env MAX_EVENTS), maximo ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxEventsLimit} (env MAX_EVENTS_LIMIT)
   --concurrency <n>     Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.concurrency}, maximo ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxConcurrency}
   --delay-ms <n>        Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.delayMs}, minimo ${PUNTOTICKET_ACQUISITION_DEFAULTS.minDelayMs}
   --timeout-ms <n>      Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.timeoutMs}, maximo ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxTimeoutMs}
-  --persist             Persiste mediante SUPABASE_URL y SUPABASE_SECRET_KEY`);
+  --persist             Persiste mediante SUPABASE_URL y SUPABASE_SECRET_KEY
+
+Los limites MAX_EVENTS y MAX_EVENTS_LIMIT se leen del entorno; el flag CLI, si se
+entrega, tiene prioridad sobre el valor del entorno.`);
   process.exit(0);
 }
 

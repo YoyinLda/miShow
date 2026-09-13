@@ -8,6 +8,16 @@ El workflow vive en `.github/workflows/scrape-puntoticket.yml`. No despliega
 infraestructura ni crea recursos pagados: solo ejecuta el scraper existente con
 `--live --persist` de forma programada.
 
+> **Multi-fuente:** Ticketmaster tiene su propio workflow independiente,
+> `.github/workflows/scrape-ticketmaster.yml`, con horarios desfasados
+> (`0 13 * * *` y `0 23 * * *`) para no solapar carga. Comparte los mismos
+> secrets (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`), las mismas variables
+> (`MAX_EVENTS`, `MAX_EVENTS_LIMIT`) y los mismos límites de throttling
+> (concurrency 2, delay 1500ms). La persistencia es idempotente y por
+> `source_id`, así que ambas fuentes conviven sin interferencia. Todo lo descrito
+> abajo para PuntoTicket aplica igual a Ticketmaster cambiando el comando por
+> `npm --silent run ticketmaster:scrape -- --live --persist ...`.
+
 ## Frecuencia y racional
 
 Frecuencia conservadora: **2 ejecuciones al día**, con pocos eventos por corrida.
@@ -17,10 +27,12 @@ Frecuencia conservadora: **2 ejecuciones al día**, con pocos eventos por corrid
   - 12:00 UTC ≈ 08:00–09:00 (mañana).
   - 22:00 UTC ≈ 18:00–19:00 (tarde/noche).
 
-El objetivo es reflejar cambios de la fuente sin golpearla en exceso y sin
-acercarse a los límites gratuitos de GitHub Actions. La frecuencia y el volumen
-(`--max-events`) se mantienen bajos a propósito: se sube solo con evidencia de
-que hace falta más frescura o cobertura.
+El objetivo es reflejar el catálogo completo de `/musica` sin golpear la fuente
+en exceso y sin acercarse a los límites gratuitos de GitHub Actions. El listado
+entrega hoy ~48 eventos en un solo HTML (la "paginación" del sitio es cosmética),
+así que la corrida hace **1 request al listado** y **1 request de detalle por
+evento**, con throttling responsable. El volumen se controla por las variables
+de entorno `MAX_EVENTS` (default 60) y `MAX_EVENTS_LIMIT` (tope 200).
 
 ## Comando exacto
 
@@ -30,8 +42,7 @@ El workflow ejecuta:
 npm --silent run puntoticket:scrape -- \
   --live \
   --persist \
-  --max-events 2 \
-  --concurrency 1 \
+  --concurrency 2 \
   --delay-ms 1500 \
   --timeout-ms 15000
 ```
@@ -39,6 +50,10 @@ npm --silent run puntoticket:scrape -- \
 - `--live` habilita la adquisición HTTP real de PuntoTicket.
 - `--persist` valida la configuración (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`)
   **antes** de adquirir y persiste vía RPC atómicas.
+- El volumen ya no se pasa por `--max-events`: se toma de `MAX_EVENTS` /
+  `MAX_EVENTS_LIMIT` (variables del repositorio en el workflow, con default
+  60/200). Si se entrega el flag `--max-events`, éste tiene prioridad sobre el
+  entorno.
 - Los límites (`concurrency`, `delay-ms`, `timeout-ms`) son respetuosos con la
   fuente y coinciden con la política de adquisición documentada en
   `docs/ejecucion-fixture-first-puntoticket.md`.
@@ -121,8 +136,10 @@ Umbrales de atención sugeridos:
   *Disable workflow*. También puede comentarse el bloque `schedule` en el YAML.
 - **Cambiar frecuencia:** editar las líneas `cron` en
   `.github/workflows/scrape-puntoticket.yml` (recordar que están en UTC).
-- **Cambiar volumen:** ajustar `--max-events` (subir con cautela; el máximo
-  admitido por la política de adquisición es 50).
+- **Cambiar volumen:** ajustar las variables `MAX_EVENTS` (default 60) y
+  `MAX_EVENTS_LIMIT` (tope 200) en **Settings → Secrets and variables → Actions
+  → Variables**. No requiere editar el YAML. El máximo admitido por la política
+  es `MAX_EVENTS_LIMIT`.
 - **Concurrencia/pausa:** `--concurrency` (máx. 2) y `--delay-ms` (mín. 1000)
   cambian la presión sobre la fuente; mantenerlos bajos.
 
@@ -143,7 +160,7 @@ Exportar la URL y la **secret key** locales (las imprime `supabase:start`) a un
 
 ```bash
 set -a; . ./.env; set +a
-npm --silent run puntoticket:scrape -- --live --persist --max-events 2 --concurrency 1 --delay-ms 1500
+MAX_EVENTS=5 npm --silent run puntoticket:scrape -- --live --persist --concurrency 2 --delay-ms 1500
 ```
 
 Verificaciones esperadas:

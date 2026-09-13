@@ -1,0 +1,21 @@
+{
+  "name": "@mishow/scraper-ticketmaster",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run tests",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "ticketmaster:listing": "node --import tsx/esm src/cli/ticketmaster-listing.ts",
+    "ticketmaster:detail": "node --import tsx/esm src/cli/ticketmaster-detail.ts",
+    "ticketmaster:scrape": "node --import tsx/esm src/cli/ticketmaster-scrape.ts"
+  },
+  "dependencies": {
+    "@mishow/domain": "*",
+    "@mishow/scraper-core": "*",
+    "cheerio": "^1.1.2"
+  }
+}

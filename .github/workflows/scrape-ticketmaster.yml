@@ -1,0 +1,66 @@
+name: Scrape Ticketmaster
+
+# Scraping programado de Ticketmaster Chile con persistencia idempotente en
+# Supabase. Cubre el catálogo completo de /page/musica: el listado entrega ~61
+# eventos en un solo HTML (la paginación del sitio es cosmética), así que se hace
+# 1 request al listado y 1 request de detalle por evento, con throttling
+# responsable (concurrency 2, delay 1500ms). 2 corridas/día, 1 sola fuente.
+#
+# Workflow independiente del de PuntoTicket (una corrida por fuente): aísla
+# fallos y permite ritmos/límites distintos. La persistencia es idempotente y
+# por source_id, así que ambas fuentes conviven sin interferencia.
+#
+# Secrets requeridos (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL         URL de la Data API del proyecto Supabase (https://<ref>.supabase.co)
+#   SUPABASE_SECRET_KEY  Secret key del servidor (NUNCA una clave publishable/anon)
+#
+# Variables opcionales (Settings -> Secrets and variables -> Actions -> Variables):
+#   MAX_EVENTS         Eventos a procesar por corrida (default 60).
+#   MAX_EVENTS_LIMIT   Tope duro de seguridad (default 200).
+
+on:
+  schedule:
+    # Horarios en UTC, desfasados respecto a PuntoTicket para no solapar carga.
+    # 13:00 UTC -> ~09:00-10:00 en Chile (mañana).
+    # 23:00 UTC -> ~19:00-20:00 en Chile (tarde/noche).
+    - cron: "0 13 * * *"
+    - cron: "0 23 * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: scrape-ticketmaster
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scrape and persist (Ticketmaster)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          MAX_EVENTS: ${{ vars.MAX_EVENTS || '60' }}
+          MAX_EVENTS_LIMIT: ${{ vars.MAX_EVENTS_LIMIT || '200' }}
+        run: >-
+          npm --silent run ticketmaster:scrape --
+          --live
+          --persist
+          --concurrency 2
+          --delay-ms 1500
+          --timeout-ms 15000

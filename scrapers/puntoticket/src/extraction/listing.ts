@@ -27,14 +27,34 @@ export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`):
     const sourceUrl = canonicalSourceUrl(url.href);
     if (seen.has(sourceUrl)) return;
     seen.add(sourceUrl);
-    const title = $(element).find("h3, [data-event-title]").first().text().trim() || $(element).attr("title")?.trim();
+    const title = eventTitle($, element);
     result.push(title ? { source_url: sourceUrl, title } : { source_url: sourceUrl });
   });
   return result;
 }
 
+// Reconoce el enlace de una tarjeta de evento. Cubre la estructura real de
+// PuntoTicket (`article.filtr-item.event-item`, con `img.img--evento`) además de
+// las señales estructurales genéricas (encabezado/fecha en un contenedor de
+// tarjeta) usadas por fixtures y otras variantes de listado.
+// Resuelve el título de la tarjeta desde el propio enlace o su tarjeta contenedora.
+// Prioriza encabezados y `data-event-title`; cae a `alt` de la imagen o `title`.
+function eventTitle($: cheerio.CheerioAPI, element: AnyNode): string | undefined {
+  const link = $(element);
+  const card = link.closest("article.event-item, .filtr-item.event-item, .evento--box, article, [data-event-card], .event-card");
+  const scope = card.length ? card : link;
+  const fromHeading = scope.find("h1, h2, h3, [data-event-title]").first().text().trim();
+  if (fromHeading) return fromHeading;
+  const fromAlt = scope.find("img.img--evento[alt], img[alt]").first().attr("alt")?.trim();
+  if (fromAlt) return fromAlt;
+  return link.attr("title")?.trim() || undefined;
+}
+
 function isEventCardLink(element: AnyNode, $: cheerio.CheerioAPI): boolean {
-  const card = $(element).closest("article, [data-event], [data-event-card], .event-card, .card-event, [class*='event-card']");
+  const card = $(element).closest(
+    "article.event-item, .filtr-item.event-item, .evento--box, article, [data-event], [data-event-card], .event-card, .card-event, [class*='event-card']"
+  );
   if (!card.length) return false;
-  return Boolean(card.find("h1, h2, h3, [data-event-title], time, [data-date], [class*='date']").length);
+  if (card.is("article.event-item, .filtr-item.event-item, .evento--box") || card.find(".img--evento, [data-event-title]").length) return true;
+  return Boolean(card.find("h1, h2, h3, time, [data-date], [class*='date']").length);
 }
