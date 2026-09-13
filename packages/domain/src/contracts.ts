@@ -26,7 +26,8 @@ export interface EventPerformance {
 }
 
 export interface NormalizedEvent {
-  source: "puntoticket";
+  /** Código de la fuente (p. ej. "puntoticket", "ticketmaster"), validado contra la tabla `sources`. */
+  source: string;
   source_url: string;
   extracted_at: string;
   purchase_url?: string;

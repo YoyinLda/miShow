@@ -1,0 +1,17 @@
+{
+  "name": "@mishow/scraper-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run tests --passWithNoTests",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mishow/domain": "*",
+    "cheerio": "^1.1.2"
+  }
+}

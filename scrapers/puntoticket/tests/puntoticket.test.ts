@@ -37,6 +37,25 @@ describe("PuntoTicket listing parser", () => {
     expect(parseMusicListing(structuredListing)).toEqual([{ source_url: "https://www.puntoticket.com/maria-becerra", title: "María Becerra" }]);
   });
 
+  it("discovers real PuntoTicket cards on root-landing URLs with alt/title fallbacks", () => {
+    const realListing = `
+      <article class="filtr-item event-item col-6" id="event_0" data-groups='["1128"]'>
+        <a href="/aof-coliseo" target="_self" data-ga-tracking="event, ListadoEventosCategoria, Click, EventoID:CCO117-ClienteID:0">
+          <div class="aspect"><img src="https://static.ptocdn.net/x.jpg" alt="Alexisonfire - Performs Crisis In Full" class="img--evento"></div>
+        </a>
+      </article>
+      <article class="filtr-item event-item col-6" id="event_1">
+        <a href="/maria-becerra" title="Maria Becerra - Quimera"><img class="img--evento" alt=""></a>
+      </article>
+      <article class="filtr-item event-item col-6" id="event_2">
+        <a href="/aof-coliseo"><img class="img--evento" alt="duplicado"></a>
+      </article>`;
+    expect(parseMusicListing(realListing)).toEqual([
+      { source_url: "https://www.puntoticket.com/aof-coliseo", title: "Alexisonfire - Performs Crisis In Full" },
+      { source_url: "https://www.puntoticket.com/maria-becerra", title: "Maria Becerra - Quimera" }
+    ]);
+  });
+
   it("always excludes the root path, including event-looking cards", () => {
     expect(parseMusicListing(`<article class="event-card"><a href="/"><h3>Inicio</h3><time>10 OCT</time></a></article>`)).toEqual([]);
   });

@@ -3,6 +3,9 @@ import type { AnyNode } from "domhandler";
 import type { EventStatus, ExtractionResult, RawEventDetail } from "@mishow/domain";
 import { instantKey } from "@mishow/domain";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
+import type { ExtractedDetail } from "@mishow/scraper-core";
+
+export type { ExtractedDetail } from "@mishow/scraper-core";
 
 const QUEUE = /\/queue\/enqueue\/([^/?#]+)/i;
 const BUY = /\/comprar\/evento\/([^/?#]+)\/cal\/[^/?#]+/i;
@@ -33,13 +36,6 @@ export function parseEventDetail(html: string, sourceUrl: string): ExtractionRes
   const purchaseUrl = publicationPurchaseUrl($, canonicalUrl);
   const availabilityEvidence = publicationAvailabilityEvidence($, canonicalUrl);
   return { value: { source_url: canonicalUrl, html, json_ld: jsonLd, source_code: sourceCode, purchase_url: purchaseUrl, ...(availabilityEvidence ? { availability_evidence: availabilityEvidence } : {}) }, errors };
-}
-
-export interface ExtractedDetail {
-  name?: string; artists: string[]; image_url?: string; venue?: { name?: string; address?: string; city?: string; latitude?: number; longitude?: number };
-  performances: Array<{ date: string; status: EventStatus; performance_code?: string; purchase_url?: string }>;
-  availability_evidence?: RawEventDetail["availability_evidence"];
-  price?: { min?: number; max?: number; currency?: string };
 }
 
 type PerformanceCandidate = ExtractedDetail["performances"][number] & { saleRank?: number };

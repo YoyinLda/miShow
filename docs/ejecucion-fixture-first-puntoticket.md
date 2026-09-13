@@ -105,6 +105,9 @@ El comando `npm test` ejecuta Vitest sobre las suites
 comprueban, entre otros casos:
 
 - extracción de eventos desde rutas relativas y absolutas;
+- descubrimiento de tarjetas reales del listado (`article.filtr-item.event-item`,
+  `.evento--box`, `img.img--evento`) cuyos enlaces son landings públicas raíz
+  (`/<slug>`), además de la ruta canónica `/evento/<slug>`;
 - exclusión de rutas que no son eventos y de la ruta raíz;
 - evidencia estructural para landings y deduplicación;
 - combinación de HTML y JSON-LD, incluyendo tipos `Event` completos;
@@ -167,11 +170,14 @@ La adquisición HTTP controlada se ejecuta únicamente con una señal explícita
 npm --silent run puntoticket:scrape -- \
   --live \
   --listing-url https://www.puntoticket.com/musica \
-  --max-events 2 \
-  --concurrency 1 \
+  --concurrency 2 \
   --delay-ms 1500 \
   --timeout-ms 15000
 ```
+
+El volumen se controla por entorno (`MAX_EVENTS`, `MAX_EVENTS_LIMIT`); el flag
+`--max-events` sigue disponible y, si se entrega, tiene prioridad sobre el
+entorno.
 
 Usar `npm --silent run` evita que el banner de npm contamine stdout. En éxito
 completo o parcial, stdout contiene un único JSON con `source`, timestamps,
@@ -188,14 +194,16 @@ Límites vigentes:
 - redirecciones manuales, máximo 3, validando cada `Location`;
 - `Accept: text/html, application/xhtml+xml` y `User-Agent:
   miShow-puntoticket-acquisition/0.1`;
-- concurrencia default 1, máximo 2;
+- concurrencia default 2, máximo 2;
 - pausa default 1500 ms, mínimo 1000 ms, aplicada por limitador global;
 - timeout por solicitud default 15000 ms, máximo 30000 ms;
 - máximo 2 reintentos adicionales solo para timeout, error de red y HTTP
   408/429/500/502/503/504;
 - `Retry-After` se respeta hasta el máximo configurado;
 - HTML máximo 2 MiB y solo `text/html` o `application/xhtml+xml`;
-- `max-events` default 10, máximo 50.
+- `max-events` default 60 (env `MAX_EVENTS`), máximo 200 (env `MAX_EVENTS_LIMIT`).
+  El listado de `/musica` entrega la totalidad de eventos (~48) en un solo HTML;
+  la paginación del sitio es cosmética, por lo que basta 1 request al listado.
 
 La adquisición no sigue `purchase_url`, no descarga imágenes, no usa cookies,
 Authorization, sesión, Playwright, PostgreSQL ni infraestructura externa. Las

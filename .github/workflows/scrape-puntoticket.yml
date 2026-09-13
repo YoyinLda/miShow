@@ -1,12 +1,19 @@
 name: Scrape PuntoTicket
 
-# Scraping programado y conservador de PuntoTicket con persistencia idempotente en
-# Supabase. Diseñado para mantenerse holgado dentro de la cuota gratuita de GitHub
-# Actions (2 corridas/día, pocos eventos, 1 sola fuente).
+# Scraping programado de PuntoTicket con persistencia idempotente en Supabase.
+# Cubre el catálogo completo de /musica: el listado entrega ~48 eventos en un
+# solo HTML (la paginación del sitio es cosmética), así que se hace 1 request al
+# listado y 1 request de detalle por evento, con throttling responsable
+# (concurrency 2, delay 1500ms). 2 corridas/día, 1 sola fuente.
 #
 # Secrets requeridos (Settings -> Secrets and variables -> Actions):
 #   SUPABASE_URL         URL de la Data API del proyecto Supabase (https://<ref>.supabase.co)
 #   SUPABASE_SECRET_KEY  Secret key del servidor (NUNCA una clave publishable/anon)
+#
+# Variables opcionales (Settings -> Secrets and variables -> Actions -> Variables)
+# para ajustar cobertura sin editar este archivo:
+#   MAX_EVENTS         Eventos a procesar por corrida (default 60).
+#   MAX_EVENTS_LIMIT   Tope duro de seguridad (default 200).
 #
 # La corrida falla visiblemente si el scraper termina con exit code != 0
 # (fallo global o corrida totalmente fallida), de modo que los problemas quedan
@@ -33,7 +40,7 @@ permissions:
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,11 +58,14 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          # Cobertura configurable por variables del repositorio; el scraper usa
+          # estos valores como default (el flag CLI, si existiera, tendría prioridad).
+          MAX_EVENTS: ${{ vars.MAX_EVENTS || '60' }}
+          MAX_EVENTS_LIMIT: ${{ vars.MAX_EVENTS_LIMIT || '200' }}
         run: >-
           npm --silent run puntoticket:scrape --
           --live
           --persist
-          --max-events 2
-          --concurrency 1
+          --concurrency 2
           --delay-ms 1500
           --timeout-ms 15000

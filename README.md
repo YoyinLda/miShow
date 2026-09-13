@@ -2,7 +2,7 @@
 
 miShow es una plataforma para centralizar conciertos y eventos musicales publicados por distintas ticketeras y fuentes, facilitando su búsqueda y descubrimiento desde una experiencia mobile-first.
 
-Este repositorio es un monorepo (npm workspaces) con el scraper de PuntoTicket,
+Este repositorio es un monorepo (npm workspaces) con los scrapers (PuntoTicket y Ticketmaster sobre un núcleo compartido),
 la persistencia en Supabase, los paquetes compartidos y un frontend web
 (Next.js) que muestra el catálogo.
 
@@ -32,7 +32,9 @@ mishow/
 │   ├── domain/               # @mishow/domain — contratos, url, time compartidos
 │   └── catalog-client/       # @mishow/catalog-client — lectura del catálogo (Data API)
 ├── scrapers/
-│   └── puntoticket/          # @mishow/scraper-puntoticket — adquisición/extracción/normalización/persistencia + CLI
+│   ├── core/                 # @mishow/scraper-core — motor genérico (HTTP, orquestador, política, normalización, persistencia) + SourceAdapter
+│   ├── puntoticket/          # @mishow/scraper-puntoticket — adaptador PuntoTicket (listado/detalle) + CLI
+│   └── ticketmaster/         # @mishow/scraper-ticketmaster — adaptador Ticketmaster (listado/detalle) + CLI
 ├── supabase/                 # esquema (migraciones + tests pgTAP), transversal
 ├── infra/                    # reservado para IaC futura (ver infra/README.md)
 └── docs/
@@ -257,7 +259,10 @@ por etapas), [docs/modelo-datos.md](docs/modelo-datos.md) y
 4. Cargar los secrets del cron y del despliegue, ejecutar la primera corrida
    manual y publicar el frontend en Cloudflare Pages (ver
    [docs/despliegue-cloudflare-pages.md](docs/despliegue-cloudflare-pages.md)).
-5. Operar cuatro semanas y revisar métricas antes de agregar una segunda fuente.
+5. ~~Agregar una segunda fuente.~~ Hecho: **Ticketmaster** sobre el núcleo
+   compartido `@mishow/scraper-core` (arquitectura multi-fuente vía `SourceAdapter`),
+   con su propio cron (`.github/workflows/scrape-ticketmaster.yml`). Ver
+   [docs/briefs/001-fuente-ticketmaster.md](docs/briefs/001-fuente-ticketmaster.md).
 
 ## Nombre y marca
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+  <body>
+    <section class="grid">
+      <div class='grid_element'>
+        <a href='../event/lucybell-teatro-caupolican' target='_self'>
+          <img src='https://static.ticketmaster.cl/lucybell.jpg' alt='Lucybell en Teatro Caupolicán' />
+          <span class='item_title'>Lucybell</span>
+          <span class='grid-label'>Teatro Caupolicán</span>
+          <p>15 de noviembre 2026</p>
+        </a>
+      </div>
+      <div class='grid_element'>
+        <a href='../event/los-bunkers-movistar-arena'>
+          <img src='https://static.ticketmaster.cl/bunkers.jpg' alt='Los Bunkers' />
+          <span class='item_title'>Los Bunkers</span>
+          <span class='grid-label'>Movistar Arena</span>
+          <p>20 de diciembre 2026</p>
+        </a>
+      </div>
+      <!-- Tarjeta duplicada: mismo evento, debe deduplicarse por source_url canónico -->
+      <div class='grid_element'>
+        <a href='../event/los-bunkers-movistar-arena?utm_source=home'>
+          <img src='https://static.ticketmaster.cl/bunkers.jpg' alt='Los Bunkers (repetido)' />
+          <span class='item_title'>Los Bunkers</span>
+        </a>
+      </div>
+      <!-- Enlace que no es tarjeta de evento: no debe aparecer -->
+      <div class='promo'>
+        <a href='/page/deportes'>Deportes</a>
+      </div>
+    </section>
+  </body>
+</html>
