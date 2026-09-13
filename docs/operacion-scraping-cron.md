@@ -8,6 +8,16 @@ El workflow vive en `.github/workflows/scrape-puntoticket.yml`. No despliega
 infraestructura ni crea recursos pagados: solo ejecuta el scraper existente con
 `--live --persist` de forma programada.
 
+> **Multi-fuente:** Ticketmaster tiene su propio workflow independiente,
+> `.github/workflows/scrape-ticketmaster.yml`, con horarios desfasados
+> (`0 13 * * *` y `0 23 * * *`) para no solapar carga. Comparte los mismos
+> secrets (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`), las mismas variables
+> (`MAX_EVENTS`, `MAX_EVENTS_LIMIT`) y los mismos límites de throttling
+> (concurrency 2, delay 1500ms). La persistencia es idempotente y por
+> `source_id`, así que ambas fuentes conviven sin interferencia. Todo lo descrito
+> abajo para PuntoTicket aplica igual a Ticketmaster cambiando el comando por
+> `npm --silent run ticketmaster:scrape -- --live --persist ...`.
+
 ## Frecuencia y racional
 
 Frecuencia conservadora: **2 ejecuciones al día**, con pocos eventos por corrida.

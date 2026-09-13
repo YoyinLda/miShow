@@ -88,9 +88,14 @@ npm run lint
 npm run supabase:start
 npm run supabase:reset
 npm run supabase:test
-# CLIs del scraper (delegan al workspace @mishow/scraper-puntoticket):
-npm --silent run puntoticket:listing -- <ruta-html> [base-url]
-npm --silent run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>
+# CLIs de los scrapers (delegan a cada workspace de fuente):
+npm --silent run puntoticket:listing   -- <ruta-html> [base-url]
+npm --silent run puntoticket:detail    -- <ruta-html> <source-url> <extracted-at>
+npm --silent run ticketmaster:listing  -- <ruta-html> [base-url]
+npm --silent run ticketmaster:detail   -- <ruta-html> <source-url> <extracted-at>
+# Adquisición HTTP real (requiere --live). --persist escribe en Supabase:
+npm --silent run puntoticket:scrape   -- --live [--persist] [--concurrency 2] [--delay-ms 1500]
+npm --silent run ticketmaster:scrape  -- --live [--persist] [--concurrency 2] [--delay-ms 1500]
 ```
 
 Comandos por workspace (con `-w`):
@@ -132,13 +137,21 @@ Consulta [docs/ejecucion-fixture-first-puntoticket.md](docs/ejecucion-fixture-fi
 para la instalación normal y limpia, el alcance detallado de las pruebas,
 troubleshooting y el handoff para QA.
 
-La CLI de scraping mantiene su salida sin persistencia por defecto. Con
-`--persist`, valida `SUPABASE_URL` y `SUPABASE_SECRET_KEY` antes de adquirir y
-persiste por RPC atómicas. La configuración, migración, RLS, pruebas locales y
-operación están documentadas en
-[docs/persistencia-puntoticket-supabase.md](docs/persistencia-puntoticket-supabase.md).
-Todavía no hay frontend, API pública ni scraping programado. `.local/`, `.env`,
-`.kiro/settings/mcp.json` y los fixtures reales locales no se versionan.
+Las CLI de scraping (`puntoticket:scrape` y `ticketmaster:scrape`) mantienen su
+salida sin persistencia por defecto. Con `--persist`, validan `SUPABASE_URL` y
+`SUPABASE_SECRET_KEY` antes de adquirir y persisten por RPC atómicas idempotentes
+por `source_id`. La configuración, migración, RLS, pruebas locales y operación
+están documentadas en
+[docs/persistencia-puntoticket-supabase.md](docs/persistencia-puntoticket-supabase.md)
+y la operación por cron en
+[docs/operacion-scraping-cron.md](docs/operacion-scraping-cron.md).
+
+Nota por fuente: algunos eventos de Ticketmaster no exponen precio en el HTML
+inicial (su JSON-LD trae `offers: []`; el precio se carga por JS). En esos casos
+el evento se conserva sin precio y la UI lo indica de forma amable; no se inventan
+valores. La imagen de Ticketmaster se toma de `og:image` cuando el JSON-LD no la
+trae. `.local/`, `.env`, `.kiro/settings/mcp.json` y los fixtures reales locales
+no se versionan.
 
 ## Base de datos y conexión
 

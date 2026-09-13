@@ -22,3 +22,4 @@ de tareas con su estado**, que se va marcando a medida que se ejecuta.
 | Brief | Estado | Descripción |
 |---|---|---|
 | [001-fuente-ticketmaster.md](001-fuente-ticketmaster.md) | Completado (10/10) | Segunda fuente (Ticketmaster) y arquitectura multi-fuente del scraping. |
+| [002-correcciones-ticketmaster.md](002-correcciones-ticketmaster.md) | Completado (7/7) | Correcciones Ticketmaster: imagen (og:image), precios faltantes (límite de fuente) y documentación. |

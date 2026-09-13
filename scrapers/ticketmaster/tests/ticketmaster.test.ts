@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { extractDetail, parseEventDetail, dateFromDescription } from "../src/extraction/detail.js";
+import { extractDetail, parseEventDetail, dateFromDescription, imageFromMeta } from "../src/extraction/detail.js";
 import { parseMusicListing } from "../src/extraction/listing.js";
 import { normalizeEvent } from "../src/normalization.js";
 import { scrapeTicketmaster } from "../src/acquisition/orchestrator.js";
@@ -70,6 +70,23 @@ describe("Ticketmaster detail extraction and normalization", () => {
     expect(normalized.performances[0]).toMatchObject({ starts_at: "2026-12-20T00:00:00-03:00", timezone: "America/Santiago" });
     expect(normalized.name).toBe("Los Bunkers");
     expect(normalized.venue).toMatchObject({ name: "Movistar Arena", city: "Santiago" });
+  });
+
+  it("uses og:image as fallback when JSON-LD has no image", () => {
+    const raw = parseEventDetail(detailDescription, "https://www.ticketmaster.cl/event/los-bunkers-movistar-arena").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.image_url).toBe("https://cdn.getcrowder.com/images/los-bunkers-640x640.jpg");
+  });
+
+  it("prefers the JSON-LD image over the meta fallback when both exist", () => {
+    const raw = parseEventDetail(detailStartDate, "https://www.ticketmaster.cl/event/lucybell-teatro-caupolican").value!;
+    expect(extractDetail(raw).value!.image_url).toBe("https://static.ticketmaster.cl/lucybell.jpg");
+  });
+
+  it("imageFromMeta reads og:image, twitter:image, and ignores absence", () => {
+    expect(imageFromMeta(`<meta property="og:image" content="https://cdn.example/og.jpg">`)).toBe("https://cdn.example/og.jpg");
+    expect(imageFromMeta(`<meta name="twitter:image" content="https://cdn.example/tw.jpg">`)).toBe("https://cdn.example/tw.jpg");
+    expect(imageFromMeta(`<h1>sin meta</h1>`)).toBeUndefined();
   });
 
   it("parses Spanish 'DD de Mes YYYY' dates", () => {

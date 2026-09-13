@@ -41,7 +41,11 @@ export function parseJsonLdDetail(html: string, sourceUrl: string, options: Sour
 export function extractJsonLdDetail(
   detail: RawEventDetail,
   options: SourceUrlOptions = {},
-  hooks: { descriptionDate?: (description: string) => string | undefined } = {}
+  hooks: {
+    descriptionDate?: (description: string) => string | undefined;
+    /** Imagen de respaldo desde el HTML cuando el JSON-LD no trae una válida (p. ej. `og:image`). */
+    fallbackImage?: (html: string) => string | undefined;
+  } = {}
 ): ExtractionResult<ExtractedDetail> {
   const errors: string[] = [];
   const events = detail.json_ld.flatMap(asEvents);
@@ -72,7 +76,9 @@ export function extractJsonLdDetail(
   const latitude = coordinate(geo.latitude, -90, 90);
   const longitude = coordinate(geo.longitude, -180, 180);
   const venue = { name: place.name, address: address.streetAddress, city: address.addressLocality, ...(latitude !== undefined ? { latitude } : {}), ...(longitude !== undefined ? { longitude } : {}) };
-  const imageUrl = image(event.image);
+  const jsonLdImage = image(event.image);
+  const fallback = !jsonLdImage && hooks.fallbackImage ? hooks.fallbackImage(detail.html) : undefined;
+  const imageUrl = jsonLdImage ?? (fallback && isHttpsUrl(fallback) ? fallback : undefined);
   return {
     value: {
       name: event.name ?? undefined,

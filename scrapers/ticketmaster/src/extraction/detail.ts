@@ -1,3 +1,4 @@
+import * as cheerio from "cheerio";
 import type { ExtractionResult, RawEventDetail, SourceUrlOptions } from "@mishow/domain";
 import { extractJsonLdDetail, parseJsonLdDetail, type ExtractedDetail } from "@mishow/scraper-core";
 
@@ -20,7 +21,23 @@ export function parseEventDetail(html: string, sourceUrl: string): ExtractionRes
 }
 
 export function extractDetail(detail: RawEventDetail): ExtractionResult<ExtractedDetail> {
-  return extractJsonLdDetail(detail, URL_OPTIONS, { descriptionDate: dateFromDescription });
+  return extractJsonLdDetail(detail, URL_OPTIONS, { descriptionDate: dateFromDescription, fallbackImage: imageFromMeta });
+}
+
+/**
+ * Imagen de respaldo desde metatags sociales. El JSON-LD de Ticketmaster trae
+ * `image: null`, pero `og:image` (y `twitter:image` como respaldo) sí exponen la
+ * imagen del evento. El core valida que sea HTTPS antes de usarla.
+ */
+export function imageFromMeta(html: string): string | undefined {
+  const $ = cheerio.load(html);
+  const candidates = [
+    $("meta[property='og:image']").attr("content"),
+    $("meta[property='og:image:secure_url']").attr("content"),
+    $("meta[name='twitter:image']").attr("content"),
+    $("meta[name='twitter:image:src']").attr("content")
+  ];
+  return candidates.map((value) => value?.trim()).find((value): value is string => Boolean(value));
 }
 
 /**
