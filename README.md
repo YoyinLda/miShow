@@ -2,17 +2,46 @@
 
 miShow es una plataforma para centralizar conciertos y eventos musicales publicados por distintas ticketeras y fuentes, facilitando su búsqueda y descubrimiento desde una experiencia mobile-first.
 
-Este repositorio contiene el contexto inicial del producto, parsers ejecutables
-de PuntoTicket, adquisición HTTP controlada y persistencia opcional en Supabase.
-Todavía no incluye frontend ni una aplicación pública completa.
+Este repositorio es un monorepo (npm workspaces) con el scraper de PuntoTicket,
+la persistencia en Supabase, los paquetes compartidos y un frontend web
+(Next.js) que muestra el catálogo.
 
 ## Estado
 
-Etapa 0 completa: flujo vertical de una fuente (PuntoTicket) de extremo a
-extremo — adquisición HTTP controlada, extracción, normalización y persistencia
-idempotente en PostgreSQL/Supabase, con pruebas. El esquema puede correr en un
-stack local (Docker) o en un proyecto Supabase remoto. Aún no hay frontend, API
-pública ni scraping programado (Etapa 1).
+Etapa 1 en curso. Base ya construida:
+
+- **Etapa 0 (completa):** flujo vertical de una fuente (PuntoTicket) de extremo a
+  extremo — adquisición HTTP controlada, extracción, normalización y persistencia
+  idempotente en PostgreSQL/Supabase, con pruebas.
+- **Etapa 1 (en curso):** estructura monorepo por proyectos internos y un MVP web
+  simplificado (listado, detalle y búsqueda básica) que consume el catálogo
+  público. Renderizado estático (SSG), preparado para migrar a híbrido.
+
+El esquema corre en un stack local (Docker) o en un proyecto Supabase remoto.
+Aún no hay scraping programado (cron) ni despliegue.
+
+## Estructura del repositorio
+
+```text
+mishow/
+├── package.json              # workspaces + scripts orquestadores
+├── tsconfig.base.json        # config TS compartida (moduleResolution Bundler)
+├── apps/
+│   └── web/                  # @mishow/web — frontend Next.js (SSG)
+├── packages/
+│   ├── domain/               # @mishow/domain — contratos, url, time compartidos
+│   └── catalog-client/       # @mishow/catalog-client — lectura del catálogo (Data API)
+├── scrapers/
+│   └── puntoticket/          # @mishow/scraper-puntoticket — adquisición/extracción/normalización/persistencia + CLI
+├── supabase/                 # esquema (migraciones + tests pgTAP), transversal
+├── infra/                    # reservado para IaC futura (ver infra/README.md)
+└── docs/
+```
+
+Reglas de frontera: cada paquete declara sus dependencias y se importa por nombre
+`@mishow/*`; no hay imports que crucen carpetas de otros paquetes. Esto permite
+dividir un workspace en su propio repositorio en el futuro sin reescrituras (ver
+`infra/README.md`). Los tests están co-ubicados por workspace.
 
 ## Objetivo inicial
 
@@ -44,29 +73,37 @@ recibe HTML, extrae referencias o detalles, y normaliza sin red, Playwright ni
 persistencia. Las URLs `source_url` y `purchase_url` se conservan separadas; el
 segundo enlace solo se identifica y nunca se sigue.
 
-Requisitos: Node.js >=20.18.1. Este mínimo coincide con la dependencia efectiva
-`cheerio@1.2.0` declarada en `package-lock.json`.
+Requisitos: Node.js >=20.18.1.
+
+Comandos desde la raíz (operan sobre todos los workspaces con `--if-present`):
 
 ```bash
-npm install
-npm run dev
-npm test
+npm install                # instala y enlaza los workspaces
+npm run qa                 # typecheck + lint + test de todos los workspaces
+npm test                   # tests (scraper + catalog-client)
 npm run typecheck
 npm run lint
-npm run qa
 npm run supabase:start
 npm run supabase:reset
 npm run supabase:test
+# CLIs del scraper (delegan al workspace @mishow/scraper-puntoticket):
 npm --silent run puntoticket:listing -- <ruta-html> [base-url]
 npm --silent run puntoticket:detail -- <ruta-html> <source-url> <extracted-at>
 ```
 
-`npm run dev` ejecuta Vitest en modo observación sobre los fixtures. Las CLI
-ejecutables leen HTML local, escriben únicamente JSON válido en stdout y envían
-errores a stderr; por eso se documentan con `npm --silent run`. Listing devuelve
-`{ count, references, errors }`. Detail requiere siempre
-`<extracted-at>` como timestamp ISO-8601 con zona horaria. Ninguna CLI realiza
-adquisición HTTP programada.
+Comandos por workspace (con `-w`):
+
+```bash
+npm run dev   -w @mishow/web              # frontend en desarrollo
+npm run build -w @mishow/web              # export estático a apps/web/out
+npm test      -w @mishow/scraper-puntoticket
+```
+
+Las CLI del scraper leen HTML local, escriben únicamente JSON válido en stdout y
+envían errores a stderr; por eso se documentan con `npm --silent run`. Listing
+devuelve `{ count, references, errors }`. Detail requiere siempre `<extracted-at>`
+como timestamp ISO-8601 con zona horaria. Ninguna CLI realiza adquisición HTTP
+programada.
 
 Los fixtures sintéticos de `tests/puntoticket.test.ts` cubren rutas de evento
 relativas y absolutas, landings respaldadas por tarjetas estructurales,
@@ -151,6 +188,34 @@ npm --silent run puntoticket:scrape -- --live --persist --max-events 1
 
 La salida JSON incluye `run_id` y `status`. `succeeded`/`partial` terminan con
 exit code `0`; una falla global o configuración inválida terminan con `1`.
+
+## Frontend (apps/web)
+
+`@mishow/web` es un frontend Next.js mobile-first con export estático (SSG). El
+MVP muestra un listado de eventos con búsqueda básica y una vista de detalle
+(artistas, recinto, funciones, precios y enlace a la ticketera original).
+
+Todo el acceso a datos pasa por `@mishow/catalog-client`, que lee la vista
+pública `catalog_events_v1` mediante la Data API con la **clave publishable**
+(solo lectura, protegida por RLS). Ningún componente llama directamente a
+Supabase, y la secret key nunca llega al navegador. Esta frontera única facilita
+migrar en el futuro a una capa intermedia (Cloudflare Worker) sin tocar la UI.
+
+Variables públicas del frontend (ver `apps/web/.env.example`), en un
+`.env.local` no versionado:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+```
+
+```bash
+npm run dev   -w @mishow/web    # http://localhost:3000
+npm run build -w @mishow/web    # genera apps/web/out (estático)
+```
+
+El modo estático y la ruta de migración a híbrido (SSR/ISR) están documentados en
+`apps/web/next.config.mjs`.
 
 ## Onboarding para un asistente
 
