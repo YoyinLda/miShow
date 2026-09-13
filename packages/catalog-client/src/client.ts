@@ -1,4 +1,4 @@
-import type { CatalogEvent } from "./types.js";
+import type { CatalogEvent } from "./types";
 
 /**
  * Configuración pública de lectura del catálogo.
