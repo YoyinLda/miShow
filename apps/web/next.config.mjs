@@ -14,6 +14,9 @@
  */
 const nextConfig = {
   output: "export",
+  // Solo afecta a `next dev`: permite servir recursos de desarrollo cuando se
+  // accede desde otro host de la LAN (p. ej. 192.168.1.83). No aplica al build.
+  allowedDevOrigins: ["192.168.1.83"],
   images: {
     unoptimized: true
   },
