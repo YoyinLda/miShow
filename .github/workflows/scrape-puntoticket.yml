@@ -1,0 +1,61 @@
+name: Scrape PuntoTicket
+
+# Scraping programado y conservador de PuntoTicket con persistencia idempotente en
+# Supabase. Diseñado para mantenerse holgado dentro de la cuota gratuita de GitHub
+# Actions (2 corridas/día, pocos eventos, 1 sola fuente).
+#
+# Secrets requeridos (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_URL         URL de la Data API del proyecto Supabase (https://<ref>.supabase.co)
+#   SUPABASE_SECRET_KEY  Secret key del servidor (NUNCA una clave publishable/anon)
+#
+# La corrida falla visiblemente si el scraper termina con exit code != 0
+# (fallo global o corrida totalmente fallida), de modo que los problemas quedan
+# detectables desde la pestaña Actions sin revisión manual diaria.
+
+on:
+  schedule:
+    # Horarios en UTC. Chile: UTC-3 (verano) / UTC-4 (invierno).
+    # 12:00 UTC -> ~08:00-09:00 en Chile (mañana).
+    # 22:00 UTC -> ~18:00-19:00 en Chile (tarde/noche).
+    - cron: "0 12 * * *"
+    - cron: "0 22 * * *"
+  workflow_dispatch: {}
+
+# Evita que dos corridas del scraper se solapen; si llega una nueva mientras otra
+# sigue en curso, se cancela la anterior para no acumular backlog ni consumo.
+concurrency:
+  group: scrape-puntoticket
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Scrape and persist (PuntoTicket)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+        run: >-
+          npm --silent run puntoticket:scrape --
+          --live
+          --persist
+          --max-events 2
+          --concurrency 1
+          --delay-ms 1500
+          --timeout-ms 15000

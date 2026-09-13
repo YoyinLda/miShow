@@ -307,15 +307,15 @@ select lives_ok(
   $sql$,
   'stringified JSON errors with sensitive keys can be recorded'
 );
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%JWT%', 'JWT does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%BASIC_JSON%', 'BASIC_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%COOKIE_JSON%', 'COOKIE_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%MORE%', 'MORE does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%API_JSON%', 'API_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%TOKEN_JSON%', 'TOKEN_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%REFRESH_JSON%', 'REFRESH_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%DIRECT_TOKEN_JSON%', 'DIRECT_TOKEN_JSON does not survive SQL sanitization');
-select unlike((select message from public.scrape_errors where code = 'json_secret_error'), '%SET_COOKIE_JSON%', 'SET_COOKIE_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'JWT', 'JWT does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'BASIC_JSON', 'BASIC_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'COOKIE_JSON', 'COOKIE_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'MORE', 'MORE does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'API_JSON', 'API_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'TOKEN_JSON', 'TOKEN_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'REFRESH_JSON', 'REFRESH_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'DIRECT_TOKEN_JSON', 'DIRECT_TOKEN_JSON does not survive SQL sanitization');
+select doesnt_match((select message from public.scrape_errors where code = 'json_secret_error'), 'SET_COOKIE_JSON', 'SET_COOKIE_JSON does not survive SQL sanitization');
 select is(
   (select message from public.scrape_errors where code = 'json_secret_error'),
   '{"Authorization":"[REDACTED]","Proxy-Authorization":"[REDACTED]","Cookie":"[REDACTED]","api-key":"[REDACTED]","access_token":"[REDACTED]","refresh_token":"[REDACTED]","token":"[REDACTED]","Set-Cookie":"[REDACTED]","status":401}',

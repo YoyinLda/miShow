@@ -27,6 +27,22 @@ export interface CatalogPerformance {
   purchase_url?: string;
 }
 
+/**
+ * Frescura del catálogo por fuente.
+ *
+ * Refleja la última corrida de scraping `succeeded`/`partial` de una fuente. Se
+ * obtiene desde la RPC pública `catalog_freshness_v1` (SECURITY DEFINER), que
+ * expone SOLO columnas no sensibles: nunca `listing_url`, `parameters` ni
+ * contadores de error. Sirve para mostrar "actualizado hace X" en la UI.
+ */
+export interface CatalogFreshness {
+  source: string;
+  last_run_finished_at: string | null;
+  last_run_status: string | null;
+  discovered_count: number | null;
+  succeeded_count: number | null;
+}
+
 export interface CatalogEvent {
   id: number;
   source: string;

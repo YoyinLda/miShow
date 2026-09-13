@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CatalogEvent } from "@mishow/catalog-client";
+import type { CatalogEvent, CatalogFreshness } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
+import { formatRelativeTime } from "../lib/format";
 import { EventCard } from "./EventCard";
 
 type LoadState =
@@ -14,6 +15,7 @@ type LoadState =
 export function EventList() {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
   const [search, setSearch] = useState("");
+  const [freshness, setFreshness] = useState<CatalogFreshness | undefined>(undefined);
 
   useEffect(() => {
     if (!catalogConfigured()) {
@@ -21,7 +23,8 @@ export function EventList() {
       return;
     }
     let active = true;
-    catalogClient()
+    const client = catalogClient();
+    client
       .listEvents({ limit: 100 })
       .then((events) => {
         if (active) setState({ kind: "ready", events });
@@ -29,10 +32,21 @@ export function EventList() {
       .catch((error: unknown) => {
         if (active) setState({ kind: "error", message: error instanceof Error ? error.message : "Error al cargar." });
       });
+    // La frescura es un adorno: su fallo no debe afectar el listado.
+    client
+      .getFreshness("puntoticket")
+      .then((value) => {
+        if (active) setFreshness(value);
+      })
+      .catch(() => {
+        /* silencioso: sin indicador si la frescura no responde */
+      });
     return () => {
       active = false;
     };
   }, []);
+
+  const updatedLabel = formatRelativeTime(freshness?.last_run_finished_at);
 
   const filtered = useMemo(() => {
     if (state.kind !== "ready") return [];
@@ -48,6 +62,12 @@ export function EventList() {
 
   return (
     <section>
+      {updatedLabel && freshness?.last_run_finished_at ? (
+        <p className="mb-3 text-xs text-neutral-500">
+          Catálogo <time dateTime={freshness.last_run_finished_at}>{updatedLabel}</time>
+        </p>
+      ) : null}
+
       <label className="block">
         <span className="sr-only">Buscar eventos</span>
         <input

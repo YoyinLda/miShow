@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import type { CatalogEvent } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
-import { formatDate, formatPrice, statusLabel } from "../lib/format";
+import { formatDate, formatPrice, performanceStatusLabel, statusLabel } from "../lib/format";
 
 type LoadState =
   | { kind: "loading" }
@@ -95,40 +95,33 @@ export function EventDetail() {
       <section className="mt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Funciones</h2>
         <ul className="mt-2 flex flex-col gap-2">
-          {event.performances.map((performance, index) => (
-            <li
-              key={`${performance.starts_at}-${index}`}
-              className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm"
-            >
-              <div>
-                <span className="font-medium">{formatDate(performance.starts_at) ?? performance.starts_at}</span>
-                <span className="ml-2 text-neutral-500">{statusLabel(performance.status)}</span>
-              </div>
-              {performance.purchase_url ? (
-                <a
-                  href={performance.purchase_url}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white"
-                >
-                  Comprar
-                </a>
-              ) : null}
-            </li>
-          ))}
+          {event.performances.map((performance, index) => {
+            const performanceStatus = performanceStatusLabel(performance.status);
+            return (
+              <li
+                key={`${performance.starts_at}-${index}`}
+                className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm"
+              >
+                <div>
+                  <span className="font-medium">{formatDate(performance.starts_at) ?? performance.starts_at}</span>
+                  {performanceStatus ? <span className="ml-2 text-neutral-500">{performanceStatus}</span> : null}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
-      {event.purchase_url ? (
-        <a
-          href={event.purchase_url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="mt-6 inline-block text-sm text-neutral-500 underline"
-        >
-          Ver en {event.source}
-        </a>
-      ) : null}
+      {/* Enlace único hacia la ticketera. No somos la fuente de verdad de la
+          disponibilidad; la compra se completa dentro de la ticketera. */}
+      <a
+        href={event.source_url}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+      >
+        Ir a la ticketera
+      </a>
     </article>
   );
 }

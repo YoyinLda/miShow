@@ -1,0 +1,72 @@
+name: Deploy Web (Cloudflare Pages)
+
+# Construye el frontend estático (@mishow/web) y lo publica en Cloudflare Pages.
+# A costo cero: el plan gratuito de Pages admite 500 builds/mes. Por eso el
+# despliegue se dispara por CAMBIOS DE CÓDIGO del frontend (push a main) y no por
+# actualizaciones de datos: el catálogo se refresca en el navegador leyendo la
+# Data API, sin necesidad de reconstruir el sitio.
+#
+# Secrets requeridos (Settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_API_TOKEN               Token con permiso Cloudflare Pages: Edit
+#   CLOUDFLARE_ACCOUNT_ID              Account ID de Cloudflare
+#   NEXT_PUBLIC_SUPABASE_URL           URL de la Data API (https://<ref>.supabase.co)
+#   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  Clave publishable (SOLO lectura, va al navegador)
+#
+# Variable de repositorio requerida (Settings -> Variables):
+#   CLOUDFLARE_PAGES_PROJECT           Nombre del proyecto de Pages ya creado
+#
+# Nunca cargar aquí SUPABASE_SECRET_KEY ni tokens privados: solo la clave
+# publishable llega al navegador.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/catalog-client/**"
+      - "packages/domain/**"
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.base.json"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static site
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+        run: npm run build -w @mishow/web
+
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy apps/web/out
+            --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+            --branch=main

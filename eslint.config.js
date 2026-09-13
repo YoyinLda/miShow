@@ -11,6 +11,6 @@ export default tseslint.config(eslint.configs.recommended, ...tseslint.configs.r
     "**/*.d.ts"
   ]
 }, {
-  files: ["**/*.ts", "**/*.js"],
+  files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
   rules: { "@typescript-eslint/no-explicit-any": "off" }
 });

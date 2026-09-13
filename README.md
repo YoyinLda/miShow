@@ -193,7 +193,15 @@ exit code `0`; una falla global o configuración inválida terminan con `1`.
 
 `@mishow/web` es un frontend Next.js mobile-first con export estático (SSG). El
 MVP muestra un listado de eventos con búsqueda básica y una vista de detalle
-(artistas, recinto, funciones, precios y enlace a la ticketera original).
+(artistas, recinto, funciones y precios). Como miShow es un puente hacia las
+ticketeras y no la fuente de verdad de la disponibilidad, cada evento ofrece
+siempre un enlace único "Ir a la ticketera" (a `source_url`) tanto en el listado
+como en el detalle; la compra se completa en la ticketera. La presentación del
+estado asume **Confirmado** por defecto (estado `unknown`), conserva "Disponible",
+"Agotado" y "Próximamente" cuando hay evidencia, y omite la etiqueta de estado
+por función cuando no hay información de disponibilidad. El contrato, la base de
+datos y el scraper no cambian: es solo una capa de presentación (ver
+[docs/decisiones-tecnicas.md](docs/decisiones-tecnicas.md)).
 
 Todo el acceso a datos pasa por `@mishow/catalog-client`, que lee la vista
 pública `catalog_events_v1` mediante la Data API con la **clave publishable**
@@ -217,6 +225,11 @@ npm run build -w @mishow/web    # genera apps/web/out (estático)
 El modo estático y la ruta de migración a híbrido (SSR/ISR) están documentados en
 `apps/web/next.config.mjs`.
 
+Para una prueba completa en local conectada a Supabase cloud (sincronizar
+esquema, cargar datos con un scraping real y verificar el catálogo en el
+navegador), ver
+[docs/prueba-local-e2e-cloud.md](docs/prueba-local-e2e-cloud.md).
+
 ## Onboarding para un asistente
 
 Para que un agente (Kiro, Codex u otro) entienda el proyecto:
@@ -234,9 +247,17 @@ por etapas), [docs/modelo-datos.md](docs/modelo-datos.md) y
 
 1. Definir las decisiones abiertas del brief (fuente, cobertura, campos
    obligatorios, métrica de validación).
-2. Construir el frontend público (Next.js) consumiendo `catalog_events_v1`.
-3. Automatizar el scraping con un cron (GitHub Actions) y añadir un indicador de
-   última actualización.
+2. ~~Construir el frontend público (Next.js) consumiendo `catalog_events_v1`.~~
+   Hecho: MVP web (listado, detalle, búsqueda) sobre `catalog_events_v1`.
+3. ~~Automatizar el scraping con un cron (GitHub Actions) y añadir un indicador de
+   última actualización.~~ Hecho: workflow programado
+   (`.github/workflows/scrape-puntoticket.yml`, ver
+   [docs/operacion-scraping-cron.md](docs/operacion-scraping-cron.md)) e indicador
+   de frescura en la web vía `catalog_freshness_v1`.
+4. Cargar los secrets del cron y del despliegue, ejecutar la primera corrida
+   manual y publicar el frontend en Cloudflare Pages (ver
+   [docs/despliegue-cloudflare-pages.md](docs/despliegue-cloudflare-pages.md)).
+5. Operar cuatro semanas y revisar métricas antes de agregar una segunda fuente.
 
 ## Nombre y marca
 
