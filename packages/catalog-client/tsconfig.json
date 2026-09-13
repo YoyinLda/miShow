@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@mishow/domain": ["../domain/src/index.ts"]
+    }
+  },
+  "include": ["src", "tests"]
+}

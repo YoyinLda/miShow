@@ -1,0 +1,20 @@
+{
+  "name": "@mishow/scraper-puntoticket",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run tests",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "puntoticket:listing": "node --import tsx/esm src/cli/puntoticket-listing.ts",
+    "puntoticket:detail": "node --import tsx/esm src/cli/puntoticket-detail.ts",
+    "puntoticket:scrape": "node --import tsx/esm src/cli/puntoticket-scrape.ts"
+  },
+  "dependencies": {
+    "@mishow/domain": "*",
+    "cheerio": "^1.1.2"
+  }
+}
