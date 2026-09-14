@@ -40,10 +40,16 @@ Esencial Tour" en Dreams Valdivia vs Puerto Varas = 2 canónicos). Los helpers S
 status, image_url, next_performance_at, artists[] (name, slug), venue (slug…),
 sources[] (source, source_url, purchase_url, status, precios), performances[]`.
 
-> **Frontend transitoriamente no funcional:** `@mishow/catalog-client` y la web
-> aún consumen `catalog_events_v1` (retirada). Se migran a `catalog_events_v2` en
-> un brief posterior (decisión D4=b del brief 003). El cron/persistencia ya operan
-> sobre el modelo canónico.
+**Vistas de entidad (brief 004):** `catalog_artists_v1` y `catalog_venues_v1`
+exponen cada artista/venue con sus **próximos eventos** (para las páginas
+`/artistas` y `/venues`). Solo lectura (`security_invoker`).
+
+> **Frontend operativo sobre v2 (brief 004):** `@mishow/catalog-client` y la web
+> consumen `catalog_events_v2` (+ las vistas de artista/venue). El precio y el
+> acceso a compra se resuelven desde `sources[]` (precio combinado + un botón por
+> ticketera). Rutas por slug vía query param (`/evento?slug=`, `/artistas?slug=`,
+> `/venues?slug=`), manteniendo el export estático (SSG). El cron/persistencia ya
+> operaban sobre el modelo canónico desde el brief 003.
 
 **Nota conocida:** Ticketmaster no expone `performer` en su JSON-LD, por lo que sus
 eventos no pueblan `artists` todavía (derivar el artista desde el nombre queda como

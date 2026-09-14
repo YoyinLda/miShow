@@ -1,4 +1,4 @@
-import type { CatalogEvent, CatalogFreshness } from "./types";
+import type { CatalogArtist, CatalogEvent, CatalogFreshness, CatalogVenue } from "./types";
 
 /**
  * Configuración pública de lectura del catálogo.
@@ -30,10 +30,11 @@ function normalizeConfig(config: CatalogClientConfig): CatalogClientConfig {
 /**
  * Cliente de lectura del catálogo público.
  *
- * Frontera única de acceso a datos del frontend. Hoy consulta la Data API de
- * Supabase directamente contra la vista `catalog_events_v1`. Para migrar a una
- * capa intermedia (Worker/API propia) en el futuro, basta reimplementar estos
- * métodos apuntando al nuevo endpoint; la UI no cambia.
+ * Frontera única de acceso a datos del frontend. Consulta la Data API de
+ * Supabase contra las vistas del catálogo canónico (`catalog_events_v2`,
+ * `catalog_artists_v1`, `catalog_venues_v1`). Para migrar a una capa intermedia
+ * (Worker/API propia) en el futuro, basta reimplementar estos métodos apuntando
+ * al nuevo endpoint; la UI no cambia.
  */
 export class CatalogClient {
   private readonly config: CatalogClientConfig;
@@ -54,12 +55,30 @@ export class CatalogClient {
     const query = new URLSearchParams({ select: "*", order: "next_performance_at.asc.nullslast" });
     if (params.limit && params.limit > 0) query.set("limit", String(params.limit));
     if (params.search?.trim()) query.set("name", `ilike.*${params.search.trim()}*`);
-    return this.request<CatalogEvent[]>(`/rest/v1/catalog_events_v1?${query.toString()}`);
+    return this.request<CatalogEvent[]>(`/rest/v1/catalog_events_v2?${query.toString()}`);
   }
 
   async getEvent(id: number): Promise<CatalogEvent | undefined> {
     const query = new URLSearchParams({ select: "*", id: `eq.${id}`, limit: "1" });
-    const rows = await this.request<CatalogEvent[]>(`/rest/v1/catalog_events_v1?${query.toString()}`);
+    const rows = await this.request<CatalogEvent[]>(`/rest/v1/catalog_events_v2?${query.toString()}`);
+    return rows[0];
+  }
+
+  async getEventBySlug(slug: string): Promise<CatalogEvent | undefined> {
+    const query = new URLSearchParams({ select: "*", slug: `eq.${slug}`, limit: "1" });
+    const rows = await this.request<CatalogEvent[]>(`/rest/v1/catalog_events_v2?${query.toString()}`);
+    return rows[0];
+  }
+
+  async getArtistBySlug(slug: string): Promise<CatalogArtist | undefined> {
+    const query = new URLSearchParams({ select: "*", slug: `eq.${slug}`, limit: "1" });
+    const rows = await this.request<CatalogArtist[]>(`/rest/v1/catalog_artists_v1?${query.toString()}`);
+    return rows[0];
+  }
+
+  async getVenueBySlug(slug: string): Promise<CatalogVenue | undefined> {
+    const query = new URLSearchParams({ select: "*", slug: `eq.${slug}`, limit: "1" });
+    const rows = await this.request<CatalogVenue[]>(`/rest/v1/catalog_venues_v1?${query.toString()}`);
     return rows[0];
   }
 

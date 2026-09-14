@@ -1,17 +1,18 @@
 import type { CatalogEvent } from "@mishow/catalog-client";
-import { formatDate, formatPrice, statusLabel } from "../lib/format";
+import { formatDate, formatPrice, sourceLinks, statusLabel } from "../lib/format";
 
 export function EventCard({ event }: { event: CatalogEvent }) {
-  const price = formatPrice(event);
+  const price = formatPrice(event.sources);
   const nextDate = formatDate(event.next_performance_at);
   const artists = event.artists.map((artist) => artist.name).join(", ");
+  const links = sourceLinks(event.sources);
+  const primaryLink = links[0];
 
   return (
     <article className="relative flex gap-4 rounded-lg border border-neutral-200 bg-white p-4 transition focus-within:border-neutral-400 hover:border-neutral-400">
-      {/* Enlace que cubre la card y navega al detalle interno. Se mantiene como
-          overlay para que el CTA externo pueda vivir fuera de este <a>. */}
+      {/* Enlace que cubre la card y navega al detalle interno por slug. */}
       <a
-        href={`/evento?id=${event.id}`}
+        href={`/evento?slug=${encodeURIComponent(event.slug)}`}
         className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
         aria-label={`Ver detalle de ${event.name}`}
       />
@@ -43,16 +44,20 @@ export function EventCard({ event }: { event: CatalogEvent }) {
           {price ? <span className="font-medium text-neutral-800">{price}</span> : null}
         </div>
         {/* CTA externo hacia la ticketera. Va por encima del overlay (z-10) para
-            ser clicable de forma independiente a la navegación al detalle. */}
-        <a
-          href={event.source_url}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="relative z-10 mt-3 inline-flex min-h-9 items-center rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-          aria-label={`Ir a la ticketera para ${event.name}`}
-        >
-          Ir a la ticketera
-        </a>
+            ser clicable de forma independiente a la navegación al detalle. Si el
+            evento tiene varias fuentes, el detalle muestra todas; en la card se
+            ofrece un acceso directo a la primera. */}
+        {primaryLink ? (
+          <a
+            href={primaryLink.url}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="relative z-10 mt-3 inline-flex min-h-9 items-center rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            aria-label={`${primaryLink.label} para ${event.name}`}
+          >
+            {links.length > 1 ? "Ver ticketeras" : primaryLink.label}
+          </a>
+        ) : null}
       </div>
     </article>
   );

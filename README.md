@@ -156,11 +156,15 @@ no se versionan.
 ## Base de datos y conexión
 
 El esquema vive en `supabase/migrations/` y es la única fuente de verdad; no se
-aceptan cambios hechos solo desde un dashboard. La migración crea 7 tablas
-(`sources`, `events`, `performances`, `event_artists`, `event_venues`,
-`scrape_runs`, `scrape_errors`), una vista pública de solo lectura
-(`catalog_events_v1`) y cuatro funciones RPC (`start_scrape_run`,
-`persist_normalized_event`, `record_scrape_error`, `finish_scrape_run`).
+aceptan cambios hechos solo desde un dashboard. El **modelo canónico** (brief 003)
+separa el evento de la fuente: tablas `sources`, `events` (canónico, con `slug`),
+`event_sources` (observación por fuente), `artists`, `venues`, `event_artists`
+(N:M), `performances`, más `scrape_runs`/`scrape_errors`. Vistas públicas de solo
+lectura: `catalog_events_v2` (evento canónico con `sources[]`, `artists[]`,
+`venue`, `performances[]`), `catalog_artists_v1` y `catalog_venues_v1` (entidad +
+próximos eventos). RPCs: `start_scrape_run`, `persist_normalized_event` (dedup
+conservadora por `match_key`), `record_scrape_error`, `finish_scrape_run`. Ver
+[docs/modelo-datos.md](docs/modelo-datos.md).
 
 La aplicación no usa un cliente pesado: llama a la Data API por HTTP
 (`POST {SUPABASE_URL}/rest/v1/rpc/<funcion>`) con la clave privada en el header
@@ -206,11 +210,14 @@ exit code `0`; una falla global o configuración inválida terminan con `1`.
 
 ## Frontend (apps/web)
 
-`@mishow/web` es un frontend Next.js mobile-first con export estático (SSG). El
-MVP muestra un listado de eventos con búsqueda básica y una vista de detalle
-(artistas, recinto, funciones y precios). Como miShow es un puente hacia las
+`@mishow/web` es un frontend Next.js mobile-first con export estático (SSG).
+Muestra un listado de eventos con búsqueda básica, vista de detalle (artistas,
+recinto, funciones y precios) y **páginas de Artista (`/artistas?slug=`) y Venue
+(`/venues?slug=`)** con sus próximos eventos y enlaces cruzados. Un evento
+publicado en varias ticketeras muestra su **cobertura multi-fuente**: precio
+combinado y un botón por cada ticketera. Como miShow es un puente hacia las
 ticketeras y no la fuente de verdad de la disponibilidad, cada evento ofrece
-siempre un enlace único "Ir a la ticketera" (a `source_url`) tanto en el listado
+siempre un enlace "Ir a la ticketera" (desde `sources[]`) tanto en el listado
 como en el detalle; la compra se completa en la ticketera. La presentación del
 estado asume **Confirmado** por defecto (estado `unknown`), conserva "Disponible",
 "Agotado" y "Próximamente" cuando hay evidencia, y omite la etiqueta de estado
@@ -218,8 +225,9 @@ por función cuando no hay información de disponibilidad. El contrato, la base 
 datos y el scraper no cambian: es solo una capa de presentación (ver
 [docs/decisiones-tecnicas.md](docs/decisiones-tecnicas.md)).
 
-Todo el acceso a datos pasa por `@mishow/catalog-client`, que lee la vista
-pública `catalog_events_v1` mediante la Data API con la **clave publishable**
+Todo el acceso a datos pasa por `@mishow/catalog-client`, que lee las vistas
+públicas `catalog_events_v2`, `catalog_artists_v1` y `catalog_venues_v1` mediante
+la Data API con la **clave publishable**
 (solo lectura, protegida por RLS). Ningún componente llama directamente a
 Supabase, y la secret key nunca llega al navegador. Esta frontera única facilita
 migrar en el futuro a una capa intermedia (Cloudflare Worker) sin tocar la UI.
