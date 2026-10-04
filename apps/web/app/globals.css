@@ -35,6 +35,11 @@
   --brand-contrast: #ffffff; /* sobre --brand => ~6.4:1 AA */
   --brand-surface: #f5f3ff; /* violet-50, fondo suave de badges */
 
+  /* Acento amarillo (solo acento: borde/pill/highlight/hover o fill con texto
+     oscuro; nunca texto largo). Texto #1C1917 sobre #FACC15 => ~13.2:1 AA. */
+  --accent: #facc15; /* yellow-400 */
+  --accent-contrast: #1c1917; /* stone-900 sobre --accent => ~13.2:1 AA */
+
   /* Estados: danger */
   --danger: #b91c1c; /* red-700 sobre --bg => ~6.3:1 AA */
   --danger-contrast: #ffffff;
@@ -54,19 +59,24 @@
 /* Valores oscuros definidos una sola vez vía mixin manual (duplicado controlado
    entre selector por atributo y media query de sistema). */
 [data-theme="dark"] {
-  --bg: #0b1020; /* azul-negro suave */
-  --surface: #141a2e;
-  --surface-2: #1e2639;
+  /* Valores EXACTOS del Figma Foundations (tema oscuro = base). */
+  --bg: #0c0c0f;
+  --surface: #15151a;
+  --surface-2: #1d1d24;
 
-  --text: #e5e7eb; /* slate-200 sobre --bg => ~13.4:1 AA */
-  --text-muted: #9aa4b8; /* sobre --bg => ~6.6:1 AA */
+  --text: #f5f5f7; /* sobre --bg => ~17.5:1 / surface ~16.6:1 / surface-2 ~15.3:1 AA */
+  --text-muted: #a7a7b0; /* sobre --bg => ~8.0:1 AA */
 
-  --border: #2a3350;
-  --focus: #a78bfa; /* violet-400 */
+  --border: #292932;
+  --focus: #8b5cf6; /* violet-500, anillo de foco visible >=3:1 */
 
-  --brand: #a78bfa; /* violet-400: texto oscuro encima para contraste */
-  --brand-contrast: #1e1b2e; /* sobre --brand violet-400 => ~7.0:1 AA */
+  --brand: #8b5cf6; /* violet-500 (Figma); blanco encima ~4.5:1, límite AA */
+  --brand-contrast: #ffffff; /* sobre --brand => ~4.5:1 AA (límite) */
   --brand-surface: #241b3a;
+
+  /* Acento amarillo (Figma). Texto oscuro #0C0C0F sobre #FACC15 => ~13.6:1 AA. */
+  --accent: #facc15;
+  --accent-contrast: #0c0c0f;
 
   --danger: #f87171; /* red-400 sobre --bg => ~5.9:1 AA */
   --danger-contrast: #1a0b0b;
@@ -83,19 +93,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg: #0b1020;
-    --surface: #141a2e;
-    --surface-2: #1e2639;
+    /* Valores EXACTOS del Figma Foundations (tema oscuro = base). */
+    --bg: #0c0c0f;
+    --surface: #15151a;
+    --surface-2: #1d1d24;
 
-    --text: #e5e7eb;
-    --text-muted: #9aa4b8;
+    --text: #f5f5f7; /* ~17.5:1 sobre --bg AA */
+    --text-muted: #a7a7b0; /* ~8.0:1 sobre --bg AA */
 
-    --border: #2a3350;
-    --focus: #a78bfa;
+    --border: #292932;
+    --focus: #8b5cf6;
 
-    --brand: #a78bfa;
-    --brand-contrast: #1e1b2e;
+    --brand: #8b5cf6; /* blanco encima ~4.5:1, límite AA */
+    --brand-contrast: #ffffff;
     --brand-surface: #241b3a;
+
+    --accent: #facc15;
+    --accent-contrast: #0c0c0f; /* ~13.6:1 AA */
 
     --danger: #f87171;
     --danger-contrast: #1a0b0b;
@@ -114,6 +128,11 @@
 /* Mapeo @theme: expone utilidades semánticas de Tailwind v4.
    --color-text-muted genera la clase text-muted. */
 @theme {
+  /* Tipografía: Geist (paquete `geist`, auto-hospedado vía next/font, offline-safe
+     y compatible con output:'export'). La variable --font-geist-sans la expone
+     GeistSans.variable en el <html> (ver layout.tsx). */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
@@ -124,6 +143,8 @@
   --color-brand: var(--brand);
   --color-brand-contrast: var(--brand-contrast);
   --color-brand-surface: var(--brand-surface);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
   --color-danger: var(--danger);
   --color-danger-contrast: var(--danger-contrast);
   --color-danger-surface: var(--danger-surface);
@@ -136,5 +157,5 @@
 }
 
 body {
-  @apply bg-bg text-text antialiased;
+  @apply bg-bg text-text font-sans antialiased;
 }
