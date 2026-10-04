@@ -27,7 +27,10 @@ crea:
 - `performances`;
 - snapshots `event_artists` y `event_venues`;
 - tablas operacionales `scrape_runs` y `scrape_errors`;
-- vista pública `catalog_events_v1`.
+- vista pública `catalog_events_v1` (retirada; hoy `catalog_events_v2`).
+
+Desde el brief 003 el esquema es el modelo canónico; ver
+[modelo-datos.md](modelo-datos.md).
 
 Los identificadores internos son `bigint generated always as identity`. Las
 identidades naturales son `events(source_id, source_url)` y
@@ -53,8 +56,8 @@ finalización sigue siendo crítico y se conserva como causa del error global.
 ## Seguridad y catálogo
 
 Todas las tablas de `public` tienen RLS habilitado. `anon` y `authenticated`
-solo reciben `SELECT` sobre las tablas de catálogo y la vista
-`catalog_events_v1`; no pueden leer corridas/errores, escribir tablas ni ejecutar
+solo reciben `SELECT` sobre las tablas de catálogo y las vistas
+`catalog_events_v2`, `catalog_artists_v1` y `catalog_venues_v1`; no pueden leer corridas/errores, escribir tablas ni ejecutar
 las RPC privadas. La vista usa `security_invoker = true`.
 
 Las RPC son `SECURITY INVOKER`, fijan `search_path` vacío, califican las

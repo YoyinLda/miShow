@@ -28,7 +28,8 @@ Supabase se mantiene solo como base de datos (Data API + RPC), no como ejecutor.
 
 - [ ] Repo en GitHub con permisos de administración (para secrets/variables).
 - [ ] Proyecto Supabase remoto con migraciones aplicadas (ya está:
-  `bomaboxmzznmhcqriwbt`, incluye `catalog_events_v1`, `catalog_freshness_v1` y
+  `bomaboxmzznmhcqriwbt`, incluye `catalog_events_v2`, `catalog_artists_v1`,
+  `catalog_venues_v1`, `catalog_freshness_v1` y
   `start_scrape_run` multi-fuente).
 - [ ] Cuenta de Cloudflare (plan gratuito sirve).
 - [ ] La rama `feat/scraper-multi-fuente-ticketmaster` mergeada a `main` (los

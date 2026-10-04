@@ -10,8 +10,9 @@ El workflow vive en `.github/workflows/deploy-web.yml`.
 
 - `@mishow/web` es un frontend Next.js con **export estático** (`output:
   "export"`), cuyo build genera `apps/web/out`.
-- El catálogo se lee en el navegador desde la Data API de Supabase (vista
-  `catalog_events_v1` y RPC `catalog_freshness_v1`) con la **clave publishable**
+- El catálogo se lee en el navegador desde la Data API de Supabase (vistas
+  `catalog_events_v2`, `catalog_artists_v1`, `catalog_venues_v1` y RPC
+  `catalog_freshness_v1`) con la **clave publishable**
   (solo lectura, protegida por RLS). Por eso no hace falta reconstruir el sitio
   cuando cambian los datos: solo cuando cambia el código del frontend.
 
@@ -25,7 +26,8 @@ del scraper. Así el consumo de builds se mantiene bajo.
 ## Prerrequisitos (los realiza el TL/PO)
 
 1. **Proyecto Supabase remoto** con las migraciones de `supabase/migrations/`
-   aplicadas (incluye la vista `catalog_events_v1` y la RPC de frescura).
+   aplicadas (incluye las vistas `catalog_events_v2`, `catalog_artists_v1`,
+   `catalog_venues_v1` y la RPC de frescura).
 2. **Proyecto de Cloudflare Pages** ya creado (una vez), cuyo nombre se usará como
    `CLOUDFLARE_PAGES_PROJECT`.
 3. **Token de Cloudflare** con permiso *Cloudflare Pages: Edit* y el *Account ID*.
@@ -70,7 +72,8 @@ npm run build -w @mishow/web
 ```
 
 El build estático se validó en esta etapa: compila y genera `apps/web/out` con
-las rutas `/`, `/_not-found` y `/evento` como contenido estático.
+las rutas `/`, `/_not-found`, `/evento`, `/artistas` y `/venues` como contenido
+estático (artista y venue se resuelven en cliente con `?slug=`).
 
 ## Variables del frontend en desarrollo
 
