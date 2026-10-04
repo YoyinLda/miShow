@@ -120,8 +120,12 @@ function dateFromSpanish(value: string, referenceDate?: string): string | undefi
   const months = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
   const monthName = month[2].toLocaleLowerCase();
   const monthNumber = monthName === "setiembre" ? 9 : months.indexOf(monthName) + 1;
-  const time = referenceDate.match(/T(\d\d:\d\d(?::\d\d)?)/)?.[1] ?? "00:00:00";
-  return `${year}-${String(monthNumber).padStart(2, "0")}-${month[1].padStart(2, "0")}T${time}`;
+  const date = `${year}-${String(monthNumber).padStart(2, "0")}-${month[1].padStart(2, "0")}`;
+  // Si la fuente no informó hora (ni en el texto ni en la fecha de referencia),
+  // emitimos date-only: la normalización lo tratará como hora desconocida en vez
+  // de fabricar un 00:00:00 que no existe.
+  const time = referenceDate.match(/T(\d\d:\d\d(?::\d\d)?)/)?.[1];
+  return time ? `${date}T${time}` : date;
 }
 function priceFrom(offers: unknown[]): ExtractedDetail["price"] | undefined {
   const records = offers.filter(isRecord);

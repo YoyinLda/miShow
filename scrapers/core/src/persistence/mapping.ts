@@ -141,6 +141,7 @@ function mapPerformance(performance: EventPerformance, sourceUrl: string, option
     starts_at: performance.starts_at,
     timezone: performance.timezone,
     status: performance.status,
+    ...(performance.time_known === false ? { time_known: false } : {}),
     ...optionalText("performance_code", performance.performance_code),
     ...optionalText("purchase_url", performance.purchase_url)
   };

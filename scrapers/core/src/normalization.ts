@@ -1,7 +1,7 @@
 import type { EventStatus, NormalizedEvent, RawEventDetail, SourceUrlOptions } from "@mishow/domain";
 import type { SourceAdapter } from "./adapter.js";
 import type { ExtractedDetail } from "./extraction/detail.js";
-import { toSantiago } from "@mishow/domain";
+import { hasKnownTime, toSantiago } from "@mishow/domain";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 
 export function normalizeEvent(adapter: SourceAdapter, detail: RawEventDetail, extracted: ExtractedDetail, { extracted_at }: { extracted_at: string }): NormalizedEvent {
@@ -15,6 +15,7 @@ export function normalizeEvent(adapter: SourceAdapter, detail: RawEventDetail, e
     return {
       starts_at: toSantiago(performance.date), timezone: "America/Santiago",
       status: !purchaseUrl && hasPurchaseUrl && performance.status === "available" ? "unknown" : performance.status,
+      ...(hasKnownTime(performance.date) ? {} : { time_known: false }),
       ...(purchaseUrl ? { purchase_url: purchaseUrl, ...(performance.performance_code ? { performance_code: performance.performance_code } : {}) } : {})
     };
   }).sort((a, b) => a.starts_at.localeCompare(b.starts_at));

@@ -421,6 +421,28 @@ describe("PuntoTicket detail extraction and normalization", () => {
     });
   });
 
+  it("marca time_known=false cuando la fuente da fecha sin hora (date-only)", () => {
+    const raw = parseEventDetail(`
+      <script type="application/ld+json">{"@type":"Event","name":"Sin hora","startDate":"2026-12-20"}</script>
+    `, "https://www.puntoticket.com/evento/sin-hora").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([{ date: "2026-12-20", status: "unknown" }]);
+    const normalized = normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" });
+    // Date-only => hora desconocida: se conserva la fecha en Santiago sin inventar hora.
+    expect(normalized.performances[0]).toMatchObject({ starts_at: "2026-12-20T00:00:00-03:00", timezone: "America/Santiago", time_known: false });
+  });
+
+  it("deja time_known ausente cuando la fuente informa una hora real", () => {
+    const raw = parseEventDetail(`
+      <script type="application/ld+json">{"@type":"Event","name":"Con hora","startDate":"2026-12-20T21:00:00-03:00"}</script>
+    `, "https://www.puntoticket.com/evento/con-hora").value!;
+    const extracted = extractDetail(raw).value!;
+    expect(extracted.performances).toEqual([{ date: "2026-12-20T21:00:00-03:00", status: "unknown" }]);
+    const normalized = normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" });
+    expect(normalized.performances[0]).not.toHaveProperty("time_known");
+    expect(normalized.performances[0]).toMatchObject({ starts_at: "2026-12-20T21:00:00-03:00", timezone: "America/Santiago" });
+  });
+
   it("rechaza extracted_at que no sea un timestamp ISO válido", () => {
     const raw = parseEventDetail("<h1>Evento</h1>", "https://www.puntoticket.com/evento/fecha").value!;
     expect(() => normalizeEvent(raw, extractDetail(raw).value!, { extracted_at: "no-es-fecha" })).toThrow("extracted_at");
