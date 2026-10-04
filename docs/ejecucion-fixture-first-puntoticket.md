@@ -7,8 +7,9 @@ incluye persistencia, publicación ni scraping en vivo.
 
 ## Prerrequisitos
 
-- Node.js >=20.18.1. Este mínimo coincide con la dependencia efectiva
-  `cheerio@1.2.0` declarada en `package-lock.json`.
+- Node.js >=20.19.0 (el proyecto y CI usan 24.21.0). Este mínimo lo fijan las
+  dependencias de desarrollo `vite@7` y `eslint-visitor-keys@5` del
+  `package-lock.json` (`cheerio@1.2.0` exige >=20.18.1).
 - npm incluido con Node.js.
 - Git, si se necesita revisar el diff o clonar el repositorio.
 - Una terminal ubicada en la raíz del repositorio, donde están
@@ -256,13 +257,13 @@ funciones quedan `unknown` y se reporta la advertencia exacta
 ### `npm ci` falla por incompatibilidad del lockfile
 
 Verificar que se está usando el `package.json` y `package-lock.json` del mismo
-checkout y Node.js >=20.18.1. No corregirlo borrando el lockfile. Si la
+checkout y Node.js >=20.19.0. No corregirlo borrando el lockfile. Si la
 incompatibilidad persiste, debe tratarse como cambio de dependencias y revisarse
 antes de modificar archivos del repositorio.
 
 ### No existe `npm`
 
-Instalar Node.js >=20.18.1 mediante el método aprobado por el equipo y
+Instalar Node.js >=20.19.0 mediante el método aprobado por el equipo y
 volver a abrir la terminal. Confirmar con:
 
 ```bash
