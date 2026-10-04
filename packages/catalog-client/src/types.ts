@@ -80,6 +80,39 @@ export interface CatalogEvent {
   performances: CatalogPerformance[];
 }
 
+/**
+ * Cursor opaco de paginación keyset sobre `(next_performance_at asc nullslast,
+ * id asc)`. Describe la última fila devuelta por `listEvents`.
+ *
+ * - `phase: 'nonnull'` → se recorren filas con `next_performance_at` no nulo;
+ *   `nextAt` es ese timestamp e `id` el de la última fila.
+ * - `phase: 'null'` → zona de filas con `next_performance_at` nulo; `nextAt` es
+ *   siempre `null` e `id` el de la última fila (0 al entrar a la zona NULL).
+ */
+export interface EventCursor {
+  phase: "nonnull" | "null";
+  nextAt: string | null;
+  id: number;
+}
+
+/** Parámetros de `listEvents`: página keyset + búsqueda server-side. */
+export interface ListEventsParams {
+  limit?: number;
+  search?: string;
+  cursor?: EventCursor | null;
+}
+
+/**
+ * Resultado de `listEvents`: una página de eventos, el total GLOBAL (via
+ * Content-Range en la primera página; `null` si no se pudo determinar) y el
+ * cursor para la siguiente página (`null` cuando no hay más datos).
+ */
+export interface ListEventsResult {
+  items: CatalogEvent[];
+  total: number | null;
+  nextCursor: EventCursor | null;
+}
+
 /** Evento compacto para las páginas de artista/venue. */
 export interface CatalogEventBrief {
   id: number;

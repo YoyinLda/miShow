@@ -146,3 +146,53 @@ Cuando se cierre una decisión relevante, documentarla con:
   aplicada**: requiere `supabase db push` del TL/PO + una corrida de scraper. Ver
   `supabase/migrations/20261004120000_performance_time_known.sql`,
   `apps/web/lib/format.ts` y el Brief 005.
+
+### 2026-10-04 — Paginación por scroll infinito con keyset en dos fases (Brief 005, Etapa 2)
+
+- **Estado:** aceptada.
+- **Contexto:** el home traía `listEvents({ limit: 100 })` y filtraba en memoria,
+  truncando el catálogo (~142 eventos) y sin búsqueda server-side. Se necesita un
+  listado completo, fluido y mobile-first.
+- **Decisión TL/PO:** consumo incremental (scroll infinito) que pide más datos
+  según la interacción del usuario, no por paginación numérica.
+- **Keyset en dos fases** sobre el orden `(next_performance_at asc nullslast,
+  id asc)`:
+  - **Fase A (no-nulos):** `or=(next_performance_at.gt.<a>,and(next_performance_at.eq.<a>,id.gt.<i>))`.
+  - **Fase B (nulos):** `next_performance_at=is.null` ordenado por `id.asc`,
+    keyset `id=gt.<i>`.
+  - El cursor es opaco (`{ phase, nextAt, id }`): el front solo lo reenvía, nunca
+    inspecciona ni construye sus campos. `listEvents` decide la transición A→B.
+- **Total global:** se obtiene en la PRIMERA página vía `Content-Range` con
+  `Prefer: count=exact` (conteo del universo completo, sin filtros de fase; solo
+  `name=ilike` si hay búsqueda). En páginas siguientes el total no se recalcula:
+  el front conserva el primero. Si el header falta o es `*/x`, `total` cae a
+  `null` y el conteo se oculta (fallback probado).
+- **Estado en URL:** solo se persiste el término de búsqueda en `?q=` vía
+  `history.replaceState` (sin recargar). **No** se persiste el número de bloques
+  cargados: al recargar con `?q=` el listado arranca desde el primer bloque con
+  ese término.
+- **Búsqueda server-side** con debounce ~300ms (`name=ilike.*term*` en todas las
+  queries); se eliminó el filtro en memoria.
+- **Restauración al volver del detalle (pragmática):** antes de navegar a
+  `/evento` se guarda un snapshot `{ term, items, cursor, total, scrollY }` en
+  `sessionStorage`. Al montar, si la Navigation Timing API reporta `back_forward`
+  y el `term` coincide con `?q=`, se restauran items/cursor/total/scroll; si no,
+  se arranca limpio. **Limitación conocida:** en Next (App Router) el back desde
+  una navegación client-side puede no reportarse como `back_forward`; en ese caso
+  se degrada a arranque limpio sin romper. No se persiste entre pestañas ni tras
+  cerrar el navegador (sessionStorage).
+- **Lógica pura testeable:** la acumulación/estado vive en
+  `apps/web/lib/event-list-state.ts` (`appendPage` sin duplicados por `id`,
+  `resetForSearch`, `canLoadMore`, `serializeSnapshot`/`parseSnapshot`) con tests
+  en `apps/web/tests/event-list-state.test.ts`. No hay jsdom: los tests del front
+  son de lógica pura, sin render de componentes.
+- **Accesibilidad:** además del centinela con `IntersectionObserver`, hay un
+  botón `type="button"` "Cargar más" con `aria-busy`/`disabled` y guard anti
+  doble disparo; el conteo total usa `aria-live="polite"`.
+- **Alternativas:** paginación numérica con `range`/offset de PostgREST
+  (descartada por TL/PO a favor del scroll infinito). Si en el futuro se confirma
+  ausencia sistemática de `Content-Range`, se evaluaría ese plan B.
+- **Consecuencias:** `output: "export"` se conserva (todo el fetch es
+  client-side). `EventCard`, los tokens/modo oscuro y ArtistDetail/VenueDetail no
+  se tocan. Ver `apps/web/components/EventList.tsx`,
+  `apps/web/lib/event-list-state.ts` y `packages/catalog-client/src/client.ts`.
