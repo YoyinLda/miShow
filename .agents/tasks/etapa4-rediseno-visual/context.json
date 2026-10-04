@@ -1,0 +1,62 @@
+{
+  "project_type": "Monorepo npm workspaces (packages/*, scrapers/*, apps/*). El objetivo es apps/web: app Next.js 16 (App Router) + React 19 + Tailwind v4, exportada como sitio estático (SSG).",
+  "language": "TypeScript (TSX para componentes React)",
+  "build_system": "npm workspaces. Next 16.3.5 con output: 'export' (SSG) en apps/web/next.config.mjs. Tailwind v4 vía @tailwindcss/postcss (postcss.config.mjs). QUIRK: el worktree NO tiene node_modules instalado; ejecutar `npm install` en la raíz del worktree ANTES de cualquier build/test.",
+  "test_framework": "vitest. En apps/web los tests viven en apps/web/tests/*.test.ts (event-list-state, format, theme) y corren con `vitest run tests` vía `npm test` del workspace.",
+  "build_command": "npm run -w apps/web build  (= next build, genera export estático en apps/web/out)",
+  "test_command": "npm run qa  (= npm run typecheck && npm run lint && npm test, todo desde la raíz del worktree)",
+  "verification_instructions": "1) Desde la raíz del worktree: `npm install`. 2) `npm run qa` debe quedar en verde (typecheck + eslint + vitest). 3) `npm run -w apps/web build` debe completar el export estático sin error. 4) Verificación headless: servir apps/web/out y comprobar que home, /evento, /artistas, /venues cargan y el tema oscuro aplica por defecto donde corresponde. Si Geist rompe el export estático, DETENERSE y reportar.",
+  "snapshot_or_generated_files": "apps/web/out es el export estático generado por `next build`; no se commitea (build artifact). No hay snapshots de test que se chequeen al repo.",
+  "environment_constraints": "Windows + PowerShell. Worktree en c:\\Yoyo\\Dev\\miShow\\.worktrees\\etapa4-rediseno-visual (rama feat/etapa4-rediseno-visual). Usar SIEMPRE rutas absolutas; para git usar `git -C c:\\Yoyo\\Dev\\miShow\\.worktrees\\etapa4-rediseno-visual`. Sin node_modules hasta hacer `npm install`. Sin secretos, sin despliegues, sin recursos externos nuevos, no cobros. Commit local en la rama; NUNCA push.",
+  "contribution_requirements": "AGENTS.md: cambios pequeños y reversibles; pruebas cuando cambia comportamiento; ejecutar typecheck+lint+tests; sin secretos; actualizar docs/ si cambia contrato/arquitectura/proceso; responder y documentar en español. Mobile-first, accesible, performante. NO tocar el logo (pendiente Figma). NO tocar @mishow/catalog-client ni la base.",
+  "key_patterns": "Sistema de color por TOKENS semánticos en apps/web/app/globals.css: un unico set de utilidades (bg-bg, bg-surface, bg-surface-2, text-text, text-text-muted, border-border, bg-brand, text-brand-contrast, bg-brand-surface, ring-focus, danger/warning/success). NO se usa `dark:` por elemento; el tema cambia los VALORES de las variables en tres bloques: :root (claro), [data-theme='dark'] (oscuro) y @media (prefers-color-scheme: dark) :root:not([data-theme]). Tailwind v4 @theme mapea --color-X a la utilidad X. Foco visible con focus-visible:ring-2 focus-visible:ring-focus en todo elemento interactivo. CTA externo a ticketera: target _blank rel 'noopener noreferrer nofollow'. Semántica de enlaces en lib/format.ts (sourceLinks: 'Ir a la ticketera' con una fuente, 'Ir a <ticketera>' con varias). Fechas con timeZone America/Santiago.",
+  "relevant_files": [
+    "apps/web/app/globals.css (tokens + @theme; FUENTE DE VERDAD del color)",
+    "apps/web/next.config.mjs (output: 'export'; no romper SSG)",
+    "apps/web/app/layout.tsx (html lang es, script anti-flash de tema, header/footer, ThemeToggle)",
+    "apps/web/app/page.tsx (home = <EventList/>)",
+    "apps/web/app/evento/page.tsx, apps/web/app/artistas/page.tsx, apps/web/app/venues/page.tsx (usan text-neutral-500 en fallback de Suspense: corregir a text-text-muted)",
+    "apps/web/components/EventCard.tsx (tarjeta; overlay de navegacion + CTA externo z-10)",
+    "apps/web/components/EventList.tsx (home; scroll infinito Etapa 2 + lib/event-list-state.ts: NO romper)",
+    "apps/web/components/EventDetail.tsx, ArtistDetail.tsx, VenueDetail.tsx (detalles)",
+    "apps/web/components/ThemeToggle.tsx + apps/web/lib/theme.ts (toggle claro/oscuro/sistema; tests en tests/theme.test.ts)",
+    "apps/web/lib/format.ts (formatPrice, sourceLinks, statusLabel, formatDate; NO cambiar semantica)",
+    "apps/web/lib/event-list-state.ts (estado del scroll infinito; NO cambiar logica)",
+    "docs/front-tokens-tema.md (tabla de tokens a actualizar)"
+  ],
+  "directory_structure": "apps/web/app = rutas App Router (layout, page, evento/, artistas/, venues/). apps/web/components = componentes React. apps/web/lib = logica pura (format, theme, catalog, event-list-state). apps/web/tests = vitest. docs/ = documentacion en español. .agents/assets/figma-foundations.png = screenshot del sistema de diseño (fuente de verdad visual).",
+  "design_tokens_dark": {
+    "note": "Tema OSCURO es la base, valores EXACTOS del Figma. Ratios AA estimados; validacion manual pendiente. #FACC15 nunca para texto largo sobre fondo oscuro (solo acento: borde/pill/highlight/hover o fill con texto oscuro).",
+    "--bg": "#0C0C0F",
+    "--surface": "#15151A",
+    "--surface-2": "#1D1D24",
+    "--border": "#292932",
+    "--brand": "#8B5CF6",
+    "--brand-contrast": "#FFFFFF (blanco sobre #8B5CF6 ~4.5:1, LIMITE AA: verificar; si no alcanza, oscurecer el fill del CTA a #7C3AED)",
+    "--accent": "#FACC15 (NUEVO)",
+    "--accent-contrast": "#0C0C0F (texto oscuro sobre acento ~12.7:1)",
+    "--text": "#F5F5F7 (~17.5:1 sobre bg, ~16.6:1 sobre surface, ~15.3:1 sobre surface-2)",
+    "--text-muted": "#A7A7B0 (~8.0:1 sobre bg)",
+    "--focus": "#8B5CF6 (anillo de foco visible, >=3:1)"
+  },
+  "design_tokens_light": {
+    "note": "Tema CLARO se MANTIENE coherente y accesible; mismo brand violeta, texto oscuro, se añade acento amarillo.",
+    "--bg": "#FFFFFF",
+    "--surface": "#F8FAFC",
+    "--surface-2": "#F1F5F9",
+    "--border": "#E2E8F0",
+    "--brand": "#6D28D9 (blanco encima ~6.4:1)",
+    "--brand-contrast": "#FFFFFF",
+    "--accent": "#FACC15",
+    "--accent-contrast": "#1C1917",
+    "--text": "#0F172A (~16.9:1)",
+    "--text-muted": "#475569 (~7.5:1)",
+    "--focus": "#7C3AED"
+  },
+  "typography_and_spacing": {
+    "family": "Geist (decision: paquete `geist` como primario, auto-hospedado/offline-safe, compatible con output:'export'; fallback next/font/google 'Geist' si hay red en build). Si Geist rompe el export estatico, DETENERSE y reportar.",
+    "scale": "Display 48 Bold (titulos home/detalle), Heading 24 SemiBold (nombre evento/h1), Body 16 Regular (fecha/venue/ciudad/precio).",
+    "spacing": "4·8·12·16·24·32·48 (usar utilidades Tailwind equivalentes). Sin valores magicos.",
+    "radii": "inputs 8 (rounded-lg), botones 10, tarjetas 12 (rounded-xl), pills full (rounded-full). Convencion unica y documentada."
+  }
+}

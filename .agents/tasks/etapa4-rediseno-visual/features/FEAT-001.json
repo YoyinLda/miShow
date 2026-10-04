@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Fundaciones del sistema visual: instalar dependencias del worktree, integrar la fuente Geist compatible con el export estatico, alinear los tokens de color del tema OSCURO a los valores exactos del Figma Foundations, añadir el token de acento amarillo (--accent/--accent-contrast) y sus utilidades Tailwind, mantener el tema claro coherente y accesible, y actualizar la documentacion de tokens. Esta feature es prerrequisito de FEAT-002 (el rediseño de composicion depende de que existan tokens y tipografia).",
+  "status": "completed",
+  "steps": [
+    "Desde la raiz del worktree (c:\\Yoyo\\Dev\\miShow\\.worktrees\\etapa4-rediseno-visual) ejecutar `npm install` para poblar node_modules (hoy no existe).",
+    "Añadir la dependencia `geist` con version EXACTA en apps/web/package.json e instalarla. En apps/web/app/layout.tsx importar `GeistSans` de `geist/font/sans`, aplicar su `className`/`variable` sobre el elemento <html> y exponer la variable de fuente a Tailwind.",
+    "En apps/web/app/globals.css exponer la familia Geist via @theme (p.ej. --font-sans: var(--font-geist-sans)) para que `font-sans` use Geist; aplicar font-sans al body si hace falta.",
+    "VERIFICAR que el export estatico sigue funcionando: `npm run -w apps/web build`. Si Geist rompe el export (output:'export'), DETENERSE y reportar via send_message severity warning (no forzar); fallback documentado: next/font/google 'Geist' si hay red en build.",
+    "En apps/web/app/globals.css, en los bloques oscuros ([data-theme='dark'] y @media (prefers-color-scheme: dark) :root:not([data-theme])), fijar EXACTAMENTE: --bg #0C0C0F, --surface #15151A, --surface-2 #1D1D24, --border #292932, --brand #8B5CF6, --text #F5F5F7, --text-muted #A7A7B0, --focus #8B5CF6.",
+    "Añadir en los tres bloques (:root claro, oscuro y @media) el token de acento: --accent y --accent-contrast (oscuro #FACC15 / #0C0C0F; claro #FACC15 / #1C1917). Exponer utilidades en @theme: --color-accent: var(--accent) y --color-accent-contrast: var(--accent-contrast).",
+    "Mantener el tema CLARO coherente y accesible (brand violeta, texto oscuro) y conservar los estados danger/warning/success. Verificar que cada par de texto cumple AA (>=4.5:1 texto normal) y documentar los ratios estimados en comentarios del CSS.",
+    "Actualizar docs/front-tokens-tema.md con los nuevos valores oscuros del Figma, el token --accent/--accent-contrast, sus utilidades y los ratios AA estimados, con nota de que la validacion completa de accesibilidad es manual.",
+    "Hacer commits tematicos en español en la rama (sin push): 'chore(web): instala dependencias y añade fuente Geist (SSG)', 'feat(web): alinea tokens oscuros al Figma y añade acento amarillo', 'docs(web): actualiza tabla de tokens y acento'."
+  ],
+  "acceptance_criteria": [
+    "`npm run -w apps/web build` completa el export estatico sin error con Geist aplicada.",
+    "`npm run qa` (typecheck + lint + tests) queda en verde; los tests existentes de tema/format/event-list-state siguen pasando.",
+    "globals.css define el tema oscuro con los valores exactos del Figma y expone bg-accent/text-accent/text-accent-contrast via @theme, con el tema claro intacto y accesible.",
+    "docs/front-tokens-tema.md refleja los nuevos tokens y ratios AA estimados.",
+    "No se tocaron @mishow/catalog-client, la base, ni el logo; el ThemeToggle sigue funcionando (claro/oscuro/sistema)."
+  ],
+  "verification": [
+    "npm install  (raiz del worktree)",
+    "npm run -w apps/web build  (export estatico sin error)",
+    "npm run qa  (typecheck + lint + vitest en verde)"
+  ],
+  "blocked_reason": null,
+  "findings": "TIPOGRAFIA: paquete `geist` version EXACTA 1.7.2 (dependency en apps/web/package.json). En apps/web/app/layout.tsx se importa `GeistSans` de `geist/font/sans` y se aplica `GeistSans.variable` como className del <html>. La variable CSS resultante es `--font-geist-sans`. En globals.css @theme se define `--font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif`, por lo que la utilidad Tailwind `font-sans` usa Geist; el body aplica `font-sans`. DECISION GEIST: el paquete `geist` (auto-hospedado via next/font, offline-safe) NO rompe el export estatico (output:'export'); `npm run -w apps/web build` completa sin error. NO se necesito el fallback next/font/google. FEAT-002 debe usar `font-sans` para tipografia; para pesos/estilos display (48 Bold) y heading (24 SemiBold) usar utilidades Tailwind (font-bold/font-semibold/text-5xl/text-2xl) sobre font-sans, no re-importar la fuente. UTILIDADES DE ACENTO (nuevas): bg-accent, text-accent, border-accent, y text-accent-contrast (expuestas via @theme con --color-accent y --color-accent-contrast). Variables CSS: --accent (#FACC15 en ambos temas) y --accent-contrast (oscuro #0C0C0F ~13.6:1 / claro #1C1917 ~13.2:1). REGLA: amarillo solo como acento (borde/pill/highlight/hover) o fill con texto --accent-contrast encima; NUNCA como texto largo sobre fondo oscuro. CONTRASTE BRAND: en oscuro --brand es #8B5CF6 (valor exacto Figma) con --brand-contrast #FFFFFF; el ratio blanco sobre #8B5CF6 es ~4.5:1, en el LIMITE de AA. Si FEAT-002 ve que un CTA no alcanza AA en pruebas manuales, el context.json sugiere oscurecer el fill a #7C3AED (no se aplico ahora porque los valores exactos del Figma son prioritarios en esta feature). Tokens oscuros exactos aplicados en los dos bloques (data-theme=dark y @media): bg #0C0C0F, surface #15151A, surface-2 #1D1D24, border #292932, text #F5F5F7, text-muted #A7A7B0, focus #8B5CF6. No se tocaron @mishow/catalog-client, la base ni el logo; ThemeToggle y sus tests (tests/theme.test.ts) siguen en verde."
+}

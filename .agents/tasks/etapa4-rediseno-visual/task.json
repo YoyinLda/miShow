@@ -1,0 +1,7 @@
+{
+  "task_id": "task-etapa4-rediseno-visual",
+  "task_description": "Rediseño visual mobile-first del front (apps/web) alineado al Figma Foundations de miShow, sin romper funcionalidad (scroll infinito, búsqueda server-side, toggle de tema, estado Confirmado por defecto, enlace único a ticketera, contratos de datos). Parte A: alinear tokens de color oscuro al Figma + acento amarillo + fuente Geist. Parte B: rediseño de composición de componentes/layout.",
+  "status": "pending",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}

@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Rediseño de composicion mobile-first 'editorial, musical y ordenada' sobre los tokens y la tipografia de FEAT-001: EventCard, EventList/home, los tres detalles (Event/Artist/Venue), y layout/header/footer. Un unico sistema de spacing (4..48) y radios (inputs 8, botones 10, tarjetas 12, pills full). Sin romper funcionalidad: scroll infinito, busqueda server-side, toggle de tema, estado Confirmado por defecto, enlace unico a ticketera, contratos de datos. Depende de FEAT-001.",
+  "status": "pending",
+  "steps": [
+    "Rediseñar apps/web/components/EventCard.tsx: nombre protagonista en Heading (24 SemiBold), afiche con aspect-ratio estable, fecha/venue/ciudad en Body/Muted, precio y disponibilidad claros, radios 12 (rounded-xl), superficie --surface/--surface-2 con --border sutil, foco visible, acento amarillo con mesura (p.ej. precio o badge). MANTENER intactos: el overlay <a> que cubre la card hacia /evento?slug=, y el CTA externo a la ticketera con z-10, target _blank y rel 'noopener noreferrer nofollow', y la logica de links de lib/format.ts.",
+    "Rediseñar apps/web/components/EventList.tsx (home): encabezado editorial con Display para el titulo, buscador integrado, conteo total, ritmo vertical del sistema de spacing. NO tocar la logica de scroll infinito (IntersectionObserver, centinela sentinelRef, boton 'Cargar más', snapshot/restauracion, debounce, tokens de peticion ni estados loading/error/empty): solo cambiar clases de presentacion.",
+    "Rediseñar apps/web/components/EventDetail.tsx, ArtistDetail.tsx y VenueDetail.tsx con la misma jerarquia/espaciado/tipografia (h1 Heading/Display, Body/Muted), afiche protagonista con aspect-ratio estable, radios y acento consistentes. Conservar el enlace unico 'Ir a la ticketera' y 'Ver ticketeras'/'Disponible en' con varias fuentes (semantica de lib/format.ts intacta) y los estados loading/not-found/error/unconfigured.",
+    "Rediseñar apps/web/app/layout.tsx: header sobrio con wordmark miShow (NO tocar el logo) + ThemeToggle, footer discreto, nav clara en movil, contenedor y ritmo vertical del sistema. Conservar el script anti-flash de tema y html lang='es'.",
+    "Corregir los fallbacks fuera del sistema de tokens: reemplazar text-neutral-500 por text-text-muted en apps/web/app/evento/page.tsx, apps/web/app/artistas/page.tsx y apps/web/app/venues/page.tsx.",
+    "Verificar visualmente mobile-first y que el tema oscuro aplica por defecto donde corresponde; comprobar foco visible en elementos interactivos.",
+    "Hacer commits tematicos en español en la rama (sin push), uno por bloque: EventCard, EventList/home, detalles, layout/fallbacks."
+  ],
+  "acceptance_criteria": [
+    "`npm run -w apps/web build` completa el export estatico sin error.",
+    "`npm run qa` queda en verde; event-list-state.test.ts, format.test.ts y theme.test.ts siguen pasando sin cambios de contrato.",
+    "No quedan clases text-neutral-* en apps/web (todo via tokens semanticos).",
+    "Se preservan: scroll infinito (observer + boton 'Cargar más' + restauracion por snapshot), busqueda server-side con debounce, toggle de tema, estado 'Confirmado' por defecto, enlace unico 'Ir a la ticketera' / 'Ver ticketeras' con varias fuentes, y los contratos de @mishow/catalog-client.",
+    "Spacing y radios siguen el sistema (4..48; inputs 8 / botones 10 / tarjetas 12 / pills full) sin valores magicos; el logo no se modifica."
+  ],
+  "verification": [
+    "npm run -w apps/web build  (export estatico sin error)",
+    "npm run qa  (typecheck + lint + vitest en verde)",
+    "Verificacion headless: servir apps/web/out y comprobar que home, /evento, /artistas y /venues cargan y el tema oscuro aplica por defecto"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
