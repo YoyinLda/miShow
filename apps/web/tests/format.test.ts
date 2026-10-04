@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatPrice, formatRelativeTime, performanceStatusLabel, sourceLinks, statusLabel } from "../lib/format";
+import { formatDate, formatPrice, formatRelativeTime, performanceStatusLabel, sourceLinks, statusLabel } from "../lib/format";
 import type { CatalogEventSource } from "@mishow/catalog-client";
 
 const now = new Date("2026-09-13T15:00:00Z");
@@ -79,6 +79,48 @@ describe("performanceStatusLabel", () => {
     expect(performanceStatusLabel("available")).toBe("Disponible");
     expect(performanceStatusLabel("sold_out")).toBe("Agotado");
     expect(performanceStatusLabel("upcoming")).toBe("Próximamente");
+  });
+});
+
+describe("formatDate", () => {
+  it("muestra fecha y hora cuando la hora es conocida", () => {
+    const label = formatDate("2026-11-15T21:00:00-03:00", { timeKnown: true })!;
+    expect(label).toContain("15");
+    // Reloj de 24 h: 21:00 Santiago => "21:00".
+    expect(label).toContain("21:00");
+    expect(label).not.toMatch(/[ap]\.?\s?m\.?/i);
+  });
+
+  it("muestra solo la fecha cuando la hora es desconocida (sin hora ni leyenda)", () => {
+    const label = formatDate("2026-11-15T00:00:00-03:00", { timeKnown: false });
+    expect(label).toContain("15");
+    expect(label).toContain("nov");
+    expect(label).not.toContain("00:00");
+    expect(label).not.toMatch(/\d{1,2}:\d\d/);
+    expect(label).not.toMatch(/[ap]\.?\s?m\.?/i);
+  });
+
+  it("muestra la hora para una medianoche real (hora conocida)", () => {
+    // Medianoche real: time_known=true => se muestra "00:00" (reloj 24 h), no se omite.
+    const label = formatDate("2026-11-15T00:00:00-03:00", { timeKnown: true });
+    expect(label).toContain("00:00");
+    expect(label).not.toMatch(/[ap]\.?\s?m\.?/i);
+  });
+
+  it("no corre el día por la zona en una fecha sin hora", () => {
+    const label = formatDate("2026-11-15T00:00:00-03:00", { timeKnown: false });
+    expect(label).toContain("15");
+    expect(label).not.toContain("14");
+    expect(label).not.toContain("16");
+  });
+
+  it("sin opciones mantiene el comportamiento legacy (fecha + hora)", () => {
+    expect(formatDate("2026-11-15T21:00:00-03:00")).toContain("21:00");
+  });
+
+  it("devuelve undefined para instantes vacíos o inválidos", () => {
+    expect(formatDate(null)).toBeUndefined();
+    expect(formatDate("no-es-fecha")).toBeUndefined();
   });
 });
 

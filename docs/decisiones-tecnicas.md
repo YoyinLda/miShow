@@ -121,3 +121,28 @@ Cuando se cierre una decisión relevante, documentarla con:
   `actions/setup-node@v5`. Los tests que invocan npm usan el helper portable
   `runNpm` (Windows, macOS, Linux). La configuración MCP del asistente vive en la
   config de usuario, fuera del repo. Ver `docs/entorno-desarrollo-windows.md`.
+
+### 2026-10-04 — Hora desconocida: mostrar solo la fecha (Brief 005, Etapa 1)
+
+- **Estado:** aceptada.
+- **Contexto:** una fecha sin hora llegaba al front como `00:00`, indistinguible
+  de una medianoche real. Se necesita diferenciar "hora por confirmar" de una
+  hora válida sin inventar valores ni alterar la fecha por zona horaria.
+- **Decisión TL/PO:** cuando la hora es desconocida, el front muestra **solo la
+  fecha** (p. ej. `vie 15 nov 2026`), sin `00:00` y **sin leyenda**. Con hora
+  conocida (incluida una medianoche real) se muestra fecha + hora en
+  `America/Santiago`. La fecha nunca cambia de día por conversión de zona.
+- **Modelo de datos:** nueva columna `performances.time_known boolean not null
+  default true`. **Sin backfill**: las filas existentes quedan como "hora
+  conocida" y la verdad nueva (`time_known=false`) llega con la próxima corrida
+  del scraper. El contrato (`EventPerformance`, `CatalogPerformance`) gana
+  `time_known?: boolean` (opcional/retrocompatible). La regla fecha-only vs
+  fecha+hora se centraliza en `hasKnownTime` (dominio) y se calcula una vez en la
+  normalización; los scrapers dejan de fabricar `T00:00:00` sin hora real.
+- **Alternativas:** leyenda "Hora por confirmar" (descartada por TL/PO);
+  backfill heurístico (descartado por el riesgo de confundir medianoche real).
+- **Consecuencias:** la vista `catalog_events_v2` expone `time_known` por función
+  y `next_performance_time_known` a nivel evento. Migración creada pero **no
+  aplicada**: requiere `supabase db push` del TL/PO + una corrida de scraper. Ver
+  `supabase/migrations/20261004120000_performance_time_known.sql`,
+  `apps/web/lib/format.ts` y el Brief 005.

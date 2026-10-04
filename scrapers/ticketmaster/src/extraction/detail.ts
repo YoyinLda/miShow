@@ -41,9 +41,10 @@ export function imageFromMeta(html: string): string | undefined {
 }
 
 /**
- * Deriva una fecha ISO (local, sin offset) desde una descripción con el patrón
- * español "DD de Mes YYYY" cuando el JSON-LD no trae `startDate`. La hora se
- * asume 00:00:00; la normalización posterior fija America/Santiago.
+ * Deriva una fecha (local, sin offset) desde una descripción con el patrón
+ * español "DD de Mes YYYY" cuando el JSON-LD no trae `startDate`. La descripción
+ * no informa hora, así que se emite date-only (`YYYY-MM-DD`): la normalización
+ * la interpreta como hora desconocida y fija America/Santiago sin inventar hora.
  */
 export function dateFromDescription(description: string): string | undefined {
   const match = description.match(/\b(\d{1,2})\s+de\s+([A-Za-zÁÉÍÓÚáéíóúñÑ]+)\s+(?:de\s+)?(\d{4})\b/i);
@@ -53,5 +54,5 @@ export function dateFromDescription(description: string): string | undefined {
   const month = MONTHS[monthName];
   const year = Number(match[3]);
   if (!month || day < 1 || day > 31) return undefined;
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00`;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }

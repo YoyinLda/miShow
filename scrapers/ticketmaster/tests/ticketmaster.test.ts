@@ -59,15 +59,19 @@ describe("Ticketmaster detail extraction and normalization", () => {
     expect(normalized.performances).toEqual([
       { starts_at: "2026-11-15T21:00:00-03:00", timezone: "America/Santiago", status: "unknown" }
     ]);
+    // Con hora real (startDate con componente horario), time_known queda ausente.
+    expect(normalized.performances[0]).not.toHaveProperty("time_known");
     expect(normalized.status).toBe("unknown");
   });
 
   it("derives the date from the description when JSON-LD has no startDate", () => {
     const raw = parseEventDetail(detailDescription, "https://www.ticketmaster.cl/event/los-bunkers-movistar-arena").value!;
     const extracted = extractDetail(raw).value!;
-    expect(extracted.performances).toEqual([{ date: "2026-12-20T00:00:00", status: "unknown" }]);
+    expect(extracted.performances).toEqual([{ date: "2026-12-20", status: "unknown" }]);
     const normalized = normalizeEvent(raw, extracted, { extracted_at: "2026-09-08T12:00:00.000Z" });
-    expect(normalized.performances[0]).toMatchObject({ starts_at: "2026-12-20T00:00:00-03:00", timezone: "America/Santiago" });
+    // La descripción no trae hora: date-only => hora desconocida (time_known:false),
+    // sin inventar hora; la fecha se conserva en America/Santiago.
+    expect(normalized.performances[0]).toMatchObject({ starts_at: "2026-12-20T00:00:00-03:00", timezone: "America/Santiago", time_known: false });
     expect(normalized.name).toBe("Los Bunkers");
     expect(normalized.venue).toMatchObject({ name: "Movistar Arena", city: "Santiago" });
   });
@@ -90,8 +94,8 @@ describe("Ticketmaster detail extraction and normalization", () => {
   });
 
   it("parses Spanish 'DD de Mes YYYY' dates", () => {
-    expect(dateFromDescription("Show el 5 de enero 2027 en Santiago")).toBe("2027-01-05T00:00:00");
-    expect(dateFromDescription("1 de septiembre de 2026")).toBe("2026-09-01T00:00:00");
+    expect(dateFromDescription("Show el 5 de enero 2027 en Santiago")).toBe("2027-01-05");
+    expect(dateFromDescription("1 de septiembre de 2026")).toBe("2026-09-01");
     expect(dateFromDescription("sin fecha reconocible")).toBeUndefined();
   });
 

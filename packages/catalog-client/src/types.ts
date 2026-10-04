@@ -26,6 +26,8 @@ export interface CatalogPerformance {
   starts_at: string;
   timezone: string;
   status: EventStatus;
+  /** `false` = hora desconocida (mostrar solo fecha). Ausente/`true` = hora conocida. */
+  time_known?: boolean;
   performance_code?: string;
   purchase_url?: string;
 }
@@ -70,6 +72,8 @@ export interface CatalogEvent {
   first_seen_at: string;
   last_seen_at: string;
   next_performance_at: string | null;
+  /** Hora conocida de la próxima función: `false` = solo fecha; `null`/`true` = con hora. */
+  next_performance_time_known: boolean | null;
   artists: CatalogArtistRef[];
   venue: CatalogVenueRef | null;
   sources: CatalogEventSource[];

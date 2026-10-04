@@ -21,6 +21,12 @@ export interface EventPerformance {
   starts_at: string;
   timezone: string;
   status: EventStatus;
+  /**
+   * Indica si la hora de `starts_at` es real (`true`/ausente) o desconocida
+   * (`false`). Opcional y retrocompatible: `undefined` significa hora conocida,
+   * de modo que payloads y fixtures previos no cambian de comportamiento.
+   */
+  time_known?: boolean;
   performance_code?: string;
   purchase_url?: string;
 }

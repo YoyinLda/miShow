@@ -11,6 +11,7 @@
     }
   },
   "scripts": {
+    "test": "vitest run tests --passWithNoTests",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   }
 }

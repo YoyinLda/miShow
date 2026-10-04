@@ -5,6 +5,17 @@ export function instantKey(value: string): number | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date.getTime();
 }
 
+/**
+ * `true` si el string de fecha trae componente horario (`T`/espacio seguido de
+ * `HH:MM`), `false` si es date-only (`YYYY-MM-DD`). Es la regla única para
+ * distinguir "hora conocida" de "hora desconocida": una fecha sin hora significa
+ * que la fuente no informó la hora. Una medianoche real explícita
+ * (`...T00:00:00`) devuelve `true`. Alineado con el regex de `parseInstant`.
+ */
+export function hasKnownTime(value: string): boolean {
+  return /^(\d{4})-(\d\d)-(\d\d)[T ](\d\d):(\d\d)/.test(value);
+}
+
 export function toSantiago(value: string): string {
   const date = parseInstant(value);
   if (Number.isNaN(date.getTime())) throw new Error(`Fecha inválida: ${value}`);
