@@ -48,7 +48,8 @@ const DATE_TIME = new Intl.DateTimeFormat("es-CL", {
   month: "short",
   year: "numeric",
   hour: "2-digit",
-  minute: "2-digit"
+  minute: "2-digit",
+  hour12: false
 });
 
 const DATE_ONLY = new Intl.DateTimeFormat("es-CL", {
@@ -63,8 +64,8 @@ const DATE_ONLY = new Intl.DateTimeFormat("es-CL", {
  * Formatea un instante ISO en `America/Santiago`. Cuando `options.timeKnown` es
  * `false` (hora desconocida), devuelve solo la fecha (sin hora ni leyenda): la
  * fecha nunca cambia de día por la zona. Por defecto (`undefined`/`true`)
- * muestra fecha + hora, de modo que una medianoche real (`time_known=true`)
- * exhibe `00:00`.
+ * muestra fecha + hora en reloj de 24 h, de modo que una medianoche real
+ * (`time_known=true`) exhibe `00:00`.
  */
 export function formatDate(iso: string | null | undefined, options?: { timeKnown?: boolean }): string | undefined {
   if (!iso) return undefined;

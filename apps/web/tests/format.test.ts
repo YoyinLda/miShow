@@ -84,11 +84,11 @@ describe("performanceStatusLabel", () => {
 
 describe("formatDate", () => {
   it("muestra fecha y hora cuando la hora es conocida", () => {
-    const label = formatDate("2026-11-15T21:00:00-03:00", { timeKnown: true });
+    const label = formatDate("2026-11-15T21:00:00-03:00", { timeKnown: true })!;
     expect(label).toContain("15");
-    // El formateador usa reloj de 12 h (es-CL): 21:00 => "09:00 p. m.".
-    expect(label).toContain("09:00");
-    expect(label).toMatch(/p\.?\s?m\.?/i);
+    // Reloj de 24 h: 21:00 Santiago => "21:00".
+    expect(label).toContain("21:00");
+    expect(label).not.toMatch(/[ap]\.?\s?m\.?/i);
   });
 
   it("muestra solo la fecha cuando la hora es desconocida (sin hora ni leyenda)", () => {
@@ -101,10 +101,10 @@ describe("formatDate", () => {
   });
 
   it("muestra la hora para una medianoche real (hora conocida)", () => {
-    // Medianoche real: time_known=true => se muestra la hora (12:00 a. m.), no se omite.
+    // Medianoche real: time_known=true => se muestra "00:00" (reloj 24 h), no se omite.
     const label = formatDate("2026-11-15T00:00:00-03:00", { timeKnown: true });
-    expect(label).toContain("12:00");
-    expect(label).toMatch(/a\.?\s?m\.?/i);
+    expect(label).toContain("00:00");
+    expect(label).not.toMatch(/[ap]\.?\s?m\.?/i);
   });
 
   it("no corre el día por la zona en una fecha sin hora", () => {
@@ -115,7 +115,7 @@ describe("formatDate", () => {
   });
 
   it("sin opciones mantiene el comportamiento legacy (fecha + hora)", () => {
-    expect(formatDate("2026-11-15T21:00:00-03:00")).toContain("09:00");
+    expect(formatDate("2026-11-15T21:00:00-03:00")).toContain("21:00");
   });
 
   it("devuelve undefined para instantes vacíos o inválidos", () => {
