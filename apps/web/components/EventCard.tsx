@@ -3,7 +3,7 @@ import { formatDate, formatPrice, sourceLinks, statusLabel } from "../lib/format
 
 export function EventCard({ event }: { event: CatalogEvent }) {
   const price = formatPrice(event.sources);
-  const nextDate = formatDate(event.next_performance_at);
+  const nextDate = formatDate(event.next_performance_at, { timeKnown: event.next_performance_time_known ?? true });
   const artists = event.artists.map((artist) => artist.name).join(", ");
   const links = sourceLinks(event.sources);
   const primaryLink = links[0];

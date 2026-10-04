@@ -127,7 +127,7 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
                 className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm"
               >
                 <div>
-                  <span className="font-medium">{formatDate(performance.starts_at) ?? performance.starts_at}</span>
+                  <span className="font-medium">{formatDate(performance.starts_at, { timeKnown: performance.time_known ?? true }) ?? performance.starts_at}</span>
                   {performanceStatus ? <span className="ml-2 text-neutral-500">{performanceStatus}</span> : null}
                 </div>
               </li>

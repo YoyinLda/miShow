@@ -41,7 +41,7 @@ export function sourceLinks(sources: readonly CatalogEventSource[] | null | unde
   return withUrl.map((s) => ({ url: s.source_url, label: `Ir a ${sourceLabel(s.source)}` }));
 }
 
-const DATE = new Intl.DateTimeFormat("es-CL", {
+const DATE_TIME = new Intl.DateTimeFormat("es-CL", {
   timeZone: "America/Santiago",
   weekday: "short",
   day: "numeric",
@@ -51,11 +51,26 @@ const DATE = new Intl.DateTimeFormat("es-CL", {
   minute: "2-digit"
 });
 
-export function formatDate(iso: string | null | undefined): string | undefined {
+const DATE_ONLY = new Intl.DateTimeFormat("es-CL", {
+  timeZone: "America/Santiago",
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric"
+});
+
+/**
+ * Formatea un instante ISO en `America/Santiago`. Cuando `options.timeKnown` es
+ * `false` (hora desconocida), devuelve solo la fecha (sin hora ni leyenda): la
+ * fecha nunca cambia de día por la zona. Por defecto (`undefined`/`true`)
+ * muestra fecha + hora, de modo que una medianoche real (`time_known=true`)
+ * exhibe `00:00`.
+ */
+export function formatDate(iso: string | null | undefined, options?: { timeKnown?: boolean }): string | undefined {
   if (!iso) return undefined;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return undefined;
-  return DATE.format(date);
+  return (options?.timeKnown === false ? DATE_ONLY : DATE_TIME).format(date);
 }
 
 const STATUS_LABEL: Record<string, string> = {
