@@ -259,7 +259,7 @@ function EventListContent() {
   if (!configured) {
     return (
       <section>
-        <p className="rounded-lg border border-warning bg-warning-surface p-4 text-sm text-warning">
+        <p className="rounded-xl border border-warning bg-warning-surface p-4 text-sm text-warning">
           El catálogo no está configurado. Define <code>NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
           <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (ver <code>.env.example</code>).
         </p>
@@ -269,6 +269,11 @@ function EventListContent() {
 
   return (
     <section>
+      <div className="mb-6">
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Cartelera</h1>
+        <p className="mt-2 text-base text-text-muted">Conciertos y eventos de distintas ticketeras, en un solo lugar.</p>
+      </div>
+
       {updatedLabel && freshness?.last_run_finished_at ? (
         <p className="mb-3 text-xs text-text-muted">
           Catálogo <time dateTime={freshness.last_run_finished_at}>{updatedLabel}</time>
@@ -282,12 +287,12 @@ function EventListContent() {
           value={inputTerm}
           onChange={(event) => setInputTerm(event.target.value)}
           placeholder="Buscar por artista, evento o recinto"
-          className="mb-3 w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-brand"
+          className="w-full rounded-lg border border-border bg-surface px-4 py-3 text-base outline-none transition-colors focus:border-brand focus-visible:ring-2 focus-visible:ring-focus"
         />
       </label>
 
       {typeof list.total === "number" ? (
-        <p className="mb-4 text-xs text-text-muted" aria-live="polite">
+        <p className="mt-3 mb-6 text-sm text-text-muted" aria-live="polite">
           {list.total === 1 ? "1 evento" : `${list.total} eventos`}
         </p>
       ) : null}
@@ -297,12 +302,12 @@ function EventListContent() {
       ) : null}
 
       {error && !hasItems ? (
-        <div className="rounded-lg border border-danger bg-danger-surface p-4 text-sm text-danger">
+        <div className="rounded-xl border border-danger bg-danger-surface p-4 text-sm text-danger">
           <p>No se pudo cargar el catálogo: {error}</p>
           <button
             type="button"
             onClick={retry}
-            className="mt-3 inline-flex min-h-9 items-center rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            className="mt-3 inline-flex min-h-9 items-center rounded-[10px] bg-brand px-4 py-2 text-sm font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             Reintentar
           </button>
@@ -328,24 +333,24 @@ function EventListContent() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {list.items.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
       </div>
 
       {hasItems ? (
-        <div className="mt-6 flex flex-col items-center gap-3">
+        <div className="mt-8 flex flex-col items-center gap-3">
           {/* Centinela para el scroll infinito. */}
           <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
 
           {error ? (
-            <div className="w-full rounded-lg border border-danger bg-danger-surface p-4 text-center text-sm text-danger">
+            <div className="w-full rounded-xl border border-danger bg-danger-surface p-4 text-center text-sm text-danger">
               <p>No se pudieron cargar más eventos: {error}</p>
               <button
                 type="button"
                 onClick={retry}
-                className="mt-3 inline-flex min-h-9 items-center rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="mt-3 inline-flex min-h-9 items-center rounded-[10px] bg-brand px-4 py-2 text-sm font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 Reintentar
               </button>
@@ -356,7 +361,7 @@ function EventListContent() {
               onClick={loadMore}
               disabled={isLoadingMore}
               aria-busy={isLoadingMore}
-              className="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+              className="inline-flex min-h-9 items-center rounded-[10px] border border-border bg-surface px-4 py-2 text-sm font-medium text-text transition-colors hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
             >
               {isLoadingMore ? "Cargando…" : "Cargar más"}
             </button>
