@@ -1,8 +1,21 @@
 # Plan de implementación 005 — Front (fechas, paginación, visual, modo oscuro, filtros)
 
 > Acompaña a `005-mejoras-front-fechas-paginacion-visual.md`. Mobile-first.
-> **No implementar hasta aprobar el brief** y las decisiones TL/PO (§8 del brief).
 > Áreas de código identificadas por inspección (Codebase Memory + lectura directa).
+
+## Estado (2026-10-04)
+
+Etapas 1-4 **implementadas y en producción** (https://mishow.pages.dev). Falta la
+Etapa 5 (filtros avanzados), acotada en `005-etapa5-filtros.md` porque la Etapa 4
+ya absorbió los chips de rango y las secciones de descubrimiento.
+
+| Etapa | Objetivo | Estado | PR |
+|---|---|---|---|
+| 1 | Hora desconocida → solo fecha | ✅ | #13, #14 (fix migración) |
+| 2 | Paginación (scroll infinito keyset) | ✅ | #15 |
+| 3 | Tokens de color + modo oscuro (toggle 3 modos) | ✅ | #16 |
+| 4 | Rediseño fiel a Figma 03 Screens (Home + Catálogo) | ✅ | #18 |
+| 5 | Filtros avanzados (fuente, ciudad/recinto, estado) | 📋 brief | — |
 
 ## Orden recomendado y por qué
 
@@ -17,35 +30,27 @@ Se puede intercambiar 1↔2 si TL/PO prioriza el listado completo; se recomienda
 
 ---
 
-## Etapa 1 — Hora desconocida (Obj.1)
+## Etapa 1 — Hora desconocida (Obj.1) ✅ implementada
 
-Depende de decisión TL/PO (columna de datos). Dividida en back/contrato y front.
+Decisión TL/PO: solo-fecha cuando la hora es desconocida (sin "00:00" ni
+leyenda); sin backfill (el default `true` preserva lo existente; la verdad nueva
+llega por scraper). Migración aplicada a cloud; re-scrape poblado
+(22/162 performances con `time_known=false` al cierre).
 
-- [ ] 1.1 Contrato: agregar `time_known?: boolean` a `EventPerformance`.
-      Archivos: `packages/domain/src/contracts.ts:20-26`.
-      Verifica: typecheck del workspace domain pasa.
-- [ ] 1.2 Scrapers: fijar `time_known=false` cuando sólo se parsea fecha.
-      Archivos: `scrapers/puntoticket/src/extraction/detail.ts:113-125,158`;
-      `scrapers/ticketmaster/src/extraction/detail.ts:49-58`; propagar en
-      `scrapers/core/src/persistence/mapping.ts:134-147` (`mapPerformance`).
-      Verifica: `npm test` de ambos scrapers (casos fecha-only vs fecha+hora).
-- [ ] 1.3 Datos/vista: columna `performances.time_known` y exponerla en
-      `catalog_events_v2.performances`. **Migración = decisión TL/PO.**
-      Archivos: migración en `supabase/migrations/`; vista `catalog_events_v2`.
-      Verifica: lectura read-only de la vista devuelve `time_known`.
-- [ ] 1.4 Tipo de catálogo: agregar `time_known?: boolean` a `CatalogPerformance`.
-      Archivos: `packages/catalog-client/src/types.ts:22-28`.
-      Verifica: build de `@mishow/catalog-client`.
-- [ ] 1.5 Front: `format.ts` muestra **solo la fecha** cuando `time_known=false`
-      (omite la hora, sin leyenda); con hora conocida, fecha+hora como hoy.
-      Parámetro `{ timeKnown }` en `formatDate`.
-      Archivos: `apps/web/lib/format.ts:48-61`; usar en
-      `apps/web/components/EventCard.tsx` (nextDate) y `EventDetail.tsx:130`.
-      Verifica: tests unitarios de `format.ts` (hora conocida / desconocida: solo
-      fecha / medianoche real: 00:00); `npm run -w apps/web build`.
+- [x] 1.1 Contrato: `time_known?: boolean` en `EventPerformance`.
+      `packages/domain/src/contracts.ts`.
+- [x] 1.2 Scrapers: `time_known=false` cuando sólo se parsea fecha.
+      `scrapers/*/src/extraction/detail.ts`; `scrapers/core/src/persistence/mapping.ts`.
+- [x] 1.3 Datos/vista: columna `performances.time_known` + vista
+      `catalog_events_v2` (migración `20261004120000`; recreada con DROP+CREATE,
+      PR #14). Expone `time_known` por función y `next_performance_time_known`.
+- [x] 1.4 Tipo de catálogo: `time_known?: boolean` en `CatalogPerformance`.
+      `packages/catalog-client/src/types.ts`.
+- [x] 1.5 Front: `formatDate(iso, { timeKnown })` muestra solo fecha si es false;
+      reloj 24 h (medianoche real = "00:00"). `apps/web/lib/format.ts` + tests.
 
 **Resultado visible:** eventos sin hora muestran solo la fecha (sin "00:00" ni
-leyenda); medianoche real (`time_known=true`) sigue mostrando "00:00".
+leyenda); medianoche real (`time_known=true`) muestra "00:00" (reloj 24 h).
 
 ---
 
@@ -104,38 +109,43 @@ tabla de tokens en `docs/front-tokens-tema.md`.
 
 ---
 
-## Etapa 4 — Rediseño visual de tarjetas y jerarquía (Obj.3)
+## Etapa 4 — Rediseño fiel a Figma 03 Screens (Obj.3) ✅ implementada
 
-Sin dependencia de datos; consume tokens de la etapa 3.
+Reencuadrada: el Figma "miShow — UX/UI Reference" tiene pantallas detalladas en
+la página "03 Screens" (Home y Catálogo, mobile 390 y desktop 1440). Se rediseñó
+el front fiel a esos frames, no solo colores. Detalle en
+`docs/front-catalogo-eventos.md`. PR #18 (reemplazó al #17, que solo cambiaba
+colores).
 
-- [ ] 4.1 Rediseñar `EventCard` (jerarquía del nombre, imagen con aspecto estable,
-      badge de estado con color de marca, foco visible, densidad móvil).
-      Archivos: `apps/web/components/EventCard.tsx`.
-      Verifica: build; revisión visual móvil/escritorio.
-- [ ] 4.2 Ajustar `EventDetail` y `layout` (header/footer, tipografía, espaciado).
-      Archivos: `apps/web/components/EventDetail.tsx`, `apps/web/app/layout.tsx`.
-      Verifica: build; revisión visual.
+- [x] 4.1 Tokens alineados a Figma Foundations (bg #0C0C0F, surface #15151A,
+      brand #8B5CF6, accent #FACC15, etc.) + tipografía Geist (`next/font/local`);
+      tema claro accesible y toggle de 3 modos conservados. `globals.css`.
+- [x] 4.2 Home (`/`): hero editorial, buscador, chips de rango, Destacados,
+      Próximos conciertos, Escena local e Historias. `app/page.tsx` + componentes.
+- [x] 4.3 Catálogo (`/eventos`): "Explora eventos" + chips + listado con scroll
+      infinito (reusa `EventList`). Nueva ruta; Home y Catálogo separados.
+- [x] 4.4 Regla de datos honesta (sin inventar): Destacados = fallback por
+      cercanía; Próximos = dato real; Gratis = vacío honesto (0 eventos gratis);
+      Escena local e Historias = estructura sin datos. Chips Hoy/Semana/Mes
+      filtran server-side por fecha.
 
-**Resultado visible:** listado y detalle más legibles y con identidad miShow,
-conservando la decisión de estado/enlace a ticketera.
+**Resultado visible:** Home de descubrimiento + Catálogo exhaustivo, fieles al
+Figma, con identidad miShow; preserva scroll infinito, tema, hora y ticketera.
 
 ---
 
-## Etapa 5 — Filtros y secciones (Obj.5)
+## Etapa 5 — Filtros avanzados (Obj.5) 📋 brief pendiente de aprobación
 
-Encima de la paginación estable (etapa 2).
+**Reencuadrada:** la Etapa 4 ya entregó los chips de rango (Hoy/Semana/Mes/Gratis)
+y las secciones de descubrimiento. Lo que resta de la Etapa 5 es un panel de
+**filtros avanzados** sobre el catálogo (`/eventos`): fuente, ciudad/recinto y
+estado, en bottom sheet accesible, con chips activos, resumen de conteo y
+recuperación ante combinación vacía. Detalle y datos verificados en
+`005-etapa5-filtros.md`.
 
-- [ ] 5.1 `catalog-client`: parámetros de filtro server-side por **fuente**,
-      **rango de fecha** y **recinto/ciudad** (y `available/sold_out` opcional).
-      Archivos: `packages/catalog-client/src/client.ts` (`listEvents`).
-      Verifica: tests de `@mishow/catalog-client` por filtro y combinados.
-- [ ] 5.2 Front: UI de filtros en bottom sheet accesible, chips activos + limpiar,
-      resumen de conteo, recuperación en combinación vacía, reset de página.
-      Archivos: `apps/web/components/EventList.tsx` (+ nuevo componente de filtros).
-      Verifica: build; validación manual de filtros combinados.
-
-**Resultado visible:** el usuario filtra por fuente/fecha/recinto con feedback de
-conteo y puede limpiar; combinaciones vacías ofrecen salida.
+**Resultado visible:** en `/eventos`, el usuario combina fuente + ciudad/recinto
++ estado con feedback de conteo y puede limpiar; combinaciones vacías ofrecen
+salida.
 
 ---
 

@@ -1,8 +1,9 @@
 # Brief 005 — Mejoras del front: fechas/horas, paginación, visual, modo oscuro y filtros
 
-> Estado: **propuesta** (pendiente de aprobación TL/PO). Mobile-first.
-> Alcance principal: `apps/web`, `@mishow/catalog-client`; con dependencias de
-> datos/contrato señaladas como decisiones TL/PO.
+> Estado: **Etapas 1-4 implementadas y en producción** (2026-10-04). La Etapa 5
+> (filtros avanzados) está acotada en `005-etapa5-filtros.md`. Mobile-first.
+> Alcance principal: `apps/web`, `@mishow/catalog-client`. Ver estado por etapa y
+> PRs en `005-plan-implementacion-front.md`.
 
 ## 1. Contexto / problema
 
