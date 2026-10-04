@@ -21,16 +21,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4">
-          <header className="flex items-start justify-between gap-4 py-6">
-            <div>
-              <a href="/" className="text-2xl font-bold tracking-tight">
-                miShow
-              </a>
-              <p className="text-sm text-text-muted">Conciertos y eventos musicales en Chile</p>
-            </div>
+          <header className="flex items-center justify-between gap-4 border-b border-border py-4">
+            <a
+              href="/"
+              className="text-2xl font-bold tracking-tight focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            >
+              miShow
+            </a>
             <ThemeToggle />
           </header>
-          <main className="flex-1 pb-16">{children}</main>
+          <main className="flex-1 py-8">{children}</main>
           <footer className="border-t border-border py-6 text-xs text-text-muted">
             Datos obtenidos de fuentes públicas. Cada evento enlaza a su ticketera original.
           </footer>
