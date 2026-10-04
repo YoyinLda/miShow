@@ -8,17 +8,25 @@ la persistencia en Supabase, los paquetes compartidos y un frontend web
 
 ## Estado
 
-Etapa 1 en curso. Base ya construida:
+MVP en producción: https://mishow.pages.dev (Cloudflare Pages, SSG).
 
-- **Etapa 0 (completa):** flujo vertical de una fuente (PuntoTicket) de extremo a
-  extremo — adquisición HTTP controlada, extracción, normalización y persistencia
-  idempotente en PostgreSQL/Supabase, con pruebas.
-- **Etapa 1 (en curso):** estructura monorepo por proyectos internos y un MVP web
-  simplificado (listado, detalle y búsqueda básica) que consume el catálogo
-  público. Renderizado estático (SSG), preparado para migrar a híbrido.
+- **Scraping multi-fuente:** PuntoTicket y Ticketmaster sobre un núcleo compartido,
+  con persistencia idempotente en Supabase. Cron 2×/día en GitHub Actions
+  (ver `docs/operacion-scraping-cron.md`).
+- **Modelo canónico (v2):** Event / EventSource / Performance / Artist / Venue con
+  deduplicación multi-fuente; el front lee la vista `catalog_events_v2`
+  (ver `docs/modelo-datos.md`).
+- **Frontend (Next.js, SSG):** Home de descubrimiento (`/`) y Catálogo (`/eventos`)
+  rediseñados según el Figma de referencia (brief 005). Incluye: hora desconocida
+  mostrada solo con fecha, scroll infinito (keyset), modo oscuro con toggle de 3
+  modos (claro/oscuro/sistema), chips de rango (Hoy/Semana/Mes/Gratis) e identidad
+  violeta. Despliegue automático a Cloudflare Pages al hacer push a `main`
+  (ver `docs/despliegue-cloudflare-pages.md`).
+- **Pendiente:** filtros avanzados (fuente/ciudad/recinto/estado — brief
+  `docs/briefs/005-etapa5-filtros.md`), y datos de origen para destacados reales,
+  precio gratis y escena local (hoy estructura sin datos).
 
-El esquema corre en un stack local (Docker) o en un proyecto Supabase remoto.
-Aún no hay scraping programado (cron) ni despliegue.
+El esquema corre en un stack local (Docker) o en el proyecto Supabase remoto.
 
 ## Estructura del repositorio
 

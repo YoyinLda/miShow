@@ -31,7 +31,9 @@ escritura solo `service_role`):
   hora real de una hora desconocida (`false` ⇒ el front muestra solo la fecha).
   Sin backfill: el default `true` preserva las filas existentes; `false` llega
   con la próxima corrida del scraper. Migración
-  `20261004120000_performance_time_known` (pendiente de aplicar).
+  `20261004120000_performance_time_known` **aplicada a cloud** (la vista se recrea
+  con DROP+CREATE; ver PR #14). Re-scrape poblado: al cierre, 22/162 funciones
+  con `time_known=false`.
 
 **Deduplicación (implementada, conservadora):** al persistir, el evento canónico
 se resuelve por `match_key = <venue_normalizado>|<nombre_normalizado>`. Solo se
