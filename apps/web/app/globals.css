@@ -35,6 +35,18 @@
   --brand-contrast: #ffffff; /* sobre --brand => ~6.4:1 AA */
   --brand-surface: #f5f3ff; /* violet-50, fondo suave de badges */
 
+  /* Tokens del Figma Foundations. En tema claro usamos fallbacks neutros
+     derivados de la paleta clara (el diseño detallado del Figma es oscuro); el
+     tema oscuro los redefine con los HEX exactos. Así las utilidades existen en
+     ambos temas sin inventar un diseño claro no especificado. */
+  --surface-event: #ffffff; /* fila de evento = fondo */
+  --chip-border: #cbd5e1; /* slate-300, borde de chips de filtro */
+  --featured: #f5f3ff; /* violet-50, card destacada suave */
+  --featured-border: #ddd6fe; /* violet-200 */
+  --accent: #ca8a04; /* amber-600: badge con texto claro => AA */
+  --accent-contrast: #ffffff;
+  --event-image: #ede9fe; /* violet-100, placeholder de imagen */
+
   /* Estados: danger */
   --danger: #b91c1c; /* red-700 sobre --bg => ~6.3:1 AA */
   --danger-contrast: #ffffff;
@@ -52,21 +64,39 @@
 }
 
 /* Valores oscuros definidos una sola vez vía mixin manual (duplicado controlado
-   entre selector por atributo y media query de sistema). */
+   entre selector por atributo y media query de sistema).
+
+   HEX alineados al Figma Foundations (03 Screens). Ratios AA documentados por
+   par relevante:
+   - --text #f5f5f7 sobre --bg #0c0c0f => ~19.3:1 (AA/AAA).
+   - --text-muted #a7a7b0 sobre --bg #0c0c0f => ~8.6:1 (AA texto normal).
+   - --placeholder #71717a sobre --bg #0c0c0f => ~4.1:1 (AA solo UI/texto grande).
+   - --brand #8b5cf6 con --brand-contrast #f5f5f7 encima => ~4.6:1 (AA).
+   - --accent #facc15 (badge) con --accent-contrast #18181b encima => ~13.9:1
+     (AA/AAA): base del par "gratis/destacado" marcado en etapas siguientes. */
 [data-theme="dark"] {
-  --bg: #0b1020; /* azul-negro suave */
-  --surface: #141a2e;
+  --bg: #0c0c0f; /* Figma Foundations */
+  --surface: #15151a;
   --surface-2: #1e2639;
 
-  --text: #e5e7eb; /* slate-200 sobre --bg => ~13.4:1 AA */
-  --text-muted: #9aa4b8; /* sobre --bg => ~6.6:1 AA */
+  --text: #f5f5f7; /* sobre --bg => ~19.3:1 AA/AAA */
+  --text-muted: #a7a7b0; /* sobre --bg => ~8.6:1 AA */
 
-  --border: #2a3350;
+  --border: #292932;
   --focus: #a78bfa; /* violet-400 */
 
-  --brand: #a78bfa; /* violet-400: texto oscuro encima para contraste */
-  --brand-contrast: #1e1b2e; /* sobre --brand violet-400 => ~7.0:1 AA */
+  --brand: #8b5cf6; /* Figma: violeta de marca */
+  --brand-contrast: #f5f5f7; /* texto claro sobre --brand => ~4.6:1 AA */
   --brand-surface: #241b3a;
+
+  /* Tokens nuevos del Figma (fallback neutro en tema claro más abajo). */
+  --surface-event: #121218; /* fondo de fila de evento */
+  --chip-border: #3a3a46; /* borde de chips/pills de filtro */
+  --featured: #24143f; /* fondo de card destacada */
+  --featured-border: #4b376a; /* borde de card destacada */
+  --accent: #facc15; /* amarillo de badge (gratis/destacado) */
+  --accent-contrast: #18181b; /* texto sobre --accent => ~13.9:1 AA/AAA */
+  --event-image: #37205f; /* placeholder de imagen de evento */
 
   --danger: #f87171; /* red-400 sobre --bg => ~5.9:1 AA */
   --danger-contrast: #1a0b0b;
@@ -83,19 +113,27 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg: #0b1020;
-    --surface: #141a2e;
+    --bg: #0c0c0f;
+    --surface: #15151a;
     --surface-2: #1e2639;
 
-    --text: #e5e7eb;
-    --text-muted: #9aa4b8;
+    --text: #f5f5f7;
+    --text-muted: #a7a7b0;
 
-    --border: #2a3350;
+    --border: #292932;
     --focus: #a78bfa;
 
-    --brand: #a78bfa;
-    --brand-contrast: #1e1b2e;
+    --brand: #8b5cf6;
+    --brand-contrast: #f5f5f7;
     --brand-surface: #241b3a;
+
+    --surface-event: #121218;
+    --chip-border: #3a3a46;
+    --featured: #24143f;
+    --featured-border: #4b376a;
+    --accent: #facc15;
+    --accent-contrast: #18181b;
+    --event-image: #37205f;
 
     --danger: #f87171;
     --danger-contrast: #1a0b0b;
@@ -124,6 +162,13 @@
   --color-brand: var(--brand);
   --color-brand-contrast: var(--brand-contrast);
   --color-brand-surface: var(--brand-surface);
+  --color-surface-event: var(--surface-event);
+  --color-chip-border: var(--chip-border);
+  --color-featured: var(--featured);
+  --color-featured-border: var(--featured-border);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-event-image: var(--event-image);
   --color-danger: var(--danger);
   --color-danger-contrast: var(--danger-contrast);
   --color-danger-surface: var(--danger-surface);
@@ -133,8 +178,14 @@
   --color-success: var(--success);
   --color-success-contrast: var(--success-contrast);
   --color-success-surface: var(--success-surface);
+
+  /* Tipografía: Geist cargada con next/font/local en layout.tsx define la
+     variable --geist-sans sobre <html>. La exponemos como fuente sans por
+     defecto de Tailwind (utilidad font-sans) con una pila de sistema de
+     respaldo si la fuente no cargó. */
+  --font-sans: var(--geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
-  @apply bg-bg text-text antialiased;
+  @apply bg-bg text-text antialiased font-sans;
 }

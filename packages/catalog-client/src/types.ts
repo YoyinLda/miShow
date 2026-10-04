@@ -95,11 +95,29 @@ export interface EventCursor {
   id: number;
 }
 
+/**
+ * Filtro de rango de fecha para `listEvents`, sobre la columna top-level
+ * `next_performance_at` (timestamptz). Ambos extremos son opcionales e
+ * inclusivos (`gte`/`lte`). Los ISO deben venir ya calculados en la zona del
+ * negocio (America/Santiago); el cliente solo los traslada a PostgREST.
+ */
+export interface ListEventsRange {
+  gteISO?: string;
+  lteISO?: string;
+}
+
 /** Parámetros de `listEvents`: página keyset + búsqueda server-side. */
 export interface ListEventsParams {
   limit?: number;
   search?: string;
   cursor?: EventCursor | null;
+  /**
+   * Rango de fecha opcional. Al estar presente, filtra por
+   * `next_performance_at` (gte/lte) tanto en datos como en el conteo global, y
+   * fuerza la fase A (no-nulos) para no mezclar la zona NULL. Ausente =>
+   * comportamiento byte-idéntico al histórico.
+   */
+  range?: ListEventsRange;
 }
 
 /**

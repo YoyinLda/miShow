@@ -107,15 +107,21 @@ export class CatalogClient {
   async listEvents(params: ListEventsParams = {}): Promise<ListEventsResult> {
     const limit = params.limit && params.limit > 0 ? params.limit : DEFAULT_LIMIT;
     const search = params.search?.trim();
-    const cursor = params.cursor ?? null;
+    const range = params.range;
+    // Con rango de fecha activo solo tiene sentido la zona no-nula: forzamos
+    // fase A ignorando un cursor que apunte a la zona NULL, para no mezclar
+    // filas sin `next_performance_at` dentro del rango.
+    const cursor = range ? (params.cursor?.phase === "nonnull" ? params.cursor : null) : params.cursor ?? null;
 
     // Total GLOBAL: solo en la primera página. Query de conteo sin orden ni
     // filtros de fase/keyset; `select=id&limit=1` minimiza payload y
-    // `Prefer: count=exact` fuerza el denominador exacto en Content-Range.
+    // `Prefer: count=exact` fuerza el denominador exacto en Content-Range. Con
+    // `range` presente, el conteo también se restringe al rango (gte/lte).
     let total: number | null = null;
     if (!cursor) {
       const countQuery = new URLSearchParams({ select: "id", limit: "1" });
       if (search) countQuery.set("name", `ilike.*${search}*`);
+      applyRange(countQuery, range);
       const { contentRange } = await this.requestWithRange<CatalogEvent[]>(
         `/rest/v1/catalog_events_v2?${countQuery.toString()}`,
         { prefer: "count=exact" }
@@ -126,8 +132,11 @@ export class CatalogClient {
     const query = new URLSearchParams({ select: "*", limit: String(limit) });
     if (search) query.set("name", `ilike.*${search}*`);
 
-    const phase: EventCursor["phase"] = cursor?.phase ?? "nonnull";
+    // Con `range` presente la fase es siempre A (no-nulos); sin range, se
+    // respeta el cursor (comportamiento histórico).
+    const phase: EventCursor["phase"] = range ? "nonnull" : cursor?.phase ?? "nonnull";
     if (phase === "nonnull") {
+      applyRange(query, range);
       query.set("order", "next_performance_at.asc.nullslast,id.asc");
       if (cursor) {
         // Keyset "después de (a,i)" en fase A.
@@ -147,7 +156,9 @@ export class CatalogClient {
       `/rest/v1/catalog_events_v2?${query.toString()}`
     );
 
-    const nextCursor = computeNextCursor(phase, items, limit);
+    // Con `range` no hay zona NULL que recorrer: una página incompleta en fase A
+    // significa fin de datos (nextCursor null), nunca un salto a fase B.
+    const nextCursor = computeNextCursor(phase, items, limit, Boolean(range));
     return { items, total, nextCursor };
   }
 
@@ -248,6 +259,18 @@ export class CatalogClient {
 }
 
 /**
+ * Añade los filtros de rango de fecha a una query PostgREST sobre
+ * `next_performance_at`. Usa `append` (no `set`) para permitir dos filtros en
+ * la misma columna (`gte` y `lte`), que PostgREST combina con AND. Si `range`
+ * es `undefined` o no trae extremos, no toca la query (retrocompatibilidad).
+ */
+function applyRange(query: URLSearchParams, range?: { gteISO?: string; lteISO?: string }): void {
+  if (!range) return;
+  if (range.gteISO) query.append("next_performance_at", `gte.${range.gteISO}`);
+  if (range.lteISO) query.append("next_performance_at", `lte.${range.lteISO}`);
+}
+
+/**
  * Parsea el total GLOBAL del header `Content-Range` de PostgREST. El total es
  * el denominador tras `/`. Fallbacks:
  * - "0-19/142" -> 142
@@ -272,11 +295,14 @@ function parseContentRangeTotal(contentRange: string | null): number | null {
 function computeNextCursor(
   phase: EventCursor["phase"],
   items: CatalogEvent[],
-  limit: number
+  limit: number,
+  rangeActive = false
 ): EventCursor | null {
   const last = items[items.length - 1];
   const incomplete = items.length < limit;
   if (phase === "nonnull") {
+    // Con rango de fecha no existe zona NULL: página incompleta = fin de datos.
+    if (incomplete && rangeActive) return null;
     // Fase A agotada (página incompleta) → saltar a la zona NULL desde el inicio.
     if (incomplete) return { phase: "null", nextAt: null, id: 0 };
     // Página completa (o sin filas pero == limit): continuar en fase A.

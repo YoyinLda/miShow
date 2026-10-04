@@ -228,6 +228,66 @@ describe("CatalogClient", () => {
     expect(result.nextCursor).toBeNull();
   });
 
+  it("adds gte/lte range filters to both the count and data queries", async () => {
+    const { impl, urls } = fetchSequence([
+      { body: [], headers: { "content-range": "0-0/5" } },
+      { body: [rowWith(1, "2026-12-12T12:00:00Z")] }
+    ]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({
+      limit: 20,
+      range: { gteISO: "2026-12-12T03:00:00.000Z", lteISO: "2026-12-13T02:59:59.999Z" }
+    });
+    const countUrl = decodeURIComponent(urls[0]);
+    const dataUrl = decodeURIComponent(urls[1]);
+    // Conteo restringido al rango.
+    expect(countUrl).toContain("select=id");
+    expect(countUrl).toContain("next_performance_at=gte.2026-12-12T03:00:00.000Z");
+    expect(countUrl).toContain("next_performance_at=lte.2026-12-13T02:59:59.999Z");
+    // Datos restringidos al rango.
+    expect(dataUrl).toContain("next_performance_at=gte.2026-12-12T03:00:00.000Z");
+    expect(dataUrl).toContain("next_performance_at=lte.2026-12-13T02:59:59.999Z");
+    expect(result.total).toBe(5);
+  });
+
+  it("supports an open-ended range (only gte)", async () => {
+    const { impl, urls } = fetchSequence([
+      { body: [], headers: { "content-range": "*/0" } },
+      { body: [] }
+    ]);
+    const client = makeClient(impl);
+    await client.listEvents({ limit: 20, range: { gteISO: "2026-12-12T18:00:00.000Z" } });
+    const dataUrl = decodeURIComponent(urls[1]);
+    expect(dataUrl).toContain("next_performance_at=gte.2026-12-12T18:00:00.000Z");
+    expect(dataUrl).not.toContain("lte.");
+  });
+
+  it("forces phase A with a range: no NULL-zone jump, incomplete page ends data", async () => {
+    const { impl } = fetchSequence([
+      { body: [], headers: { "content-range": "0-0/1" } },
+      { body: [rowWith(7, "2026-12-12T20:00:00Z")] }
+    ]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({ limit: 20, range: { gteISO: "2026-12-12T03:00:00.000Z" } });
+    // Página incompleta con rango => fin de datos, nunca { phase: 'null' }.
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("produces a byte-identical data URL when no range is given (backward compatible)", async () => {
+    const withoutRange = fetchSpy([]);
+    const client1 = makeClient(withoutRange.impl);
+    await client1.listEvents({ limit: 20, cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 } });
+
+    const withEmptyParams = fetchSpy([]);
+    const client2 = makeClient(withEmptyParams.impl);
+    await client2.listEvents({ limit: 20, cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 } });
+
+    // Sin range, la URL de datos es idéntica y no contiene filtros de fecha.
+    expect(withoutRange.capture.url).toBe(withEmptyParams.capture.url);
+    expect(withoutRange.capture.url).not.toContain("next_performance_at=gte.");
+    expect(withoutRange.capture.url).not.toContain("next_performance_at=lte.");
+  });
+
   it("includes name=ilike in the data query when searching", async () => {
     const { impl, capture } = fetchSpy([]);
     const client = makeClient(impl);
