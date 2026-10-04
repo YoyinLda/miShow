@@ -11,7 +11,7 @@ function ArtistContent() {
 
 export default function ArtistasPage() {
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando…</p>}>
+    <Suspense fallback={<p className="text-sm text-text-muted">Cargando…</p>}>
       <ArtistContent />
     </Suspense>
   );
