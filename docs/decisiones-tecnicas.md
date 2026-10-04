@@ -107,3 +107,17 @@ Cuando se cierre una decisión relevante, documentarla con:
   ser un `<a>` a un `<article>` con enlace-overlay al detalle, para permitir el
   CTA externo sin anidar enlaces. Ver `apps/web/lib/format.ts`,
   `apps/web/components/EventCard.tsx` y `apps/web/components/EventDetail.tsx`.
+
+### 2026-10-04 — Entorno de desarrollo Windows y runtime Node 24 en CI
+
+- **Estado:** aceptada (registrada retroactivamente, ver
+  `docs/briefs/004-migracion-entorno-windows.md`).
+- **Contexto:** el desarrollo pasa a Windows + PowerShell. CI fijaba Node 20.18.1,
+  bajo el mínimo de `vite@7` / `eslint-visitor-keys@5` (>=20.19), y las actions v4
+  usan Node 20, deprecado en GitHub Actions.
+- **Alternativas:** Node 20.19.x en CI; actions v7; `shell: true` o `cross-spawn`
+  para los tests de CLI.
+- **Consecuencias:** CI y local usan Node 24.21.0 con `actions/checkout@v5` y
+  `actions/setup-node@v5`. Los tests que invocan npm usan el helper portable
+  `runNpm` (Windows, macOS, Linux). La configuración MCP del asistente vive en la
+  config de usuario, fuera del repo. Ver `docs/entorno-desarrollo-windows.md`.

@@ -66,7 +66,7 @@ nunca debe exponerse con un prefijo `NEXT_PUBLIC_`.
 
 Requisitos:
 
-- Node.js `>=20.18.1`;
+- Node.js `>=20.19.0` (el proyecto usa 24.21.0);
 - Docker con el daemon iniciado;
 - dependencias instaladas con `npm ci`.
 
