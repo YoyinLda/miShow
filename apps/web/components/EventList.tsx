@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatalogFreshness } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
 import { formatRelativeTime } from "../lib/format";
+import { dateRange, isFree, parseRango, type RangoKind } from "../lib/discovery";
 import {
   appendPage,
   canLoadMore,
@@ -13,12 +14,17 @@ import {
   serializeSnapshot,
   type EventListState
 } from "../lib/event-list-state";
-import { EventCard } from "./EventCard";
+import { FilterChips } from "./ui/FilterChips";
+import { EventRow } from "./ui/EventRow";
+import { SectionHeader } from "./ui/SectionHeader";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
-/** Clave única del snapshot de restauración en sessionStorage. */
-const SNAPSHOT_KEY = "mishow:home:snapshot";
+/**
+ * Clave única del snapshot de restauración en sessionStorage. Vive en /eventos
+ * (el listado completo del Catálogo), de ahí el nombre `eventos`.
+ */
+const SNAPSHOT_KEY = "mishow:eventos:snapshot";
 
 /**
  * ¿Volvemos de una navegación hacia atrás? Base para la restauración pragmática
@@ -38,6 +44,17 @@ function isBackNavigation(): boolean {
   return entry?.type === "back_forward";
 }
 
+/**
+ * Rango de fecha para `listEvents` a partir del chip activo. Solo los chips de
+ * fecha (hoy/semana/mes) producen un filtro server-side; "gratis" NO lo hace
+ * (price_min vive en sources jsonb, no es filtrable server-side simple) y se
+ * resuelve como post-filtro cliente con `isFree`.
+ */
+function rangeForChip(rango: RangoKind | null) {
+  if (rango === "hoy" || rango === "semana" || rango === "mes") return dateRange(rango);
+  return undefined;
+}
+
 export function EventList() {
   return (
     <Suspense fallback={<p className="text-sm text-text-muted">Cargando eventos…</p>}>
@@ -55,6 +72,9 @@ function EventListContent() {
   const [inputTerm, setInputTerm] = useState(initialTerm);
   const [appliedTerm, setAppliedTerm] = useState(initialTerm);
 
+  // Rango activo (chip): se lee de ?rango= al montar y se refleja en la URL.
+  const [rango, setRango] = useState<RangoKind | null>(() => parseRango(searchParams.get("rango")));
+
   const [list, setList] = useState<EventListState>(() => resetForSearch(initialTerm));
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -67,6 +87,10 @@ function EventListContent() {
   listRef.current = list;
   const inFlightRef = useRef(false);
   const requestTokenRef = useRef(0);
+  // El rango activo visible por los callbacks de carga incremental (para
+  // reconstruir el mismo filtro al pedir la siguiente página).
+  const rangoRef = useRef(rango);
+  rangoRef.current = rango;
   // Si true, la próxima carga del término aplicado se saltea (ya restauramos
   // desde sessionStorage). Se consume una sola vez.
   const restoredRef = useRef(false);
@@ -109,17 +133,35 @@ function EventListContent() {
     window.history.replaceState(window.history.state, "", url);
   }, [appliedTerm]);
 
-  // --- Carga de la primera página al cambiar el término aplicado ---------------
+  // --- Cambio de chip de rango: reflejar ?rango= en la URL ---------------------
+  // El reseteo del listado lo dispara el efecto de carga (depende de `rango`),
+  // igual que un cambio de término.
+  const updateRango = useCallback((next: RangoKind | null) => {
+    setRango(next);
+    const params = new URLSearchParams(window.location.search);
+    if (next) {
+      params.set("rango", next);
+    } else {
+      params.delete("rango");
+    }
+    const query = params.toString();
+    const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
+
+  // --- Carga de la primera página al cambiar término o rango -------------------
   const loadFirstPage = useCallback(
-    (term: string) => {
+    (term: string, activeRango: RangoKind | null) => {
       const token = ++requestTokenRef.current;
       inFlightRef.current = true;
       setError(null);
       setIsLoadingInitial(true);
       const base = resetForSearch(term);
       setList(base);
+      // Resetear scroll al tope: un cambio de chip o término es un listado nuevo.
+      if (typeof window !== "undefined") window.scrollTo(0, 0);
       client
-        .listEvents({ limit: PAGE_SIZE, search: term || undefined })
+        .listEvents({ limit: PAGE_SIZE, search: term || undefined, range: rangeForChip(activeRango) })
         .then((pageResult) => {
           if (token !== requestTokenRef.current) return;
           setList(appendPage(base, pageResult));
@@ -144,10 +186,10 @@ function EventListContent() {
       restoredRef.current = false;
       return;
     }
-    loadFirstPage(appliedTerm);
-    // Dispara solo al cambiar término aplicado o configuración; loadFirstPage
+    loadFirstPage(appliedTerm, rango);
+    // Dispara al cambiar término aplicado, rango o configuración; loadFirstPage
     // es estable (depende de client) y no se incluye a propósito.
-  }, [appliedTerm, configured]);
+  }, [appliedTerm, rango, configured]);
 
   // --- Carga incremental (scroll infinito + botón) -----------------------------
   const loadMore = useCallback(() => {
@@ -159,7 +201,12 @@ function EventListContent() {
     setError(null);
     setIsLoadingMore(true);
     client
-      .listEvents({ limit: PAGE_SIZE, search: current.term || undefined, cursor: current.cursor })
+      .listEvents({
+        limit: PAGE_SIZE,
+        search: current.term || undefined,
+        cursor: current.cursor,
+        range: rangeForChip(rangoRef.current)
+      })
       .then((pageResult) => {
         if (token !== requestTokenRef.current) return;
         setList(appendPage(listRef.current, pageResult));
@@ -179,11 +226,11 @@ function EventListContent() {
   // es una carga incremental.
   const retry = useCallback(() => {
     if (listRef.current.items.length === 0) {
-      loadFirstPage(appliedTerm);
+      loadFirstPage(appliedTerm, rango);
     } else {
       loadMore();
     }
-  }, [appliedTerm, loadFirstPage, loadMore]);
+  }, [appliedTerm, rango, loadFirstPage, loadMore]);
 
   // --- IntersectionObserver sobre el centinela ---------------------------------
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -252,8 +299,11 @@ function EventListContent() {
   }, [configured]);
 
   const updatedLabel = formatRelativeTime(freshness?.last_run_finished_at);
+  // El chip "Gratis" se aplica como post-filtro cliente sobre lo ya cargado.
+  const freeFilterActive = rango === "gratis";
+  const visibleItems = freeFilterActive ? list.items.filter((event) => isFree(event.sources)) : list.items;
   const moreAvailable = canLoadMore(list);
-  const hasItems = list.items.length > 0;
+  const hasItems = visibleItems.length > 0;
   const showEmpty = !isLoadingInitial && !error && !hasItems;
 
   if (!configured) {
@@ -281,12 +331,19 @@ function EventListContent() {
           type="search"
           value={inputTerm}
           onChange={(event) => setInputTerm(event.target.value)}
-          placeholder="Buscar por artista, evento o recinto"
-          className="mb-3 w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-brand"
+          placeholder="¿Qué quieres ver?"
+          className="mb-4 w-full rounded-[10px] border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand sm:text-base"
         />
       </label>
 
-      {typeof list.total === "number" ? (
+      <div className="mb-6">
+        <FilterChips value={rango} onChange={updateRango} />
+      </div>
+
+      {/* Encabezado del listado (Figma: "Todos los eventos" sobre la lista). */}
+      <SectionHeader title="Todos los eventos" />
+
+      {typeof list.total === "number" && !freeFilterActive ? (
         <p className="mb-4 text-xs text-text-muted" aria-live="polite">
           {list.total === 1 ? "1 evento" : `${list.total} eventos`}
         </p>
@@ -311,7 +368,11 @@ function EventListContent() {
 
       {showEmpty ? (
         <div className="text-sm text-text-muted">
-          {appliedTerm ? (
+          {freeFilterActive ? (
+            // Estado vacío HONESTO del chip Gratis: hoy no hay eventos con
+            // price_min=0 (ver data_reality: 0/143 gratis). No inventamos datos.
+            <p>No hay eventos gratuitos por ahora.</p>
+          ) : appliedTerm ? (
             <p>
               No hay eventos que coincidan con la búsqueda.{" "}
               <button
@@ -323,14 +384,14 @@ function EventListContent() {
               </button>
             </p>
           ) : (
-            <p>Aún no hay eventos en el catálogo.</p>
+            <p>No hay eventos para este filtro.</p>
           )}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-3">
-        {list.items.map((event) => (
-          <EventCard key={event.id} event={event} />
+        {visibleItems.map((event) => (
+          <EventRow key={event.id} event={event} />
         ))}
       </div>
 
