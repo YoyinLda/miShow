@@ -49,25 +49,31 @@ leyenda); medianoche real (`time_known=true`) sigue mostrando "00:00".
 
 ---
 
-## Etapa 2 — Paginación + fin del truncado (Obj.2)
+## Etapa 2 — Paginación + fin del truncado (Obj.2) ✅ implementada
 
-Depende de decisión TL/PO (mecanismo keyset vs offset).
+Decisión TL/PO: **scroll infinito** (consumo incremental según interacción, no
+paginación numérica) + **keyset en dos fases**. Detalle en
+`docs/decisiones-tecnicas.md` (2026-10-04 — Paginación por scroll infinito).
 
-- [ ] 2.1 `catalog-client`: `listEvents({ limit, cursor?, search? })` → devuelve
+- [x] 2.1 `catalog-client`: `listEvents({ limit, cursor?, search? })` → devuelve
       `{ items, total, nextCursor }`; agregar header `Prefer: count=exact` y leer
       `Content-Range`; mover la búsqueda a server-side (`name=ilike`).
       Archivos: `packages/catalog-client/src/client.ts:52-58` (+ `request` para
       exponer headers); tipos en `src/types.ts`.
       Verifica: tests de `@mishow/catalog-client` con fetch inyectado
       (paginación, total, orden estable, búsqueda).
-- [ ] 2.2 Front home: consumir paginación, estado en URL, reset al filtrar,
-      estados vacío/carga/error; quitar el filtro en memoria y el `limit:100`.
-      Archivos: `apps/web/components/EventList.tsx:16-120`;
-      `apps/web/app/page.tsx`.
-      Verifica: `npm run -w apps/web build`; validación manual (abajo).
+- [x] 2.2 Front home: consumo incremental (scroll infinito + botón "Cargar más"),
+      `?q=` en URL, reset al filtrar con debounce ~300ms, estados
+      inicial/cargando-más/vacío/error con reintento; se quitó el filtro en
+      memoria y el `limit:100`. Lógica pura en `apps/web/lib/event-list-state.ts`.
+      Restauración pragmática al volver del detalle vía `sessionStorage`.
+      Archivos: `apps/web/components/EventList.tsx`;
+      `apps/web/lib/event-list-state.ts`; `apps/web/tests/event-list-state.test.ts`.
+      Verifica: `npm run -w @mishow/web test` y `npm run -w @mishow/web build`.
 
-**Resultado visible:** el home lista los 142 eventos paginados, con total y
-navegación por páginas persistida en URL; sin duplicados ni saltos.
+**Resultado visible:** el home lista todos los eventos de forma incremental
+(bloques de 20) con el total visible desde la primera carga; sin duplicados ni
+saltos. El término de búsqueda se refleja en `?q=`.
 
 ---
 
