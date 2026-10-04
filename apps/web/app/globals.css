@@ -1,9 +1,140 @@
 @import "tailwindcss";
 
+/*
+  Tokens semánticos de color. Un único set de utilidades (bg-bg, bg-surface,
+  text-text, text-muted, border-border, bg-brand, ring-focus, ...): no se usa
+  dark: por elemento. El tema oscuro redefine las variables.
+
+  Estrategia de override:
+  - :root               => tema claro (default).
+  - [data-theme='dark'] => fuerza oscuro (el atributo manda).
+  - @media (prefers-color-scheme: dark) restringido a :root:not([data-theme])
+    => sigue al sistema solo cuando NO hay atributo (elección 'system').
+
+  Ratios AA documentados por par (texto normal >= 4.5:1, texto grande/UI >= 3:1).
+*/
+
 :root {
   color-scheme: light dark;
+
+  /* Fondos y superficies (claro) */
+  --bg: #ffffff;
+  --surface: #f8fafc; /* slate-50 */
+  --surface-2: #f1f5f9; /* slate-100 */
+
+  /* Texto (claro) */
+  --text: #0f172a; /* slate-900 sobre --bg => ~16.9:1 AA */
+  --text-muted: #475569; /* slate-600 sobre --bg => ~7.5:1 AA */
+
+  /* Bordes y foco */
+  --border: #e2e8f0; /* slate-200 */
+  --focus: #7c3aed; /* violet-600, anillo de foco visible */
+
+  /* Marca (violeta accesible) */
+  --brand: #6d28d9; /* violet-700: texto blanco encima => ~6.4:1 AA */
+  --brand-contrast: #ffffff; /* sobre --brand => ~6.4:1 AA */
+  --brand-surface: #f5f3ff; /* violet-50, fondo suave de badges */
+
+  /* Estados: danger */
+  --danger: #b91c1c; /* red-700 sobre --bg => ~6.3:1 AA */
+  --danger-contrast: #ffffff;
+  --danger-surface: #fef2f2; /* red-50 */
+
+  /* Estados: warning */
+  --warning: #b45309; /* amber-700 sobre --bg => ~5.0:1 AA */
+  --warning-contrast: #ffffff;
+  --warning-surface: #fffbeb; /* amber-50 */
+
+  /* Estados: success */
+  --success: #15803d; /* green-700 sobre --bg => ~5.2:1 AA */
+  --success-contrast: #ffffff;
+  --success-surface: #f0fdf4; /* green-50 */
+}
+
+/* Valores oscuros definidos una sola vez vía mixin manual (duplicado controlado
+   entre selector por atributo y media query de sistema). */
+[data-theme="dark"] {
+  --bg: #0b1020; /* azul-negro suave */
+  --surface: #141a2e;
+  --surface-2: #1e2639;
+
+  --text: #e5e7eb; /* slate-200 sobre --bg => ~13.4:1 AA */
+  --text-muted: #9aa4b8; /* sobre --bg => ~6.6:1 AA */
+
+  --border: #2a3350;
+  --focus: #a78bfa; /* violet-400 */
+
+  --brand: #a78bfa; /* violet-400: texto oscuro encima para contraste */
+  --brand-contrast: #1e1b2e; /* sobre --brand violet-400 => ~7.0:1 AA */
+  --brand-surface: #241b3a;
+
+  --danger: #f87171; /* red-400 sobre --bg => ~5.9:1 AA */
+  --danger-contrast: #1a0b0b;
+  --danger-surface: #2a1414;
+
+  --warning: #fbbf24; /* amber-400 sobre --bg => ~9.9:1 AA */
+  --warning-contrast: #201501;
+  --warning-surface: #2a2109;
+
+  --success: #4ade80; /* green-400 sobre --bg => ~9.0:1 AA */
+  --success-contrast: #06130a;
+  --success-surface: #0f2417;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #0b1020;
+    --surface: #141a2e;
+    --surface-2: #1e2639;
+
+    --text: #e5e7eb;
+    --text-muted: #9aa4b8;
+
+    --border: #2a3350;
+    --focus: #a78bfa;
+
+    --brand: #a78bfa;
+    --brand-contrast: #1e1b2e;
+    --brand-surface: #241b3a;
+
+    --danger: #f87171;
+    --danger-contrast: #1a0b0b;
+    --danger-surface: #2a1414;
+
+    --warning: #fbbf24;
+    --warning-contrast: #201501;
+    --warning-surface: #2a2109;
+
+    --success: #4ade80;
+    --success-contrast: #06130a;
+    --success-surface: #0f2417;
+  }
+}
+
+/* Mapeo @theme: expone utilidades semánticas de Tailwind v4.
+   --color-text-muted genera la clase text-muted. */
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-focus: var(--focus);
+  --color-brand: var(--brand);
+  --color-brand-contrast: var(--brand-contrast);
+  --color-brand-surface: var(--brand-surface);
+  --color-danger: var(--danger);
+  --color-danger-contrast: var(--danger-contrast);
+  --color-danger-surface: var(--danger-surface);
+  --color-warning: var(--warning);
+  --color-warning-contrast: var(--warning-contrast);
+  --color-warning-surface: var(--warning-surface);
+  --color-success: var(--success);
+  --color-success-contrast: var(--success-contrast);
+  --color-success-surface: var(--success-surface);
 }
 
 body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
+  @apply bg-bg text-text antialiased;
 }
