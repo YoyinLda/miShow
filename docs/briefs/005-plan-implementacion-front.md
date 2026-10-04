@@ -17,44 +17,35 @@ Se puede intercambiar 1↔2 si TL/PO prioriza el listado completo; se recomienda
 
 ---
 
-## Etapa 1 — Hora desconocida (Obj.1) — ✅ implementada (pendiente migración + deploy)
+## Etapa 1 — Hora desconocida (Obj.1)
 
-> Implementada en la rama `feat/etapa1-hora-desconocida` (2026-10-04). La
-> migración `20261004120000_performance_time_known.sql` **no fue aplicada**:
-> requiere `supabase db push` del TL/PO + una corrida del scraper para poblar
-> `time_known=false` en datos nuevos (sin backfill). Verificación en
-> `.agents/tasks/etapa1-hora-desconocida/verificacion-etapa1.md`.
+Depende de decisión TL/PO (columna de datos). Dividida en back/contrato y front.
 
-- [x] 1.1 Contrato: `time_known?: boolean` en `EventPerformance` (+ helper
-      `hasKnownTime` en el dominio). Archivos: `packages/domain/src/contracts.ts`,
-      `packages/domain/src/time.ts`.
-- [x] 1.2 Scrapers: emiten date-only cuando la fuente no da hora y propagan
-      `time_known`. Archivos: `scrapers/ticketmaster/src/extraction/detail.ts`
-      (`dateFromDescription`), `scrapers/puntoticket/src/extraction/detail.ts`
-      (`dateFromSpanish`), `scrapers/core/src/normalization.ts` (regla única con
-      `hasKnownTime`), `scrapers/core/src/persistence/mapping.ts` (`mapPerformance`).
-- [x] 1.3 Datos/vista: columna `performances.time_known` + `time_known` por
-      función y `next_performance_time_known` a nivel evento en
-      `catalog_events_v2`; RPC `persist_normalized_event` acepta/escribe
-      `time_known` (default true). **Migración creada, NO aplicada** (decisión
-      TL/PO). Archivo: `supabase/migrations/20261004120000_performance_time_known.sql`.
-- [x] 1.4 Tipo de catálogo: `time_known?: boolean` en `CatalogPerformance` y
-      `next_performance_time_known` en `CatalogEvent`. Archivo:
-      `packages/catalog-client/src/types.ts`.
-- [x] 1.5 Front: `formatDate(iso, { timeKnown })` muestra **solo la fecha** cuando
-      `timeKnown===false` (sin hora ni leyenda); hora conocida (incl. medianoche
-      real) muestra fecha + hora. Archivos: `apps/web/lib/format.ts`,
-      `apps/web/components/EventCard.tsx`, `apps/web/components/EventDetail.tsx`.
+- [ ] 1.1 Contrato: agregar `time_known?: boolean` a `EventPerformance`.
+      Archivos: `packages/domain/src/contracts.ts:20-26`.
+      Verifica: typecheck del workspace domain pasa.
+- [ ] 1.2 Scrapers: fijar `time_known=false` cuando sólo se parsea fecha.
+      Archivos: `scrapers/puntoticket/src/extraction/detail.ts:113-125,158`;
+      `scrapers/ticketmaster/src/extraction/detail.ts:49-58`; propagar en
+      `scrapers/core/src/persistence/mapping.ts:134-147` (`mapPerformance`).
+      Verifica: `npm test` de ambos scrapers (casos fecha-only vs fecha+hora).
+- [ ] 1.3 Datos/vista: columna `performances.time_known` y exponerla en
+      `catalog_events_v2.performances`. **Migración = decisión TL/PO.**
+      Archivos: migración en `supabase/migrations/`; vista `catalog_events_v2`.
+      Verifica: lectura read-only de la vista devuelve `time_known`.
+- [ ] 1.4 Tipo de catálogo: agregar `time_known?: boolean` a `CatalogPerformance`.
+      Archivos: `packages/catalog-client/src/types.ts:22-28`.
+      Verifica: build de `@mishow/catalog-client`.
+- [ ] 1.5 Front: `format.ts` muestra **solo la fecha** cuando `time_known=false`
+      (omite la hora, sin leyenda); con hora conocida, fecha+hora como hoy.
+      Parámetro `{ timeKnown }` en `formatDate`.
+      Archivos: `apps/web/lib/format.ts:48-61`; usar en
+      `apps/web/components/EventCard.tsx` (nextDate) y `EventDetail.tsx:130`.
+      Verifica: tests unitarios de `format.ts` (hora conocida / desconocida: solo
+      fecha / medianoche real: 00:00); `npm run -w apps/web build`.
 
-**Resultado visible:** eventos cuya próxima función tiene hora desconocida
-muestran solo la fecha (sin "00:00" ni leyenda) en card y detalle; con hora
-conocida se muestra fecha + hora. El cambio de datos entra con la próxima corrida
-del scraper (sin backfill).
-
-**Desajuste conocido (fuera de alcance Etapa 1):** `ArtistDetail`/`VenueDetail`
-consumen `CatalogEventBrief.next_at` (sin `time_known` por función); mostrar solo
-fecha ahí requeriría ampliar las vistas `catalog_artists_v1`/`catalog_venues_v1`.
-Registrado como pendiente.
+**Resultado visible:** eventos sin hora muestran solo la fecha (sin "00:00" ni
+leyenda); medianoche real (`time_known=true`) sigue mostrando "00:00".
 
 ---
 
@@ -144,8 +135,7 @@ conteo y puede limpiar; combinaciones vacías ofrecen salida.
 - **Tests:** `npm test` de `@mishow/catalog-client`, `apps/web/lib/format`, y
   scrapers (etapa 1).
 - **Manual móvil (≤390px) y escritorio:**
-  - Fechas: evento sin hora → solo la fecha (sin "00:00" ni leyenda); con hora →
-    hora correcta; medianoche real (`time_known=true`) muestra la hora.
+  - Fechas: evento sin hora → "Hora por confirmar"; con hora → hora correcta.
   - Paginación: recorrer todas las páginas, back/forward, reset al filtrar.
   - Tema: claro/oscuro, persistencia, sin flash, foco visible, contraste AA.
   - Filtros: aplicar/limpiar, chips, conteo, combinación vacía.
