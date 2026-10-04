@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { runNpm } from "./helpers/run-npm.js";
 import { describe, expect, it } from "vitest";
 import { createFetchTransport, PuntoTicketHttpClient, type HttpTransport, HttpAcquisitionError } from "../src/acquisition/http.js";
 import { scrapePuntoTicket } from "../src/acquisition/orchestrator.js";
@@ -341,7 +342,7 @@ describe("PuntoTicket scrape orchestrator", () => {
 
 describe("PuntoTicket scrape CLI", () => {
   it("fails without --live before a real transport can be invoked", () => {
-    const result = spawnSync("npm", ["--silent", "run", "puntoticket:scrape", "--", "--max-events", "1"], { encoding: "utf8" });
+    const result = runNpm(["--silent", "run", "puntoticket:scrape", "--", "--max-events", "1"]);
     expect(result.status).not.toBe(0);
     expect(result.stdout).toBe("");
     expect(result.stderr).toContain("--live");
@@ -350,7 +351,7 @@ describe("PuntoTicket scrape CLI", () => {
 
   it("reports invalid CLI arguments on stderr only", () => {
     for (const args of [["--live", "--max-events", "201"], ["--live", "--delay-ms", "999"], ["--live", "--listing-url", "https://evil.example/musica"], ["--live", "--unknown", "1"]]) {
-      const result = spawnSync("npm", ["--silent", "run", "puntoticket:scrape", "--", ...args], { encoding: "utf8" });
+      const result = runNpm(["--silent", "run", "puntoticket:scrape", "--", ...args]);
       expect(result.status).not.toBe(0);
       expect(result.stdout).toBe("");
       expect(result.stderr).toMatch(/Error:/);

@@ -4,7 +4,7 @@ import { parseMusicListing } from "../src/extraction/listing.js";
 import { normalizeEvent } from "../src/normalization.js";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 import { readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { runNpm } from "./helpers/run-npm.js";
 
 const functionsFixture = readFileSync(new URL("./fixtures/puntoticket-functions.html", import.meta.url), "utf8");
 const qaRegressionsFixture = readFileSync(new URL("./fixtures/puntoticket-qa-regressions.html", import.meta.url), "utf8");
@@ -548,14 +548,14 @@ describe("PuntoTicket detail extraction and normalization", () => {
   });
 
   it("emits JSON-only CLI stdout when invoked with npm --silent run", () => {
-    const result = spawnSync("npm", ["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-metadata.html"], { encoding: "utf8" });
+    const result = runNpm(["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-metadata.html"]);
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({ count: 0, references: [], errors: [] });
   });
 
   it("returns the listing contract with a matching count", () => {
-    const result = spawnSync("npm", ["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-functions.html"], { encoding: "utf8" });
+    const result = runNpm(["--silent", "run", "puntoticket:listing", "--", "tests/fixtures/puntoticket-functions.html"]);
     expect(result.status).toBe(0);
     const output = JSON.parse(result.stdout);
     expect(output.count).toBe(output.references.length);
@@ -564,11 +564,11 @@ describe("PuntoTicket detail extraction and normalization", () => {
   });
 
   it("keeps detail JSON clean and requires extracted-at", () => {
-    const success = spawnSync("npm", ["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z"], { encoding: "utf8" });
+    const success = runNpm(["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z"]);
     expect(success.status).toBe(0);
     expect(JSON.parse(success.stdout).extracted_at).toBe("2026-09-08T12:00:00.000Z");
     expect(success.stderr).toBe("");
-    const missing = spawnSync("npm", ["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x"], { encoding: "utf8" });
+    const missing = runNpm(["--silent", "run", "puntoticket:detail", "--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x"]);
     expect(missing.status).not.toBe(0);
     expect(missing.stdout).toBe("");
     expect(missing.stderr).toContain("extracted-at obligatorio");
@@ -585,7 +585,7 @@ describe("PuntoTicket detail extraction and normalization", () => {
       ["detail", ["--", "tests/fixtures/puntoticket-functions.html", "https://www.puntoticket.com/evento/x", "2026-09-08T12:00:00.000Z", "extra"]]
     ] as const;
     for (const [command, args] of cases) {
-      const result = spawnSync("npm", ["--silent", "run", `puntoticket:${command}`, ...args], { encoding: "utf8" });
+      const result = runNpm(["--silent", "run", `puntoticket:${command}`, ...args]);
       expect(result.status).not.toBe(0);
       expect(result.stdout).toBe("");
       expect(result.stderr).toMatch(/Error:/);
