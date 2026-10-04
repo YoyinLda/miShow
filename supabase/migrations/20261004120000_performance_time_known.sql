@@ -15,7 +15,11 @@ alter table public.performances
 
 -- 2) Vista catalog_events_v2: expone time_known por función y
 --    next_performance_time_known a nivel evento (hermano de next_performance_at).
-create or replace view public.catalog_events_v2
+--    Se usa DROP + CREATE (no CREATE OR REPLACE) porque insertar una columna en
+--    medio de la lista cambia el nombre posicional de columnas existentes, lo
+--    que CREATE OR REPLACE VIEW rechaza (SQLSTATE 42P16).
+drop view if exists public.catalog_events_v2;
+create view public.catalog_events_v2
 with (security_invoker = true)
 as
 select
