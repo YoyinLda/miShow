@@ -13,6 +13,7 @@ const sampleRow: CatalogEvent = {
   first_seen_at: "2026-09-12T21:49:42.829Z",
   last_seen_at: "2026-09-12T21:53:55.263Z",
   next_performance_at: "2026-11-27T00:00:00Z",
+  next_performance_time_known: true,
   artists: [{ name: "Alexisonfire", slug: "alexisonfire" }],
   venue: { slug: "teatro-coliseo", name: "Teatro Coliseo", city: "Santiago Centro" },
   sources: [
@@ -95,6 +96,9 @@ describe("CatalogClient", () => {
     expect(events[0].sources[0].source).toBe("puntoticket");
     expect(events[0].sources[0].price_min).toBe(43700);
     expect(events[0].performances[0].timezone).toBe("America/Santiago");
+    // time_known opcional: ausente en la fila de muestra (hora conocida).
+    expect(events[0].performances[0].time_known).toBeUndefined();
+    expect(events[0].next_performance_time_known).toBe(true);
     expect(capture.url).toContain("/rest/v1/catalog_events_v2");
     expect(capture.headers?.get("apikey")).toBe("sb_publishable_TEST");
   });
