@@ -135,6 +135,20 @@ quedan para el brief 005, para mantener este acotado (anti scope-creep, §22.4).
   la clave publishable (events_v2, artists_v1, venues_v1 responden).
 - [x] **T8.** Documentación: `docs/modelo-datos.md` (vistas nuevas + frontend
   operativo), este brief con evidencia; nota de "frontend no funcional" retirada.
+- [x] **T9.** Integración con `main` (merge de `main` en la rama, sin rebase;
+  único conflicto en el índice de briefs, resuelto conservando ambas filas 004) +
+  docs v1→v2 (despliegue, prueba e2e, cron, persistencia). Verificación
+  2026-10-04: `npm ci` + `npm run qa` verde (catalog-client 12, puntoticket 101,
+  ticketmaster 14, web 16); build estático con `/`, `/evento`, `/artistas`,
+  `/venues`, `/_not-found` (sin `sb_secret` en `out/`). Cloud con clave
+  publishable: `catalog_events_v2` 142 filas, `catalog_artists_v1` 64,
+  `catalog_venues_v1` 35; las 7 formas de request del cliente (listar, por id, por
+  slug, búsqueda `ilike`, artista, venue, RPC frescura) → HTTP 200;
+  `catalog_events_v1` → 404. Headless (Brave vía playwright-core, 390×844): home
+  con 100 tarjetas y frescura; detalle, artista (1 próximo evento) y venue
+  Santander Arena (41 próximos) con datos; slug inexistente → "No se encontró el
+  artista". Consola sin errores salvo un 404 de `/favicon.ico` (el sitio no tiene
+  favicon; preexistente).
 
 ## Notas de la ejecución
 
