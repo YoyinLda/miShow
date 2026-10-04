@@ -25,8 +25,13 @@ escritura solo `service_role`):
   name, address, city, latitude, longitude, capacity, links, image_url`.
 - **`event_artists`** — N:M `(event_id, artist_id, position)`.
 - **`performances`** — funciones del evento canónico:
-  `event_id, starts_at, timezone, status, performance_code, purchase_url`.
-  Único `(event_id, starts_at)`.
+  `event_id, starts_at, timezone, status, time_known, performance_code,
+  purchase_url`. Único `(event_id, starts_at)`.
+  `time_known boolean not null default true` (Brief 005, Etapa 1) distingue una
+  hora real de una hora desconocida (`false` ⇒ el front muestra solo la fecha).
+  Sin backfill: el default `true` preserva las filas existentes; `false` llega
+  con la próxima corrida del scraper. Migración
+  `20261004120000_performance_time_known` (pendiente de aplicar).
 
 **Deduplicación (implementada, conservadora):** al persistir, el evento canónico
 se resuelve por `match_key = <venue_normalizado>|<nombre_normalizado>`. Solo se
@@ -37,8 +42,9 @@ Esencial Tour" en Dreams Valdivia vs Puerto Varas = 2 canónicos). Los helpers S
 
 **Contrato de lectura del frontend:** vista **`catalog_events_v2`** (reemplaza a
 `catalog_events_v1`, retirada). Expone por evento canónico: `slug, name, category,
-status, image_url, next_performance_at, artists[] (name, slug), venue (slug…),
-sources[] (source, source_url, purchase_url, status, precios), performances[]`.
+status, image_url, next_performance_at, next_performance_time_known,
+artists[] (name, slug), venue (slug…), sources[] (source, source_url,
+purchase_url, status, precios), performances[] (incluye `time_known`)`.
 
 **Vistas de entidad (brief 004):** `catalog_artists_v1` y `catalog_venues_v1`
 exponen cada artista/venue con sus **próximos eventos** (para las páginas
