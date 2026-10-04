@@ -11,7 +11,9 @@ ver y verificar el catálogo.
 
 ## 0. Requisitos previos
 
-- Node.js `>=20.18.1` y npm.
+- Node.js `>=20.19.0` y npm (el proyecto usa 24.21.0). En Windows, ver
+  [entorno-desarrollo-windows.md](entorno-desarrollo-windows.md) (incluye cómo
+  cargar `.env` en PowerShell).
 - Dependencias instaladas: `npm ci` (o `npm install`) en la raíz del repo.
 - Docker **no** es necesario para esta prueba (solo se usa para el stack local,
   que aquí no usamos porque apuntamos a cloud).

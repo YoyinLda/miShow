@@ -51,7 +51,7 @@ Seguridad:
 
 ## Flujo del workflow
 
-1. `actions/checkout` + `actions/setup-node` (Node 20.18.1, cache npm).
+1. `actions/checkout` + `actions/setup-node` (Node 24.21.0, cache npm).
 2. `npm ci`.
 3. `npm run build -w @mishow/web` con las variables `NEXT_PUBLIC_*` → genera
    `apps/web/out`.

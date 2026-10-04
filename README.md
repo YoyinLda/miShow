@@ -75,7 +75,8 @@ recibe HTML, extrae referencias o detalles, y normaliza sin red, Playwright ni
 persistencia. Las URLs `source_url` y `purchase_url` se conservan separadas; el
 segundo enlace solo se identifica y nunca se sigue.
 
-Requisitos: Node.js >=20.18.1.
+Requisitos: Node.js >=20.19.0 (el proyecto y CI usan 24.21.0). En Windows, ver
+[docs/entorno-desarrollo-windows.md](docs/entorno-desarrollo-windows.md).
 
 Comandos desde la raíz (operan sobre todos los workspaces con `--if-present`):
 
@@ -188,8 +189,8 @@ Se configuran en dos lugares locales, ambos ignorados por git:
 
 - `.env` — consumido por la app: `SUPABASE_URL` y `SUPABASE_SECRET_KEY`
   (ver formato en `.env.example`).
-- `.kiro/settings/mcp.json` — servidor MCP de Supabase para el asistente, con su
-  token de acceso.
+- `~/.kiro/settings/mcp.json` (configuración de usuario, fuera del repo) —
+  servidor MCP de Supabase para el asistente, con su token de acceso (PAT).
 
 El `project ref`, la URL del proyecto y las llaves se obtienen del dashboard de
 Supabase (Project Settings → API) o de esos archivos locales. No los copies a
@@ -204,6 +205,9 @@ proceso antes de ejecutar:
 set -a; . ./.env; set +a
 npm --silent run puntoticket:scrape -- --live --persist --max-events 1
 ```
+
+En PowerShell, ver la sección "Cargar `.env`" de
+[docs/entorno-desarrollo-windows.md](docs/entorno-desarrollo-windows.md).
 
 La salida JSON incluye `run_id` y `status`. `succeeded`/`partial` terminan con
 exit code `0`; una falla global o configuración inválida terminan con `1`.
@@ -272,6 +276,8 @@ por etapas), [docs/modelo-datos.md](docs/modelo-datos.md) y
    obligatorios, métrica de validación).
 2. ~~Construir el frontend público (Next.js) consumiendo `catalog_events_v1`.~~
    Hecho: MVP web (listado, detalle, búsqueda) sobre `catalog_events_v1`.
+   Migrado a `catalog_events_v2` + páginas de Artista y Venue en el brief 004
+   (frontend v2).
 3. ~~Automatizar el scraping con un cron (GitHub Actions) y añadir un indicador de
    última actualización.~~ Hecho: workflow programado
    (`.github/workflows/scrape-puntoticket.yml`, ver
