@@ -77,25 +77,30 @@ saltos. El término de búsqueda se refleja en `?q=`.
 
 ---
 
-## Etapa 3 — Tokens de color y modo oscuro (Obj.4)
+## Etapa 3 — Tokens de color y modo oscuro (Obj.4) ✅ implementada
 
-Depende de decisión TL/PO (estrategia de tema).
+Decisión TL/PO (Opción B): tokens semánticos + `data-theme` + toggle de 3 estados
+(claro/oscuro/sistema) con script anti-flash previo al paint. Detalle en
+`docs/decisiones-tecnicas.md` (2026-10-04 — Tema oscuro con tokens semánticos) y
+tabla de tokens en `docs/front-tokens-tema.md`.
 
-- [ ] 3.1 Definir tokens semánticos (CSS vars + `@theme` de Tailwind v4) para
+- [x] 3.1 Definir tokens semánticos (CSS vars + `@theme` de Tailwind v4) para
       bg/surface/text/border/brand(violeta)/focus/estados.
-      Archivos: `apps/web/app/globals.css` (hoy sólo `color-scheme`).
+      Archivos: `apps/web/app/globals.css`.
       Verifica: build; inspección visual claro/oscuro.
-- [ ] 3.2 Aplicar tokens en componentes reemplazando `neutral-*` por utilidades
-      semánticas; set único de clases.
-      Archivos: `layout.tsx`, `EventCard.tsx`, `EventDetail.tsx`, `EventList.tsx`.
+- [x] 3.2 Aplicar tokens en componentes reemplazando `neutral-*`/`bg-white`/
+      `red-*`/`amber-*` por utilidades semánticas; set único de clases.
+      Archivos: `layout.tsx`, `EventList.tsx`, `EventCard.tsx`, `EventDetail.tsx`,
+      `ArtistDetail.tsx`, `VenueDetail.tsx`.
       Verifica: build; contraste AA (claro/oscuro); foco visible.
-- [ ] 3.3 Estrategia de tema: `prefers-color-scheme` + toggle persistido con
-      script anti-flash previo al paint (si TL/PO lo aprueba).
-      Archivos: `apps/web/app/layout.tsx` (script inline), nuevo componente toggle.
+- [x] 3.3 Estrategia de tema: `prefers-color-scheme` + toggle persistido con
+      script anti-flash previo al paint.
+      Archivos: `apps/web/app/layout.tsx` (script inline), `apps/web/components/ThemeToggle.tsx`,
+      `apps/web/lib/theme.ts`.
       Verifica: cambio de tema persiste sin flash; build.
 
-**Resultado visible:** la app respeta el modo del sistema y (si se aprueba el
-toggle) permite elegir tema; identidad violeta presente de forma coherente.
+**Resultado visible:** la app respeta el modo del sistema y permite elegir tema
+(claro/oscuro/sistema) sin flash; identidad violeta presente de forma coherente.
 
 ---
 

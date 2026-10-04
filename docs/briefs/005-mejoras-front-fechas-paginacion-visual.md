@@ -127,6 +127,8 @@ cambios de logo en Figma.
   ofrecer toggle con persistencia (localStorage) aplicado antes del paint para
   evitar flash en export estático. Decisión TL/PO (§8).
 - Contraste **AA** (≥4.5:1 texto normal) en claro y oscuro; foco visible en ambos.
+- **Implementado (Etapa 3):** valores claro/oscuro y ratios AA de cada token en
+  [`docs/front-tokens-tema.md`](../front-tokens-tema.md).
 
 ### Objetivo 5 — Filtros y secciones
 - **Viables (datos confiables):**

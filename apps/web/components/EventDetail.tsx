@@ -44,16 +44,16 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
     };
   }, [slug, id]);
 
-  if (state.kind === "loading") return <p className="text-sm text-neutral-500">Cargando evento…</p>;
+  if (state.kind === "loading") return <p className="text-sm text-text-muted">Cargando evento…</p>;
   if (state.kind === "unconfigured")
-    return <p className="text-sm text-amber-700">El catálogo no está configurado.</p>;
+    return <p className="text-sm text-warning">El catálogo no está configurado.</p>;
   if (state.kind === "error")
-    return <p className="text-sm text-red-700">No se pudo cargar el evento: {state.message}</p>;
+    return <p className="text-sm text-danger">No se pudo cargar el evento: {state.message}</p>;
   if (state.kind === "not-found")
     return (
-      <div className="text-sm text-neutral-600">
+      <div className="text-sm text-text-muted">
         <p>No se encontró el evento.</p>
-        <a href="/" className="mt-2 inline-block text-neutral-900 underline">
+        <a href="/" className="mt-2 inline-block text-brand underline">
           Volver al listado
         </a>
       </div>
@@ -65,7 +65,7 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
 
   return (
     <article>
-      <a href="/" className="text-sm text-neutral-500 underline">
+      <a href="/" className="text-sm text-text-muted underline">
         ← Volver
       </a>
 
@@ -75,12 +75,12 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
 
       <h1 className="mt-4 text-2xl font-bold">{event.name}</h1>
       {event.artists.length ? (
-        <p className="mt-1 text-neutral-600">
+        <p className="mt-1 text-text-muted">
           {event.artists.map((artist, index) => (
             <span key={`${artist.slug ?? artist.name}-${index}`}>
               {index > 0 ? ", " : ""}
               {artist.slug ? (
-                <a href={`/artistas?slug=${encodeURIComponent(artist.slug)}`} className="underline hover:text-neutral-900">
+                <a href={`/artistas?slug=${encodeURIComponent(artist.slug)}`} className="underline hover:text-brand">
                   {artist.name}
                 </a>
               ) : (
@@ -92,16 +92,16 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
       ) : null}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-neutral-600">{statusLabel(event.status)}</span>
+        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-text-muted">{statusLabel(event.status)}</span>
         {price ? <span className="font-medium">{price}</span> : null}
       </div>
 
       {event.venue?.name ? (
         <section className="mt-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Recinto</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Recinto</h2>
           <p className="mt-1">
             {event.venue.slug ? (
-              <a href={`/venues?slug=${encodeURIComponent(event.venue.slug)}`} className="underline hover:text-neutral-900">
+              <a href={`/venues?slug=${encodeURIComponent(event.venue.slug)}`} className="underline hover:text-brand">
                 {event.venue.name}
               </a>
             ) : (
@@ -109,7 +109,7 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
             )}
           </p>
           {event.venue.address || event.venue.city ? (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-text-muted">
               {[event.venue.address, event.venue.city].filter(Boolean).join(", ")}
             </p>
           ) : null}
@@ -117,18 +117,18 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
       ) : null}
 
       <section className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Funciones</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Funciones</h2>
         <ul className="mt-2 flex flex-col gap-2">
           {event.performances.map((performance, index) => {
             const performanceStatus = performanceStatusLabel(performance.status);
             return (
               <li
                 key={`${performance.starts_at}-${index}`}
-                className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 text-sm"
               >
                 <div>
                   <span className="font-medium">{formatDate(performance.starts_at, { timeKnown: performance.time_known ?? true }) ?? performance.starts_at}</span>
-                  {performanceStatus ? <span className="ml-2 text-neutral-500">{performanceStatus}</span> : null}
+                  {performanceStatus ? <span className="ml-2 text-text-muted">{performanceStatus}</span> : null}
                 </div>
               </li>
             );
@@ -141,7 +141,7 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
       {links.length ? (
         <section className="mt-6">
           {event.sources.length > 1 ? (
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">Disponible en</h2>
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-text-muted">Disponible en</h2>
           ) : null}
           <div className="flex flex-wrap gap-2">
             {links.map((link) => (
@@ -150,7 +150,7 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 {link.label}
               </a>

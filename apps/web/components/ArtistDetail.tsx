@@ -39,14 +39,14 @@ export function ArtistDetail({ slug }: { slug?: string }) {
     };
   }, [slug]);
 
-  if (state.kind === "loading") return <p className="text-sm text-neutral-500">Cargando artista…</p>;
-  if (state.kind === "unconfigured") return <p className="text-sm text-amber-700">El catálogo no está configurado.</p>;
-  if (state.kind === "error") return <p className="text-sm text-red-700">No se pudo cargar el artista: {state.message}</p>;
+  if (state.kind === "loading") return <p className="text-sm text-text-muted">Cargando artista…</p>;
+  if (state.kind === "unconfigured") return <p className="text-sm text-warning">El catálogo no está configurado.</p>;
+  if (state.kind === "error") return <p className="text-sm text-danger">No se pudo cargar el artista: {state.message}</p>;
   if (state.kind === "not-found")
     return (
-      <div className="text-sm text-neutral-600">
+      <div className="text-sm text-text-muted">
         <p>No se encontró el artista.</p>
-        <a href="/" className="mt-2 inline-block text-neutral-900 underline">Volver al listado</a>
+        <a href="/" className="mt-2 inline-block text-brand underline">Volver al listado</a>
       </div>
     );
 
@@ -55,30 +55,30 @@ export function ArtistDetail({ slug }: { slug?: string }) {
 
   return (
     <article>
-      <a href="/" className="text-sm text-neutral-500 underline">← Volver</a>
+      <a href="/" className="text-sm text-text-muted underline">← Volver</a>
 
       <div className="mt-4 flex items-center gap-4">
         {artist.image_url ? (
           <img src={artist.image_url} alt="" className="h-24 w-24 shrink-0 rounded-full object-cover" />
         ) : (
-          <div className="h-24 w-24 shrink-0 rounded-full bg-neutral-100" aria-hidden="true" />
+          <div className="h-24 w-24 shrink-0 rounded-full bg-surface-2" aria-hidden="true" />
         )}
         <div>
           <h1 className="text-2xl font-bold">{artist.name}</h1>
           {[artist.genre, artist.city, artist.country].filter(Boolean).length ? (
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-text-muted">
               {[artist.genre, artist.city, artist.country].filter(Boolean).join(" · ")}
             </p>
           ) : null}
         </div>
       </div>
 
-      {artist.description ? <p className="mt-4 text-neutral-700">{artist.description}</p> : null}
+      {artist.description ? <p className="mt-4 text-text">{artist.description}</p> : null}
 
       {links.length ? (
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
           {links.map(([key, url]) => (
-            <a key={key} href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-neutral-600 underline">
+            <a key={key} href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-brand underline hover:text-brand">
               {key}
             </a>
           ))}
@@ -86,17 +86,17 @@ export function ArtistDetail({ slug }: { slug?: string }) {
       ) : null}
 
       <section className="mt-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Próximos eventos</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Próximos eventos</h2>
         {artist.events.length === 0 ? (
-          <p className="mt-2 text-sm text-neutral-500">No hay eventos publicados para este artista.</p>
+          <p className="mt-2 text-sm text-text-muted">No hay eventos publicados para este artista.</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-2">
             {artist.events.map((event) => (
-              <li key={event.id} className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm">
-                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-neutral-900">
+              <li key={event.id} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
+                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-brand">
                   {event.name}
                 </a>
-                <div className="text-neutral-500">
+                <div className="text-text-muted">
                   {formatDate(event.next_at) ?? "Fecha por confirmar"}
                   {event.venue_name ? ` · ${event.venue_name}` : ""}
                 </div>
