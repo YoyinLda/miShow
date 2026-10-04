@@ -25,12 +25,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <a href="/" className="text-2xl font-bold tracking-tight">
                 miShow
               </a>
-              <p className="text-sm text-neutral-500">Conciertos y eventos musicales en Chile</p>
+              <p className="text-sm text-text-muted">Conciertos y eventos musicales en Chile</p>
             </div>
             <ThemeToggle />
           </header>
           <main className="flex-1 pb-16">{children}</main>
-          <footer className="border-t border-neutral-200 py-6 text-xs text-neutral-400">
+          <footer className="border-t border-border py-6 text-xs text-text-muted">
             Datos obtenidos de fuentes públicas. Cada evento enlaza a su ticketera original.
           </footer>
         </div>

@@ -196,3 +196,32 @@ Cuando se cierre una decisión relevante, documentarla con:
   client-side). `EventCard`, los tokens/modo oscuro y ArtistDetail/VenueDetail no
   se tocan. Ver `apps/web/components/EventList.tsx`,
   `apps/web/lib/event-list-state.ts` y `packages/catalog-client/src/client.ts`.
+
+### 2026-10-04 — Tema oscuro con tokens semánticos (Brief 005, Etapa 3)
+
+- **Estado:** aceptada.
+- **Contexto:** la paleta del front usaba utilidades sueltas (`neutral-*`,
+  `bg-white`, `red-*`, `amber-*`, `bg-neutral-900 text-white`) sin soporte de modo
+  oscuro ni identidad de marca. Se necesita respetar el modo del sistema, permitir
+  elegir tema y preparar el rediseño de Etapa 4, sin tocar la lógica de scroll
+  infinito ni la semántica del estado/enlace a ticketera.
+- **Decisión TL/PO (Opción B):** tokens semánticos en CSS (`:root`) mapeados a
+  utilidades Tailwind v4 vía `@theme`; override por atributo `data-theme` en
+  `<html>`; toggle de 3 estados (claro/oscuro/sistema) persistido en
+  `localStorage` (clave `mishow-theme`); script anti-flash previo al paint.
+- **Alternativas:**
+  - *Solo sistema* (`prefers-color-scheme`, sin toggle): más simple, pero no deja
+    al usuario forzar un tema; descartada por falta de control.
+  - *Toggle persistido con tokens + anti-flash* (elegida): un único set de
+    utilidades semánticas, sin `dark:` por elemento; el atributo manda sobre la
+    media query (`:root:not([data-theme])` sigue al sistema solo sin atributo).
+- **Tokens:** `bg`, `surface`, `surface-2`, `text`, `text-muted`, `border`,
+  `brand` (violeta), `brand-contrast`, `focus`, `danger`, `warning`, `success`
+  (con variantes `-contrast`/`-surface`). Valores claro/oscuro y ratios AA en
+  `docs/front-tokens-tema.md`. Marca: `#6d28d9` (claro) / `#a78bfa` (oscuro).
+- **Consecuencias:** `output: "export"` se conserva; el toggle es `'use client'`.
+  La utilidad para `--color-text-muted` es `text-text-muted` (prefijo `text-` +
+  nombre de token). Rediseño de jerarquía/tarjetas queda para Etapa 4 (marcado con
+  `// TODO Etapa 4` donde aplica). Ver `apps/web/app/globals.css`,
+  `apps/web/app/layout.tsx`, `apps/web/components/ThemeToggle.tsx`,
+  `apps/web/lib/theme.ts` y los componentes de listado/detalle.

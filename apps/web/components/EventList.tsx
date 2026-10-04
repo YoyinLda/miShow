@@ -40,7 +40,7 @@ function isBackNavigation(): boolean {
 
 export function EventList() {
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando eventos…</p>}>
+    <Suspense fallback={<p className="text-sm text-text-muted">Cargando eventos…</p>}>
       <EventListContent />
     </Suspense>
   );
@@ -259,7 +259,7 @@ function EventListContent() {
   if (!configured) {
     return (
       <section>
-        <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <p className="rounded-lg border border-warning bg-warning-surface p-4 text-sm text-warning">
           El catálogo no está configurado. Define <code>NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
           <code>NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY</code> (ver <code>.env.example</code>).
         </p>
@@ -270,7 +270,7 @@ function EventListContent() {
   return (
     <section>
       {updatedLabel && freshness?.last_run_finished_at ? (
-        <p className="mb-3 text-xs text-neutral-500">
+        <p className="mb-3 text-xs text-text-muted">
           Catálogo <time dateTime={freshness.last_run_finished_at}>{updatedLabel}</time>
         </p>
       ) : null}
@@ -282,27 +282,27 @@ function EventListContent() {
           value={inputTerm}
           onChange={(event) => setInputTerm(event.target.value)}
           placeholder="Buscar por artista, evento o recinto"
-          className="mb-3 w-full rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm outline-none focus:border-neutral-500"
+          className="mb-3 w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-brand"
         />
       </label>
 
       {typeof list.total === "number" ? (
-        <p className="mb-4 text-xs text-neutral-500" aria-live="polite">
+        <p className="mb-4 text-xs text-text-muted" aria-live="polite">
           {list.total === 1 ? "1 evento" : `${list.total} eventos`}
         </p>
       ) : null}
 
       {isLoadingInitial && !hasItems ? (
-        <p className="text-sm text-neutral-500">Cargando eventos…</p>
+        <p className="text-sm text-text-muted">Cargando eventos…</p>
       ) : null}
 
       {error && !hasItems ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="rounded-lg border border-danger bg-danger-surface p-4 text-sm text-danger">
           <p>No se pudo cargar el catálogo: {error}</p>
           <button
             type="button"
             onClick={retry}
-            className="mt-3 inline-flex min-h-9 items-center rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+            className="mt-3 inline-flex min-h-9 items-center rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           >
             Reintentar
           </button>
@@ -310,14 +310,14 @@ function EventListContent() {
       ) : null}
 
       {showEmpty ? (
-        <div className="text-sm text-neutral-500">
+        <div className="text-sm text-text-muted">
           {appliedTerm ? (
             <p>
               No hay eventos que coincidan con la búsqueda.{" "}
               <button
                 type="button"
                 onClick={() => setInputTerm("")}
-                className="underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+                className="underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 Limpiar búsqueda
               </button>
@@ -340,12 +340,12 @@ function EventListContent() {
           <div ref={sentinelRef} aria-hidden="true" className="h-px w-full" />
 
           {error ? (
-            <div className="w-full rounded-lg border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700">
+            <div className="w-full rounded-lg border border-danger bg-danger-surface p-4 text-center text-sm text-danger">
               <p>No se pudieron cargar más eventos: {error}</p>
               <button
                 type="button"
                 onClick={retry}
-                className="mt-3 inline-flex min-h-9 items-center rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+                className="mt-3 inline-flex min-h-9 items-center rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 Reintentar
               </button>
@@ -356,12 +356,12 @@ function EventListContent() {
               onClick={loadMore}
               disabled={isLoadingMore}
               aria-busy={isLoadingMore}
-              className="inline-flex min-h-9 items-center rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500 disabled:opacity-60"
+              className="inline-flex min-h-9 items-center rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
             >
               {isLoadingMore ? "Cargando…" : "Cargar más"}
             </button>
           ) : (
-            <p className="text-xs text-neutral-400">No hay más eventos.</p>
+            <p className="text-xs text-text-muted">No hay más eventos.</p>
           )}
         </div>
       ) : null}
