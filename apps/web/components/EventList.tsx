@@ -85,7 +85,7 @@ function EventListContent() {
     setList({ term: snapshot.term, items: snapshot.items, cursor: snapshot.cursor, total: snapshot.total });
     // Restaurar scroll tras pintar los items.
     requestAnimationFrame(() => window.scrollTo(0, snapshot.scrollY));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Solo al montar: la restauración se evalúa una vez con el ?q= inicial.
   }, []);
 
   // --- Debounce del input hacia el término aplicado + sincronización a ?q= -----
@@ -145,7 +145,8 @@ function EventListContent() {
       return;
     }
     loadFirstPage(appliedTerm);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Dispara solo al cambiar término aplicado o configuración; loadFirstPage
+    // es estable (depende de client) y no se incluye a propósito.
   }, [appliedTerm, configured]);
 
   // --- Carga incremental (scroll infinito + botón) -----------------------------
@@ -247,7 +248,7 @@ function EventListContent() {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Solo depende de configured; client es estable y se omite a propósito.
   }, [configured]);
 
   const updatedLabel = formatRelativeTime(freshness?.last_run_finished_at);
