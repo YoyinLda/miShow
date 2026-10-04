@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "../components/ThemeToggle";
+import { SiteHeader } from "../components/SiteHeader";
+import { geistSans } from "./fonts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,22 +15,17 @@ const themeScript = `(function(){try{var v=localStorage.getItem('mishow-theme');
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" className={geistSans.variable} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>
-        <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4">
-          <header className="flex items-start justify-between gap-4 py-6">
-            <div>
-              <a href="/" className="text-2xl font-bold tracking-tight">
-                miShow
-              </a>
-              <p className="text-sm text-text-muted">Conciertos y eventos musicales en Chile</p>
-            </div>
-            <ThemeToggle />
-          </header>
-          <main className="flex-1 pb-16">{children}</main>
+        {/* Contenedor a los anchos del Figma: mobile estrecho (px-4), desktop
+            ancho hasta 1440 (px-12). El header/footer comparten el mismo
+            contenedor para alinear con el contenido. */}
+        <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col px-4 sm:px-12">
+          <SiteHeader />
+          <main className="flex-1 py-8 sm:py-10">{children}</main>
           <footer className="border-t border-border py-6 text-xs text-text-muted">
             Datos obtenidos de fuentes públicas. Cada evento enlaza a su ticketera original.
           </footer>

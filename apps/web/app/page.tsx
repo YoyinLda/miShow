@@ -1,5 +1,5 @@
-import { EventList } from "../components/EventList";
+import { HomeDiscovery } from "../components/HomeDiscovery";
 
 export default function HomePage() {
-  return <EventList />;
+  return <HomeDiscovery />;
 }
