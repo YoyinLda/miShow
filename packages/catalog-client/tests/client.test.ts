@@ -34,16 +34,49 @@ const sampleRow: CatalogEvent = {
 
 function fetchSpy(
   body: unknown,
-  capture: { url?: string; headers?: Headers; method?: string; body?: string } = {}
+  capture: { url?: string; headers?: Headers; method?: string; body?: string } = {},
+  responseHeaders: Record<string, string> = {}
 ) {
   const impl = (async (input: string, init?: RequestInit) => {
     capture.url = String(input);
     capture.headers = new Headers(init?.headers);
     capture.method = init?.method;
     capture.body = init?.body ? String(init.body) : undefined;
-    return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "content-type": "application/json", ...responseHeaders }
+    });
   }) as unknown as typeof fetch;
   return { impl, capture };
+}
+
+/**
+ * fetch inyectado por secuencia: cada llamada consume la siguiente respuesta de
+ * `pages` y acumula la URL en `urls`. Útil para `listEvents` en la primera
+ * página, que hace primero la query de conteo (Content-Range) y luego la de
+ * datos.
+ */
+function fetchSequence(pages: Array<{ body: unknown; headers?: Record<string, string> }>) {
+  const urls: string[] = [];
+  let call = 0;
+  const impl = (async (input: string) => {
+    urls.push(String(input));
+    const page = pages[Math.min(call, pages.length - 1)];
+    call += 1;
+    return new Response(JSON.stringify(page.body), {
+      status: 200,
+      headers: { "content-type": "application/json", ...(page.headers ?? {}) }
+    });
+  }) as unknown as typeof fetch;
+  return { impl, urls };
+}
+
+function makeClient(impl: typeof fetch) {
+  return new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
+}
+
+function rowWith(id: number, nextAt: string | null): CatalogEvent {
+  return { ...sampleRow, id, slug: `evento-${id}`, next_performance_at: nextAt };
 }
 
 const sampleFreshness: CatalogFreshness = {
@@ -77,8 +110,8 @@ describe("CatalogClient", () => {
     } as typeof fetch;
     try {
       const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" });
-      const events = await client.listEvents({ limit: 1 });
-      expect(events).toHaveLength(1);
+      const result = await client.listEvents({ limit: 1 });
+      expect(result.items).toHaveLength(1);
       expect(String(calls[0])).toContain("/rest/v1/catalog_events_v2");
     } finally {
       globalThis.fetch = original;
@@ -88,7 +121,8 @@ describe("CatalogClient", () => {
   it("lists events and maps the catalog row shape", async () => {
     const { impl, capture } = fetchSpy([sampleRow]);
     const client = new CatalogClient({ url: "https://project.supabase.co/", publishableKey: "sb_publishable_TEST" }, impl);
-    const events = await client.listEvents({ limit: 20 });
+    const result = await client.listEvents({ limit: 20 });
+    const events = result.items;
     expect(events).toHaveLength(1);
     expect(events[0].name).toBe("Alexisonfire en Teatro Coliseo");
     expect(events[0].slug).toBe("alexisonfire-en-teatro-coliseo");
@@ -99,16 +133,124 @@ describe("CatalogClient", () => {
     // time_known opcional: ausente en la fila de muestra (hora conocida).
     expect(events[0].performances[0].time_known).toBeUndefined();
     expect(events[0].next_performance_time_known).toBe(true);
+    // `capture` guarda la ÚLTIMA llamada: la query de datos (tras la de conteo).
     expect(capture.url).toContain("/rest/v1/catalog_events_v2");
     expect(capture.headers?.get("apikey")).toBe("sb_publishable_TEST");
   });
 
   it("applies a case-insensitive name search filter", async () => {
     const { impl, capture } = fetchSpy([]);
-    const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
+    const client = makeClient(impl);
     await client.listEvents({ search: "alexis" });
     expect(capture.url).toContain("name=ilike.");
     expect(decodeURIComponent(capture.url ?? "")).toContain("*alexis*");
+  });
+
+  it("returns the first page with total parsed from Content-Range and a nonnull cursor", async () => {
+    // Primera página: 1ª llamada = conteo (Content-Range 0-19/142), 2ª = datos.
+    const items = Array.from({ length: 20 }, (_, i) => rowWith(i + 1, `2026-11-${String(i + 1).padStart(2, "0")}T00:00:00Z`));
+    const { impl, urls } = fetchSequence([
+      { body: [], headers: { "content-range": "0-19/142" } },
+      { body: items }
+    ]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({ limit: 20 });
+    expect(result.items).toHaveLength(20);
+    expect(result.total).toBe(142);
+    expect(urls[0]).toContain("select=id"); // query de conteo (payload mínimo)
+    expect(urls[0]).not.toBe(urls[1]); // conteo != datos
+    expect(urls[1]).toContain("order=next_performance_at.asc.nullslast%2Cid.asc");
+    expect(result.nextCursor).toEqual({ phase: "nonnull", nextAt: "2026-11-20T00:00:00Z", id: 20 });
+  });
+
+  it("sends Prefer: count=exact on the first-page count query only", async () => {
+    const captures: Headers[] = [];
+    const impl = (async (_input: string, init?: RequestInit) => {
+      captures.push(new Headers(init?.headers));
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "content-type": "application/json", "content-range": "*/0" }
+      });
+    }) as unknown as typeof fetch;
+    const client = makeClient(impl);
+    await client.listEvents({ limit: 20 });
+    expect(captures[0].get("prefer")).toBe("count=exact");
+    expect(captures[1]?.get("prefer")).toBeNull();
+  });
+
+  it("consumes a nonnull cursor and builds the keyset or= filter on the next page", async () => {
+    const { impl, capture } = fetchSpy(Array.from({ length: 20 }, (_, i) => rowWith(100 + i, "2026-12-01T00:00:00Z")));
+    const client = makeClient(impl);
+    const result = await client.listEvents({
+      limit: 20,
+      cursor: { phase: "nonnull", nextAt: "2026-11-27T00:00:00+00:00", id: 42 }
+    });
+    const url = decodeURIComponent(capture.url ?? "");
+    expect(url).toContain(
+      "or=(next_performance_at.gt.2026-11-27T00:00:00+00:00,and(next_performance_at.eq.2026-11-27T00:00:00+00:00,id.gt.42))"
+    );
+    // Con cursor presente NO se recalcula el total.
+    expect(result.total).toBeNull();
+    expect(result.nextCursor).toEqual({ phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 119 });
+  });
+
+  it("transitions phase A -> phase B when a nonnull page returns fewer than limit rows", async () => {
+    const { impl } = fetchSpy([rowWith(5, "2026-12-10T00:00:00Z")]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({
+      limit: 20,
+      cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 4 }
+    });
+    expect(result.nextCursor).toEqual({ phase: "null", nextAt: null, id: 0 });
+  });
+
+  it("queries the NULL zone in phase B with next_performance_at=is.null and id=gt", async () => {
+    const { impl, capture } = fetchSpy(Array.from({ length: 20 }, (_, i) => rowWith(200 + i, null)));
+    const client = makeClient(impl);
+    const result = await client.listEvents({
+      limit: 20,
+      cursor: { phase: "null", nextAt: null, id: 0 }
+    });
+    const url = decodeURIComponent(capture.url ?? "");
+    expect(url).toContain("next_performance_at=is.null");
+    expect(url).toContain("order=id.asc");
+    expect(url).toContain("id=gt.0");
+    expect(result.nextCursor).toEqual({ phase: "null", nextAt: null, id: 219 });
+  });
+
+  it("returns nextCursor null when phase B is exhausted", async () => {
+    const { impl } = fetchSpy([rowWith(300, null)]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({
+      limit: 20,
+      cursor: { phase: "null", nextAt: null, id: 299 }
+    });
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("includes name=ilike in the data query when searching", async () => {
+    const { impl, capture } = fetchSpy([]);
+    const client = makeClient(impl);
+    await client.listEvents({ search: "coliseo", cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 } });
+    expect(decodeURIComponent(capture.url ?? "")).toContain("name=ilike.*coliseo*");
+  });
+
+  it("parses Content-Range totals and falls back to null", async () => {
+    const cases: Array<{ header?: string; expected: number | null }> = [
+      { header: "0-19/142", expected: 142 },
+      { header: "*/0", expected: 0 },
+      { header: "*/*", expected: null },
+      { header: undefined, expected: null }
+    ];
+    for (const { header, expected } of cases) {
+      const { impl } = fetchSequence([
+        { body: [], headers: header ? { "content-range": header } : {} },
+        { body: [] }
+      ]);
+      const client = makeClient(impl);
+      const result = await client.listEvents({ limit: 20 });
+      expect(result.total).toBe(expected);
+    }
   });
 
   it("returns a single event by id", async () => {
