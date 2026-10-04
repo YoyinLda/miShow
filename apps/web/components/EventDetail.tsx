@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import type { CatalogEvent } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
-import { formatDate, formatPrice, performanceStatusLabel, statusLabel } from "../lib/format";
+import { formatDate, formatPrice, performanceStatusLabel, sourceLinks, statusLabel } from "../lib/format";
 
 type LoadState =
   | { kind: "loading" }
@@ -13,14 +12,15 @@ type LoadState =
   | { kind: "error"; message: string }
   | { kind: "unconfigured" };
 
-export function EventDetail() {
-  const params = useSearchParams();
-  const idParam = params.get("id");
+/**
+ * Detalle de evento. Acepta `slug` (ruta `/evento/[slug]`) o, por
+ * compatibilidad de enlaces antiguos, `id` (ruta `/evento?id=`).
+ */
+export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
   const [state, setState] = useState<LoadState>({ kind: "loading" });
 
   useEffect(() => {
-    const id = Number(idParam);
-    if (!idParam || Number.isNaN(id)) {
+    if (!slug && (id == null || Number.isNaN(id))) {
       setState({ kind: "not-found" });
       return;
     }
@@ -29,8 +29,9 @@ export function EventDetail() {
       return;
     }
     let active = true;
-    catalogClient()
-      .getEvent(id)
+    const client = catalogClient();
+    const load = slug ? client.getEventBySlug(slug) : client.getEvent(id as number);
+    load
       .then((event) => {
         if (!active) return;
         setState(event ? { kind: "ready", event } : { kind: "not-found" });
@@ -41,7 +42,7 @@ export function EventDetail() {
     return () => {
       active = false;
     };
-  }, [idParam]);
+  }, [slug, id]);
 
   if (state.kind === "loading") return <p className="text-sm text-neutral-500">Cargando evento…</p>;
   if (state.kind === "unconfigured")
@@ -59,8 +60,8 @@ export function EventDetail() {
     );
 
   const { event } = state;
-  const price = formatPrice(event);
-  const artists = event.artists.map((artist) => artist.name).join(", ");
+  const price = formatPrice(event.sources);
+  const links = sourceLinks(event.sources);
 
   return (
     <article>
@@ -73,7 +74,22 @@ export function EventDetail() {
       ) : null}
 
       <h1 className="mt-4 text-2xl font-bold">{event.name}</h1>
-      {artists ? <p className="mt-1 text-neutral-600">{artists}</p> : null}
+      {event.artists.length ? (
+        <p className="mt-1 text-neutral-600">
+          {event.artists.map((artist, index) => (
+            <span key={`${artist.slug ?? artist.name}-${index}`}>
+              {index > 0 ? ", " : ""}
+              {artist.slug ? (
+                <a href={`/artistas?slug=${encodeURIComponent(artist.slug)}`} className="underline hover:text-neutral-900">
+                  {artist.name}
+                </a>
+              ) : (
+                artist.name
+              )}
+            </span>
+          ))}
+        </p>
+      ) : null}
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
         <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-neutral-600">{statusLabel(event.status)}</span>
@@ -83,7 +99,15 @@ export function EventDetail() {
       {event.venue?.name ? (
         <section className="mt-6">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">Recinto</h2>
-          <p className="mt-1">{event.venue.name}</p>
+          <p className="mt-1">
+            {event.venue.slug ? (
+              <a href={`/venues?slug=${encodeURIComponent(event.venue.slug)}`} className="underline hover:text-neutral-900">
+                {event.venue.name}
+              </a>
+            ) : (
+              event.venue.name
+            )}
+          </p>
           {event.venue.address || event.venue.city ? (
             <p className="text-sm text-neutral-500">
               {[event.venue.address, event.venue.city].filter(Boolean).join(", ")}
@@ -112,16 +136,28 @@ export function EventDetail() {
         </ul>
       </section>
 
-      {/* Enlace único hacia la ticketera. No somos la fuente de verdad de la
-          disponibilidad; la compra se completa dentro de la ticketera. */}
-      <a
-        href={event.source_url}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        className="mt-6 inline-flex min-h-11 items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
-      >
-        Ir a la ticketera
-      </a>
+      {/* Enlace único o por fuente hacia la(s) ticketera(s). No somos la fuente de
+          verdad de la disponibilidad; la compra se completa en la ticketera. */}
+      {links.length ? (
+        <section className="mt-6">
+          {event.sources.length > 1 ? (
+            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-neutral-500">Disponible en</h2>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            {links.map((link) => (
+              <a
+                key={link.url}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="inline-flex min-h-11 items-center justify-center rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-500"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </article>
   );
 }

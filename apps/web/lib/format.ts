@@ -1,15 +1,44 @@
-import type { CatalogEvent } from "@mishow/catalog-client";
+import type { CatalogEventSource } from "@mishow/catalog-client";
 
 const CLP = new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
 
-export function formatPrice(event: Pick<CatalogEvent, "price_min" | "price_max" | "currency">): string | undefined {
-  const { price_min, price_max, currency } = event;
-  if (price_min == null && price_max == null) return undefined;
+/**
+ * Precio combinado a partir de las fuentes de un evento canónico: mínimo de
+ * todos los `price_min` y máximo de todos los `price_max`. Devuelve `undefined`
+ * cuando ninguna fuente expone precio (no se inventan valores).
+ */
+export function formatPrice(sources: readonly CatalogEventSource[] | null | undefined): string | undefined {
+  if (!sources || sources.length === 0) return undefined;
+  const mins = sources.map((s) => s.price_min).filter((v): v is number => typeof v === "number");
+  const maxs = sources.map((s) => s.price_max).filter((v): v is number => typeof v === "number");
+  if (mins.length === 0 && maxs.length === 0) return undefined;
+  const currency = sources.map((s) => s.currency).find((c): c is string => Boolean(c));
   const format = (value: number) => (currency === "CLP" || !currency ? CLP.format(value) : `${value} ${currency}`);
-  if (price_min != null && price_max != null && price_min !== price_max) {
-    return `${format(price_min)} – ${format(price_max)}`;
-  }
-  return format(price_min ?? price_max ?? 0);
+  const min = mins.length ? Math.min(...mins) : undefined;
+  const max = maxs.length ? Math.max(...maxs) : undefined;
+  if (min != null && max != null && min !== max) return `${format(min)} – ${format(max)}`;
+  return format(min ?? max ?? 0);
+}
+
+const SOURCE_LABEL: Record<string, string> = {
+  puntoticket: "PuntoTicket",
+  ticketmaster: "Ticketmaster"
+};
+
+export function sourceLabel(source: string): string {
+  return SOURCE_LABEL[source] ?? source;
+}
+
+/**
+ * Enlaces a la(s) ticketera(s) de un evento. Cada fuente aporta su
+ * `source_url`. Si hay una sola fuente, el texto es genérico ("Ir a la
+ * ticketera"); con varias, se nombra cada una ("Ir a PuntoTicket", …).
+ */
+export function sourceLinks(sources: readonly CatalogEventSource[] | null | undefined): Array<{ url: string; label: string }> {
+  if (!sources || sources.length === 0) return [];
+  const withUrl = sources.filter((s) => Boolean(s.source_url));
+  if (withUrl.length === 1) return [{ url: withUrl[0].source_url, label: "Ir a la ticketera" }];
+  return withUrl.map((s) => ({ url: s.source_url, label: `Ir a ${sourceLabel(s.source)}` }));
 }
 
 const DATE = new Intl.DateTimeFormat("es-CL", {

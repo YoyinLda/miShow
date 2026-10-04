@@ -1,7 +1,57 @@
 import { describe, expect, it } from "vitest";
-import { formatRelativeTime, performanceStatusLabel, statusLabel } from "../lib/format";
+import { formatPrice, formatRelativeTime, performanceStatusLabel, sourceLinks, statusLabel } from "../lib/format";
+import type { CatalogEventSource } from "@mishow/catalog-client";
 
 const now = new Date("2026-09-13T15:00:00Z");
+
+function src(partial: Partial<CatalogEventSource>): CatalogEventSource {
+  return { source: "puntoticket", source_url: "https://www.puntoticket.com/x", status: "unknown", ...partial };
+}
+
+describe("formatPrice (multi-fuente)", () => {
+  it("returns undefined when no source has a price", () => {
+    expect(formatPrice([])).toBeUndefined();
+    expect(formatPrice([src({})])).toBeUndefined();
+    expect(formatPrice(null)).toBeUndefined();
+  });
+
+  it("combines the min and max across sources", () => {
+    const combined = formatPrice([
+      src({ source: "puntoticket", price_min: 30000, price_max: 60000, currency: "CLP" }),
+      src({ source: "ticketmaster", price_min: 21000, price_max: 100000, currency: "CLP" })
+    ]);
+    expect(combined).toContain("21.000");
+    expect(combined).toContain("100.000");
+    expect(combined).toContain("–");
+  });
+
+  it("shows a single value when min equals max", () => {
+    expect(formatPrice([src({ price_min: 25000, price_max: 25000, currency: "CLP" })])).not.toContain("–");
+  });
+});
+
+describe("sourceLinks", () => {
+  it("uses a generic label for a single source", () => {
+    expect(sourceLinks([src({ source: "puntoticket", source_url: "https://www.puntoticket.com/a" })]))
+      .toEqual([{ url: "https://www.puntoticket.com/a", label: "Ir a la ticketera" }]);
+  });
+
+  it("names each ticketera when there are several", () => {
+    const links = sourceLinks([
+      src({ source: "puntoticket", source_url: "https://www.puntoticket.com/a" }),
+      src({ source: "ticketmaster", source_url: "https://www.ticketmaster.cl/b" })
+    ]);
+    expect(links).toEqual([
+      { url: "https://www.puntoticket.com/a", label: "Ir a PuntoTicket" },
+      { url: "https://www.ticketmaster.cl/b", label: "Ir a Ticketmaster" }
+    ]);
+  });
+
+  it("returns empty for no sources", () => {
+    expect(sourceLinks([])).toEqual([]);
+    expect(sourceLinks(null)).toEqual([]);
+  });
+});
 
 describe("statusLabel", () => {
   it("assumes an event is confirmed when there is no availability evidence", () => {

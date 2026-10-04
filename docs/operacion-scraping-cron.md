@@ -167,7 +167,7 @@ Verificaciones esperadas:
 
 1. La salida JSON incluye `run_id` y `status`.
 2. Repetir exactamente el comando **no** duplica eventos (idempotencia).
-3. `catalog_events_v1` refleja los eventos persistidos.
+3. `catalog_events_v2` refleja los eventos persistidos.
 4. `catalog_freshness_v1` refleja la última corrida `succeeded`/`partial`.
 
 ### Evidencia de validación

@@ -3,22 +3,29 @@ import { CatalogClient, CatalogClientError, type CatalogEvent, type CatalogFresh
 
 const sampleRow: CatalogEvent = {
   id: 1,
-  source: "puntoticket",
-  source_url: "https://www.puntoticket.com/aof-coliseo",
-  source_code: "CCO117",
-  purchase_url: "https://www.puntoticket.com/queue/enqueue/CCO117",
-  image_url: "https://static.ptocdn.net/images/eventos/cco117_rs.jpg",
+  slug: "alexisonfire-en-teatro-coliseo",
   name: "Alexisonfire en Teatro Coliseo",
+  category: "musica",
+  subcategory: null,
   status: "available",
-  price_min: 43700,
-  price_max: 57500,
-  currency: "CLP",
-  source_extracted_at: "2026-09-12T21:52:44.620Z",
+  image_url: "https://static.ptocdn.net/images/eventos/cco117_rs.jpg",
+  needs_review: false,
   first_seen_at: "2026-09-12T21:49:42.829Z",
   last_seen_at: "2026-09-12T21:53:55.263Z",
   next_performance_at: "2026-11-27T00:00:00Z",
-  artists: [{ name: "Alexisonfire" }],
-  venue: { name: "Teatro Coliseo", city: "Santiago Centro" },
+  artists: [{ name: "Alexisonfire", slug: "alexisonfire" }],
+  venue: { slug: "teatro-coliseo", name: "Teatro Coliseo", city: "Santiago Centro" },
+  sources: [
+    {
+      source: "puntoticket",
+      source_url: "https://www.puntoticket.com/aof-coliseo",
+      purchase_url: "https://www.puntoticket.com/queue/enqueue/CCO117",
+      status: "available",
+      price_min: 43700,
+      price_max: 57500,
+      currency: "CLP"
+    }
+  ],
   performances: [
     { starts_at: "2026-11-26T21:00:00-03:00", timezone: "America/Santiago", status: "available", performance_code: "CCO117" }
   ]
@@ -71,7 +78,7 @@ describe("CatalogClient", () => {
       const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" });
       const events = await client.listEvents({ limit: 1 });
       expect(events).toHaveLength(1);
-      expect(String(calls[0])).toContain("/rest/v1/catalog_events_v1");
+      expect(String(calls[0])).toContain("/rest/v1/catalog_events_v2");
     } finally {
       globalThis.fetch = original;
     }
@@ -83,9 +90,12 @@ describe("CatalogClient", () => {
     const events = await client.listEvents({ limit: 20 });
     expect(events).toHaveLength(1);
     expect(events[0].name).toBe("Alexisonfire en Teatro Coliseo");
+    expect(events[0].slug).toBe("alexisonfire-en-teatro-coliseo");
     expect(events[0].artists[0].name).toBe("Alexisonfire");
+    expect(events[0].sources[0].source).toBe("puntoticket");
+    expect(events[0].sources[0].price_min).toBe(43700);
     expect(events[0].performances[0].timezone).toBe("America/Santiago");
-    expect(capture.url).toContain("/rest/v1/catalog_events_v1");
+    expect(capture.url).toContain("/rest/v1/catalog_events_v2");
     expect(capture.headers?.get("apikey")).toBe("sb_publishable_TEST");
   });
 
@@ -102,7 +112,37 @@ describe("CatalogClient", () => {
     const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
     const event = await client.getEvent(1);
     expect(event?.id).toBe(1);
+    expect(capture.url).toContain("/rest/v1/catalog_events_v2");
     expect(capture.url).toContain("id=eq.1");
+  });
+
+  it("returns a single event by slug", async () => {
+    const { impl, capture } = fetchSpy([sampleRow]);
+    const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
+    const event = await client.getEventBySlug("alexisonfire-en-teatro-coliseo");
+    expect(event?.slug).toBe("alexisonfire-en-teatro-coliseo");
+    expect(capture.url).toContain("/rest/v1/catalog_events_v2");
+    expect(capture.url).toContain("slug=eq.alexisonfire-en-teatro-coliseo");
+  });
+
+  it("returns an artist by slug from catalog_artists_v1", async () => {
+    const artist = { id: 5, slug: "alexisonfire", name: "Alexisonfire", description: null, city: null, country: null, genre: null, image_url: null, links: {}, verified: false, events: [] };
+    const { impl, capture } = fetchSpy([artist]);
+    const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
+    const result = await client.getArtistBySlug("alexisonfire");
+    expect(result?.slug).toBe("alexisonfire");
+    expect(capture.url).toContain("/rest/v1/catalog_artists_v1");
+    expect(capture.url).toContain("slug=eq.alexisonfire");
+  });
+
+  it("returns a venue by slug from catalog_venues_v1", async () => {
+    const venue = { id: 3, slug: "teatro-coliseo", name: "Teatro Coliseo", address: null, city: "Santiago", latitude: null, longitude: null, capacity: null, links: {}, image_url: null, events: [] };
+    const { impl, capture } = fetchSpy([venue]);
+    const client = new CatalogClient({ url: "https://project.supabase.co", publishableKey: "sb_publishable_TEST" }, impl);
+    const result = await client.getVenueBySlug("teatro-coliseo");
+    expect(result?.slug).toBe("teatro-coliseo");
+    expect(capture.url).toContain("/rest/v1/catalog_venues_v1");
+    expect(capture.url).toContain("slug=eq.teatro-coliseo");
   });
 
   it("wraps API failures in CatalogClientError", async () => {

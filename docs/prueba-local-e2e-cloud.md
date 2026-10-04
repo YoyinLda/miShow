@@ -47,7 +47,8 @@ Reglas de seguridad:
 
 ## 2. Sincronizar el esquema con cloud (una vez, o al cambiar migraciones)
 
-El esquema (tablas, RPC, vista `catalog_events_v1`, RPC `catalog_freshness_v1`,
+El esquema (tablas, RPC, vistas `catalog_events_v2`, `catalog_artists_v1`,
+`catalog_venues_v1`, RPC `catalog_freshness_v1`,
 RLS y grants) vive en `supabase/migrations/`. Hay que aplicarlo al proyecto cloud
 antes de que el scraping o el catálogo funcionen.
 
@@ -156,7 +157,7 @@ Comprueba rápidamente que el catálogo y la frescura respondan con la
 
 ```bash
 # Cantidad de eventos visibles en el catálogo público
-curl -s "$SUPABASE_URL/rest/v1/catalog_events_v1?select=id,name&limit=5" \
+curl -s "$SUPABASE_URL/rest/v1/catalog_events_v2?select=slug,name&limit=5" \
   -H "apikey: <PUBLISHABLE_KEY>" | head
 
 # Frescura del catálogo (última corrida succeeded/partial)
@@ -181,7 +182,7 @@ npm run dev -w @mishow/web
 
 Abre `http://localhost:3000`. Deberías ver:
 
-- El **listado** de eventos leídos desde `catalog_events_v1` (cloud).
+- El **listado** de eventos leídos desde `catalog_events_v2` (cloud).
 - El indicador **"Catálogo actualizado hace X"** sobre el buscador (frescura
   desde `catalog_freshness_v1`).
 - La **búsqueda** por nombre/artista/recinto filtrando en cliente.
@@ -199,13 +200,15 @@ Abre `http://localhost:3000`. Deberías ver:
 3. La búsqueda filtra resultados.
 4. El detalle abre y el botón "Comprar"/enlace a la ticketera apunta a
    PuntoTicket.
-5. Si borras temporalmente las variables de `apps/web/.env.local`, la web muestra
+5. Desde el detalle, los enlaces a artista y recinto abren `/artistas?slug=` y
+   `/venues?slug=` con sus próximos eventos.
+6. Si borras temporalmente las variables de `apps/web/.env.local`, la web muestra
    el estado "no configurado" sin romperse (comprobación del manejo de estados).
 
 ## 7. Repetir para validar idempotencia (opcional)
 
 Vuelve a ejecutar el comando del paso 4. El conteo de eventos en
-`catalog_events_v1` no debe crecer por reprocesar los mismos eventos; solo se
+`catalog_events_v2` no debe crecer por reprocesar los mismos eventos; solo se
 actualizan `last_seen_at` y datos cambiantes. La frescura reflejará la nueva
 corrida.
 
