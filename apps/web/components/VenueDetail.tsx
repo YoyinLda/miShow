@@ -61,29 +61,29 @@ export function VenueDetail({ slug }: { slug?: string }) {
 
   return (
     <article>
-      <a href="/" className="text-sm text-text-muted underline">← Volver</a>
+      <a href="/" className="text-sm text-text-muted underline underline-offset-2 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">← Volver</a>
 
-      <h1 className="mt-4 text-2xl font-bold">{venue.name}</h1>
-      {locationParts.length ? <p className="mt-1 text-text-muted">{locationParts.join(", ")}</p> : null}
-      {venue.capacity ? <p className="text-sm text-text-muted">Capacidad aprox.: {venue.capacity}</p> : null}
+      <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl">{venue.name}</h1>
+      {locationParts.length ? <p className="mt-2 text-base text-text-muted">{locationParts.join(", ")}</p> : null}
+      {venue.capacity ? <p className="mt-1 text-sm text-text-muted">Capacidad aprox.: {venue.capacity}</p> : null}
       {mapsUrl ? (
-        <a href={mapsUrl} target="_blank" rel="noopener noreferrer nofollow" className="mt-2 inline-block text-sm text-brand underline hover:text-brand">
+        <a href={mapsUrl} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 inline-block text-sm text-brand underline underline-offset-2 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           Ver ubicación en el mapa
         </a>
       ) : null}
 
-      <section className="mt-6">
+      <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Próximos eventos</h2>
         {venue.events.length === 0 ? (
-          <p className="mt-2 text-sm text-text-muted">No hay eventos publicados en este recinto.</p>
+          <p className="mt-3 text-sm text-text-muted">No hay eventos publicados en este recinto.</p>
         ) : (
-          <ul className="mt-2 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-3">
             {venue.events.map((event) => (
-              <li key={event.id} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-brand">
+              <li key={event.id} className="rounded-xl border border-border bg-surface px-4 py-3 text-sm transition-colors hover:border-brand">
+                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline underline-offset-2 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">
                   {event.name}
                 </a>
-                <div className="text-text-muted">
+                <div className="mt-1 text-text-muted">
                   {formatDate(event.next_at) ?? "Fecha por confirmar"}
                   {event.artists && event.artists.length ? ` · ${event.artists.map((a) => a.name).join(", ")}` : ""}
                 </div>

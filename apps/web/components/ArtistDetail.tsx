@@ -55,48 +55,48 @@ export function ArtistDetail({ slug }: { slug?: string }) {
 
   return (
     <article>
-      <a href="/" className="text-sm text-text-muted underline">← Volver</a>
+      <a href="/" className="text-sm text-text-muted underline underline-offset-2 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">← Volver</a>
 
-      <div className="mt-4 flex items-center gap-4">
+      <div className="mt-6 flex items-center gap-4">
         {artist.image_url ? (
           <img src={artist.image_url} alt="" className="h-24 w-24 shrink-0 rounded-full object-cover" />
         ) : (
           <div className="h-24 w-24 shrink-0 rounded-full bg-surface-2" aria-hidden="true" />
         )}
         <div>
-          <h1 className="text-2xl font-bold">{artist.name}</h1>
+          <h1 className="text-4xl font-bold leading-tight sm:text-5xl">{artist.name}</h1>
           {[artist.genre, artist.city, artist.country].filter(Boolean).length ? (
-            <p className="text-sm text-text-muted">
+            <p className="mt-1 text-base text-text-muted">
               {[artist.genre, artist.city, artist.country].filter(Boolean).join(" · ")}
             </p>
           ) : null}
         </div>
       </div>
 
-      {artist.description ? <p className="mt-4 text-text">{artist.description}</p> : null}
+      {artist.description ? <p className="mt-6 text-base text-text">{artist.description}</p> : null}
 
       {links.length ? (
-        <div className="mt-3 flex flex-wrap gap-3 text-sm">
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
           {links.map(([key, url]) => (
-            <a key={key} href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-brand underline hover:text-brand">
+            <a key={key} href={url} target="_blank" rel="noopener noreferrer nofollow" className="text-brand underline underline-offset-2 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               {key}
             </a>
           ))}
         </div>
       ) : null}
 
-      <section className="mt-6">
+      <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Próximos eventos</h2>
         {artist.events.length === 0 ? (
-          <p className="mt-2 text-sm text-text-muted">No hay eventos publicados para este artista.</p>
+          <p className="mt-3 text-sm text-text-muted">No hay eventos publicados para este artista.</p>
         ) : (
-          <ul className="mt-2 flex flex-col gap-2">
+          <ul className="mt-3 flex flex-col gap-3">
             {artist.events.map((event) => (
-              <li key={event.id} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
-                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-brand">
+              <li key={event.id} className="rounded-xl border border-border bg-surface px-4 py-3 text-sm transition-colors hover:border-brand">
+                <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline underline-offset-2 hover:text-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">
                   {event.name}
                 </a>
-                <div className="text-text-muted">
+                <div className="mt-1 text-text-muted">
                   {formatDate(event.next_at) ?? "Fecha por confirmar"}
                   {event.venue_name ? ` · ${event.venue_name}` : ""}
                 </div>

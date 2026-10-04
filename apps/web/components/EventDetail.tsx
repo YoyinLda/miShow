@@ -65,17 +65,17 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
 
   return (
     <article>
-      <a href="/" className="text-sm text-text-muted underline">
+      <a href="/" className="text-sm text-text-muted underline underline-offset-2 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus">
         ← Volver
       </a>
 
       {event.image_url ? (
-        <img src={event.image_url} alt="" className="mt-4 max-h-72 w-full rounded-lg object-cover" />
+        <img src={event.image_url} alt="" className="mt-4 aspect-video w-full rounded-xl object-cover" />
       ) : null}
 
-      <h1 className="mt-4 text-2xl font-bold">{event.name}</h1>
+      <h1 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl">{event.name}</h1>
       {event.artists.length ? (
-        <p className="mt-1 text-text-muted">
+        <p className="mt-2 text-base text-text-muted">
           {event.artists.map((artist, index) => (
             <span key={`${artist.slug ?? artist.name}-${index}`}>
               {index > 0 ? ", " : ""}
@@ -91,15 +91,15 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
         </p>
       ) : null}
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-        <span className="rounded-full bg-surface-2 px-2 py-0.5 text-text-muted">{statusLabel(event.status)}</span>
-        {price ? <span className="font-medium">{price}</span> : null}
+      <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+        <span className="rounded-full border border-border bg-surface-2 px-3 py-0.5 text-text-muted">{statusLabel(event.status)}</span>
+        {price ? <span className="rounded-full bg-accent px-3 py-0.5 font-semibold text-accent-contrast">{price}</span> : null}
       </div>
 
       {event.venue?.name ? (
-        <section className="mt-6">
+        <section className="mt-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Recinto</h2>
-          <p className="mt-1">
+          <p className="mt-2 text-base">
             {event.venue.slug ? (
               <a href={`/venues?slug=${encodeURIComponent(event.venue.slug)}`} className="underline hover:text-brand">
                 {event.venue.name}
@@ -116,15 +116,15 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
         </section>
       ) : null}
 
-      <section className="mt-6">
+      <section className="mt-8">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Funciones</h2>
-        <ul className="mt-2 flex flex-col gap-2">
+        <ul className="mt-3 flex flex-col gap-3">
           {event.performances.map((performance, index) => {
             const performanceStatus = performanceStatusLabel(performance.status);
             return (
               <li
                 key={`${performance.starts_at}-${index}`}
-                className="flex items-center justify-between rounded-lg border border-border bg-surface px-4 py-3 text-sm"
+                className="flex items-center justify-between rounded-xl border border-border bg-surface px-4 py-3 text-sm"
               >
                 <div>
                   <span className="font-medium">{formatDate(performance.starts_at, { timeKnown: performance.time_known ?? true }) ?? performance.starts_at}</span>
@@ -139,18 +139,18 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
       {/* Enlace único o por fuente hacia la(s) ticketera(s). No somos la fuente de
           verdad de la disponibilidad; la compra se completa en la ticketera. */}
       {links.length ? (
-        <section className="mt-6">
+        <section className="mt-8">
           {event.sources.length > 1 ? (
-            <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-text-muted">Disponible en</h2>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-text-muted">Disponible en</h2>
           ) : null}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {links.map((link) => (
               <a
                 key={link.url}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-brand px-5 py-2.5 text-sm font-medium text-brand-contrast focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                className="inline-flex min-h-11 items-center justify-center rounded-[10px] bg-brand px-5 py-3 text-base font-medium text-brand-contrast transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
               >
                 {link.label}
               </a>
