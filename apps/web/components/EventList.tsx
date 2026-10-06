@@ -15,8 +15,19 @@ import {
   type EventListState
 } from "../lib/event-list-state";
 import { FilterChips } from "./ui/FilterChips";
+import { FilterSheet } from "./ui/FilterSheet";
+import { ActiveFilterChips } from "./ui/ActiveFilterChips";
 import { EventRow } from "./ui/EventRow";
 import { SectionHeader } from "./ui/SectionHeader";
+import {
+  activeFilterCount,
+  clearFilters,
+  mergeFiltersIntoParams,
+  parseFilters,
+  removeFilter,
+  toListEventsFilters,
+  type FiltersState
+} from "../lib/filters";
 
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 300;
@@ -75,6 +86,17 @@ function EventListContent() {
   // Rango activo (chip): se lee de ?rango= al montar y se refleja en la URL.
   const [rango, setRango] = useState<RangoKind | null>(() => parseRango(searchParams.get("rango")));
 
+  // Filtros de faceta (fuente/ciudad/estado): se leen de la URL al montar y se
+  // reflejan con history.replaceState. El reseteo del listado lo dispara el
+  // efecto de carga (depende de `filters`), igual que `rango`/término.
+  const [filters, setFilters] = useState<FiltersState>(() => parseFilters(searchParams.toString()));
+  const [sheetOpen, setSheetOpen] = useState(false);
+  // Catálogo de ciudades para el sheet: se deriva de los eventos cargados (sin
+  // endpoint nuevo ni hardcode). Se acumula para no perder opciones al paginar.
+  const [cityCatalog, setCityCatalog] = useState<string[]>([]);
+  // Disparador del sheet, para restaurar el foco al cerrarlo.
+  const filterButtonRef = useRef<HTMLButtonElement | null>(null);
+
   const [list, setList] = useState<EventListState>(() => resetForSearch(initialTerm));
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -91,6 +113,9 @@ function EventListContent() {
   // reconstruir el mismo filtro al pedir la siguiente página).
   const rangoRef = useRef(rango);
   rangoRef.current = rango;
+  // Los filtros de faceta visibles por la carga incremental.
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
   // Si true, la próxima carga del término aplicado se saltea (ya restauramos
   // desde sessionStorage). Se consume una sola vez.
   const restoredRef = useRef(false);
@@ -149,19 +174,35 @@ function EventListContent() {
     window.history.replaceState(window.history.state, "", url);
   }, []);
 
-  // --- Carga de la primera página al cambiar término o rango -------------------
+  // --- Cambio de filtros de faceta: reflejar ?fuente/?ciudad/?estado en la URL -
+  const updateFilters = useCallback((next: FiltersState) => {
+    setFilters(next);
+    const base = new URLSearchParams(window.location.search);
+    const merged = mergeFiltersIntoParams(base, next);
+    const query = merged.toString();
+    const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+    window.history.replaceState(window.history.state, "", url);
+  }, []);
+
+  // --- Carga de la primera página al cambiar término, rango o filtros ----------
   const loadFirstPage = useCallback(
-    (term: string, activeRango: RangoKind | null) => {
+    (term: string, activeRango: RangoKind | null, activeFilters: FiltersState) => {
       const token = ++requestTokenRef.current;
       inFlightRef.current = true;
       setError(null);
       setIsLoadingInitial(true);
       const base = resetForSearch(term);
       setList(base);
-      // Resetear scroll al tope: un cambio de chip o término es un listado nuevo.
+      // Resetear scroll al tope: un cambio de chip, término o filtro es un
+      // listado nuevo.
       if (typeof window !== "undefined") window.scrollTo(0, 0);
       client
-        .listEvents({ limit: PAGE_SIZE, search: term || undefined, range: rangeForChip(activeRango) })
+        .listEvents({
+          limit: PAGE_SIZE,
+          search: term || undefined,
+          range: rangeForChip(activeRango),
+          filters: toListEventsFilters(activeFilters)
+        })
         .then((pageResult) => {
           if (token !== requestTokenRef.current) return;
           setList(appendPage(base, pageResult));
@@ -186,10 +227,10 @@ function EventListContent() {
       restoredRef.current = false;
       return;
     }
-    loadFirstPage(appliedTerm, rango);
-    // Dispara al cambiar término aplicado, rango o configuración; loadFirstPage
-    // es estable (depende de client) y no se incluye a propósito.
-  }, [appliedTerm, rango, configured]);
+    loadFirstPage(appliedTerm, rango, filters);
+    // Dispara al cambiar término aplicado, rango, filtros o configuración;
+    // loadFirstPage es estable (depende de client) y no se incluye a propósito.
+  }, [appliedTerm, rango, filters, configured]);
 
   // --- Carga incremental (scroll infinito + botón) -----------------------------
   const loadMore = useCallback(() => {
@@ -205,7 +246,8 @@ function EventListContent() {
         limit: PAGE_SIZE,
         search: current.term || undefined,
         cursor: current.cursor,
-        range: rangeForChip(rangoRef.current)
+        range: rangeForChip(rangoRef.current),
+        filters: toListEventsFilters(filtersRef.current)
       })
       .then((pageResult) => {
         if (token !== requestTokenRef.current) return;
@@ -226,11 +268,11 @@ function EventListContent() {
   // es una carga incremental.
   const retry = useCallback(() => {
     if (listRef.current.items.length === 0) {
-      loadFirstPage(appliedTerm, rango);
+      loadFirstPage(appliedTerm, rango, filters);
     } else {
       loadMore();
     }
-  }, [appliedTerm, rango, loadFirstPage, loadMore]);
+  }, [appliedTerm, rango, filters, loadFirstPage, loadMore]);
 
   // --- IntersectionObserver sobre el centinela ---------------------------------
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -298,6 +340,43 @@ function EventListContent() {
     // Solo depende de configured; client es estable y se omite a propósito.
   }, [configured]);
 
+  // --- Catálogo de ciudades para el sheet (derivado de los eventos cargados) ---
+  // Acumula las ciudades vistas para no perder opciones al paginar o al filtrar.
+  // Incluye además las ciudades ya seleccionadas (vía URL) aunque aún no estén
+  // en la página, para que el sheet pueda mostrarlas/desmarcarlas.
+  useEffect(() => {
+    setCityCatalog((prev) => {
+      const seen = new Set(prev);
+      for (const event of list.items) {
+        const city = event.venue?.city?.trim();
+        if (city) seen.add(city);
+      }
+      for (const city of filters.cities) seen.add(city);
+      const merged = Array.from(seen);
+      // Orden alfabético estable (es-CL) para una lista predecible.
+      merged.sort((a, b) => a.localeCompare(b, "es-CL"));
+      // Evita re-render si no cambió el contenido.
+      if (merged.length === prev.length && merged.every((c, i) => c === prev[i])) return prev;
+      return merged;
+    });
+  }, [list.items, filters.cities]);
+
+  const openSheet = useCallback(() => setSheetOpen(true), []);
+  const closeSheet = useCallback(() => {
+    setSheetOpen(false);
+    // Restaurar el foco al disparador tras cerrar.
+    requestAnimationFrame(() => filterButtonRef.current?.focus());
+  }, []);
+  const applyFiltersFromSheet = useCallback(
+    (next: FiltersState) => {
+      updateFilters(next);
+      closeSheet();
+    },
+    [updateFilters, closeSheet]
+  );
+
+  const activeCount = activeFilterCount(filters);
+
   const updatedLabel = formatRelativeTime(freshness?.last_run_finished_at);
   // El chip "Gratis" se aplica como post-filtro cliente sobre lo ya cargado.
   const freeFilterActive = rango === "gratis";
@@ -325,20 +404,47 @@ function EventListContent() {
         </p>
       ) : null}
 
-      <label className="block">
-        <span className="sr-only">Buscar eventos</span>
-        <input
-          type="search"
-          value={inputTerm}
-          onChange={(event) => setInputTerm(event.target.value)}
-          placeholder="¿Qué quieres ver?"
-          className="mb-4 w-full rounded-[10px] border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand sm:text-base"
-        />
-      </label>
+      <div className="mb-4 flex items-stretch gap-2">
+        <label className="block flex-1">
+          <span className="sr-only">Buscar eventos</span>
+          <input
+            type="search"
+            value={inputTerm}
+            onChange={(event) => setInputTerm(event.target.value)}
+            placeholder="¿Qué quieres ver?"
+            className="w-full rounded-[10px] border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand sm:text-base"
+          />
+        </label>
+        <button
+          ref={filterButtonRef}
+          type="button"
+          onClick={openSheet}
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+          className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] border border-border bg-surface px-4 py-3 text-sm font-medium text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        >
+          <span>Filtros</span>
+          {activeCount > 0 ? (
+            <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-contrast">
+              {activeCount}
+            </span>
+          ) : null}
+        </button>
+      </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <FilterChips value={rango} onChange={updateRango} />
       </div>
+
+      <ActiveFilterChips value={filters} onRemove={(facet, value) => updateFilters(removeFilter(filters, facet, value))} onClearAll={() => updateFilters(clearFilters())} />
+
+      <FilterSheet
+        open={sheetOpen}
+        value={filters}
+        cities={cityCatalog}
+        onApply={applyFiltersFromSheet}
+        onClose={closeSheet}
+      />
 
       {/* Encabezado del listado (Figma: "Todos los eventos" sobre la lista). */}
       <SectionHeader title="Todos los eventos" />
@@ -372,6 +478,19 @@ function EventListContent() {
             // Estado vacío HONESTO del chip Gratis: hoy no hay eventos con
             // price_min=0 (ver data_reality: 0/143 gratis). No inventamos datos.
             <p>No hay eventos gratuitos por ahora.</p>
+          ) : activeCount > 0 ? (
+            // Estado vacío honesto de los filtros de faceta: la combinación
+            // activa no tiene resultados. Ofrecemos limpiar los filtros.
+            <p>
+              Sin resultados para estos filtros.{" "}
+              <button
+                type="button"
+                onClick={() => updateFilters(clearFilters())}
+                className="underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              >
+                Limpiar filtros
+              </button>
+            </p>
           ) : appliedTerm ? (
             <p>
               No hay eventos que coincidan con la búsqueda.{" "}
