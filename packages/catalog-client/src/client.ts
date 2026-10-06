@@ -4,6 +4,7 @@ import type {
   CatalogFreshness,
   CatalogVenue,
   EventCursor,
+  ListEventsFilters,
   ListEventsParams,
   ListEventsResult
 } from "./types";
@@ -122,6 +123,7 @@ export class CatalogClient {
       const countQuery = new URLSearchParams({ select: "id", limit: "1" });
       if (search) countQuery.set("name", `ilike.*${search}*`);
       applyRange(countQuery, range);
+      applyFilters(countQuery, params.filters);
       const { contentRange } = await this.requestWithRange<CatalogEvent[]>(
         `/rest/v1/catalog_events_v2?${countQuery.toString()}`,
         { prefer: "count=exact" }
@@ -151,6 +153,11 @@ export class CatalogClient {
       query.set("order", "id.asc");
       query.set("id", `gt.${cursor?.id ?? 0}`);
     }
+
+    // Filtros de faceta (estado/fuente/ciudad): AND con name/range/keyset, en
+    // AMBAS fases. No usan un segundo `or=`, así que no colisionan con el del
+    // keyset. Sin filtros, no tocan la query (retrocompatibilidad byte-idéntica).
+    applyFilters(query, params.filters);
 
     const { data: items } = await this.requestWithRange<CatalogEvent[]>(
       `/rest/v1/catalog_events_v2?${query.toString()}`
@@ -268,6 +275,54 @@ function applyRange(query: URLSearchParams, range?: { gteISO?: string; lteISO?: 
   if (!range) return;
   if (range.gteISO) query.append("next_performance_at", `gte.${range.gteISO}`);
   if (range.lteISO) query.append("next_performance_at", `lte.${range.lteISO}`);
+}
+
+/**
+ * Fuentes conocidas del catálogo. Si TODAS están seleccionadas (o ninguna), la
+ * faceta de fuente equivale a "sin filtro": un evento nunca comparte el mismo
+ * objeto en dos fuentes, así que un AND de dos `contains` jsonb daría vacío. Por
+ * eso solo UN valor efectivo produce filtro (ver `investigacion-filtros.md`).
+ */
+const KNOWN_SOURCES = ["ticketmaster", "puntoticket"] as const;
+
+/**
+ * Traduce los filtros de faceta de la Etapa 5 a parámetros PostgREST, análogo a
+ * `applyRange`. Cada faceta es un parámetro top-level distinto (AND entre
+ * facetas) con OR interno vía `in`/containment; ninguna añade un segundo `or=`,
+ * de modo que compone limpio con el `or=` del keyset. Si `filters` es
+ * `undefined` o todas sus facetas quedan vacías, NO toca la query
+ * (retrocompatibilidad byte-idéntica sin filtros).
+ *
+ * - Estado:  `status=in.(available,sold_out)` (columna top-level).
+ * - Ciudad:  `venue->>city=in.("Santiago Centro","Nunoa")` (traversal jsonb).
+ * - Fuente:  `sources=cs.[{"source":"<code>"}]` SOLO con 1 valor efectivo.
+ */
+function applyFilters(query: URLSearchParams, filters?: ListEventsFilters): void {
+  if (!filters) return;
+
+  const statuses = dedupe(filters.statuses);
+  if (statuses.length > 0) {
+    query.set("status", `in.(${statuses.join(",")})`);
+  }
+
+  const cities = dedupe(filters.cities);
+  if (cities.length > 0) {
+    // `in.(...)` con comillas dobles por valor para tolerar espacios/acentos;
+    // URLSearchParams codifica el resto.
+    query.set("venue->>city", `in.(${cities.map((c) => `"${c}"`).join(",")})`);
+  }
+
+  // Fuente: 1 valor efectivo => contains; 0 o todas => sin filtro.
+  const sources = dedupe(filters.sources).filter((s) => (KNOWN_SOURCES as readonly string[]).includes(s));
+  if (sources.length === 1) {
+    query.set("sources", `cs.[{"source":"${sources[0]}"}]`);
+  }
+}
+
+/** Dedup preservando orden; ignora `undefined`/arreglo ausente. */
+function dedupe<T>(values?: readonly T[]): T[] {
+  if (!values || values.length === 0) return [];
+  return Array.from(new Set(values));
 }
 
 /**

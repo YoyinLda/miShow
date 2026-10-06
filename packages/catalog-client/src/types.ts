@@ -106,6 +106,27 @@ export interface ListEventsRange {
   lteISO?: string;
 }
 
+/**
+ * Filtros de faceta server-side para `listEvents` (Etapa 5). Todas las claves
+ * son opcionales; cada faceta aplica un AND respecto de las demás, y OR dentro
+ * de la propia faceta.
+ *
+ * - `sources`: códigos de fuente (`"ticketmaster"`, `"puntoticket"`). Con 0 o
+ *   TODOS los valores posibles seleccionados equivale a "sin filtro" (se omite),
+ *   porque un evento nunca comparte el mismo objeto en dos fuentes y combinar
+ *   dos `contains` jsonb daría vacío. Solo 1 valor efectivo genera filtro.
+ * - `cities`: valores de `venue.city` (p. ej. `"Santiago Centro"`); OR vía `in`.
+ * - `statuses`: estado de venta visible; solo `available` y `sold_out`
+ *   (`unknown` se presenta como "Confirmado" y no es filtrable como faceta).
+ *
+ * Un arreglo vacío equivale a la clave ausente (sin filtro).
+ */
+export interface ListEventsFilters {
+  sources?: string[];
+  cities?: string[];
+  statuses?: Array<"available" | "sold_out">;
+}
+
 /** Parámetros de `listEvents`: página keyset + búsqueda server-side. */
 export interface ListEventsParams {
   limit?: number;
@@ -118,6 +139,12 @@ export interface ListEventsParams {
    * comportamiento byte-idéntico al histórico.
    */
   range?: ListEventsRange;
+  /**
+   * Filtros de faceta opcionales (fuente/ciudad/estado). Al estar presentes,
+   * se aplican tanto en la query de datos como en la de conteo global, igual
+   * que `range`. Ausentes o vacíos => comportamiento byte-idéntico al histórico.
+   */
+  filters?: ListEventsFilters;
 }
 
 /**
