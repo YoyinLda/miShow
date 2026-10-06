@@ -121,6 +121,15 @@ ordena alfabéticamente (es-CL).
 El chip **"Gratis"** sigue como estaba (post-filtro cliente `isFree`, vacío
 honesto); NO se convirtió en server-side.
 
+**LUGAR por nombre de recinto (`venue.name`) — typeahead futuro, NO implementado.**
+La faceta "Lugar" de la Etapa 5 filtra por **ciudad** (`venue->>city`), no por el
+nombre del recinto. Filtrar por `venue.name` (35 valores distintos hoy) queda
+**fuera de alcance por decisión TL/PO**: su diseño natural es un **typeahead**
+(autocompletado por texto), no chips de selección múltiple, y no se implementa en
+esta etapa. Cuando se aborde, iría como entrada de búsqueda incremental sobre
+`venue->>name` (traversal jsonb análogo al de ciudad), reutilizando el mismo
+contrato de facetas. Hasta entonces, "Lugar" en la UI = ciudad.
+
 ## Preservación del listado
 
 En `/eventos` se conservan intactos del listado previo:
