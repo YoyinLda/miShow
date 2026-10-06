@@ -225,3 +225,50 @@ Cuando se cierre una decisión relevante, documentarla con:
   `// TODO Etapa 4` donde aplica). Ver `apps/web/app/globals.css`,
   `apps/web/app/layout.tsx`, `apps/web/components/ThemeToggle.tsx`,
   `apps/web/lib/theme.ts` y los componentes de listado/detalle.
+
+### 2026-10-04 — Filtros avanzados server-side y rótulo "Lugar" (Brief 005, Etapa 5)
+
+- **Estado:** aceptada.
+- **Contexto:** `/eventos` necesitaba filtros de faceta (fuente, ciudad, estado)
+  sin romper el conteo exacto ni el keyset en dos fases, y sin tocar la base. La
+  Fase 1 (bloqueante, read-only sobre `catalog_events_v2`) verificó la viabilidad
+  antes de implementar. Evidencia en
+  `.agents/tasks/miShow-feat-etapa5-filtros-2026-10-04/investigacion-filtros.md`
+  y gate `fase1.json` (`PROCEED`).
+- **Decisión TL/PO:** filtrar **server-side** sobre la vista vía PostgREST. Las
+  tres facetas son viables **sin migración**:
+  - **Fuente** → `sources=cs.[{"source":"<code>"}]` (containment jsonb `@>`; con 2
+    fuentes posibles hay a lo más 1 valor efectivo, así que nunca requiere un
+    segundo `or=`). Datos: ticketmaster 79, puntoticket 68.
+  - **Ciudad** → `venue->>city=in.("Ciudad A","Ciudad B")` (traversal `->>` +
+    `in`). 20 ciudades, sin nulos.
+  - **Estado** → `status=in.(available,sold_out)` (columna top-level). 24 filas.
+  Componen **AND entre facetas** y con `name=ilike`, `range` y el keyset, sin
+  añadir un segundo `or=` top-level (el único `or=` sigue siendo el del keyset).
+  Los filtros se aplican en la query de datos **y** en la de conteo
+  (`Prefer: count=exact`) para que el total refleje la combinación activa. Sin
+  filtros, la request es byte-idéntica a la histórica (retrocompatible).
+- **Sin decisión de datos pendiente:** no hace falta exponer columnas top-level
+  (`source_codes`, `city`); el caso (B) del brief (post-filtro cliente de alto
+  volumen o nueva columna) **no aplica**. `facetasPendientes: []` en el gate.
+- **Rótulo "Lugar" (no "venue" ni "recinto"):** la faceta de ciudad se muestra en
+  la UI como **"Lugar"**. Decisión de nomenclatura del front (ver mensaje TL/PO):
+  no usar "venue" ni "recinto" de cara al usuario. Los identificadores internos
+  (`venue`, tipo `CatalogVenue`, ruta `/venues`, `venue.*`) **no cambian**.
+- **Estado sin `unknown`:** la faceta de estado **no** ofrece `unknown` (~83% del
+  catálogo), coherente con la decisión de presentación "Confirmado" por defecto
+  (ver entrada 2026-09-13). Solo se filtran `available`/`sold_out` (+`upcoming`).
+- **Fuera de alcance (TL/PO):** **Lugar por nombre de recinto** (`venue.name`, 35
+  valores) queda como **typeahead futuro no implementado**, no como chips. El chip
+  **"Gratis"** sigue como post-filtro cliente (`isFree`, `price_min=0` vive en
+  `sources` jsonb), vacío honesto; no pasó a server-side.
+- **Alternativas:** post-filtro cliente de alto volumen (descartado: rompería
+  conteo y keyset); exponer columnas top-level con migración (innecesario). Mover
+  el keyset a `and=(..)` para liberar el `or=` (no se necesita hoy; anotado).
+- **Consecuencias:** `@mishow/catalog-client` gana
+  `listEvents({ filters: { sources?, cities?, statuses? } })` (`ListEventsFilters`;
+  arreglo vacío = clave ausente). El front suma botón "Filtros", bottom sheet
+  accesible, chips activos y helpers puros filtros↔URL (`lib/filters.ts`,
+  `?fuente=&ciudad=&estado=`). Riesgo residual: confirmar contra PostgREST en vivo
+  (smoke test headless, no bloqueante del contrato de cliente). Ver
+  `docs/front-catalogo-eventos.md` y `docs/briefs/005-plan-implementacion-front.md`.

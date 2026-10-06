@@ -288,6 +288,106 @@ describe("CatalogClient", () => {
     expect(withoutRange.capture.url).not.toContain("next_performance_at=lte.");
   });
 
+  it("builds status=in.(...) for the estado facet in both count and data queries", async () => {
+    const { impl, urls } = fetchSequence([
+      { body: [], headers: { "content-range": "0-0/24" } },
+      { body: [rowWith(1, "2026-12-12T12:00:00Z")] }
+    ]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({ limit: 20, filters: { statuses: ["available", "sold_out"] } });
+    const countUrl = decodeURIComponent(urls[0]);
+    const dataUrl = decodeURIComponent(urls[1]);
+    expect(countUrl).toContain("status=in.(available,sold_out)");
+    expect(dataUrl).toContain("status=in.(available,sold_out)");
+    expect(result.total).toBe(24);
+  });
+
+  it("builds venue->>city=in.(...) with quoted values and encodes spaces/accents", async () => {
+    const { impl, capture } = fetchSpy([]);
+    const client = makeClient(impl);
+    await client.listEvents({ limit: 20, filters: { cities: ["Santiago Centro", "Ñuñoa"] } });
+    const raw = capture.url ?? "";
+    // URLSearchParams codifica el espacio como `+` (application/x-www-form-urlencoded,
+    // que PostgREST interpreta como espacio) y los acentos en %XX. Decodificamos
+    // con URLSearchParams para recuperar los valores reales.
+    const decodedParams = new URLSearchParams(raw.slice(raw.indexOf("?") + 1));
+    expect(decodedParams.get("venue->>city")).toBe('in.("Santiago Centro","Ñuñoa")');
+    // Crudo: los espacios y acentos van URL-encoded (no literales).
+    expect(raw).not.toContain("Santiago Centro");
+    expect(raw).toContain("Santiago+Centro");
+    expect(raw).not.toContain("Ñuñoa");
+  });
+
+  it("builds sources=cs.[...] only when exactly one source is effective", async () => {
+    const one = fetchSpy([]);
+    await makeClient(one.impl).listEvents({ limit: 20, filters: { sources: ["ticketmaster"] } });
+    expect(decodeURIComponent(one.capture.url ?? "")).toContain('sources=cs.[{"source":"ticketmaster"}]');
+  });
+
+  it("omits the sources filter when zero or all sources are selected", async () => {
+    const none = fetchSpy([]);
+    await makeClient(none.impl).listEvents({ limit: 20, filters: { sources: [] } });
+    expect(none.capture.url ?? "").not.toContain("sources=");
+
+    const all = fetchSpy([]);
+    await makeClient(all.impl).listEvents({ limit: 20, filters: { sources: ["ticketmaster", "puntoticket"] } });
+    expect(all.capture.url ?? "").not.toContain("sources=");
+  });
+
+  it("combines facets (AND) with each other and with search/range/keyset without a second or=", async () => {
+    const { impl, capture } = fetchSpy([]);
+    const client = makeClient(impl);
+    await client.listEvents({
+      limit: 20,
+      search: "rock",
+      range: { gteISO: "2026-12-12T03:00:00.000Z" },
+      cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 },
+      filters: { statuses: ["sold_out"], cities: ["Providencia"], sources: ["puntoticket"] }
+    });
+    const decoded = decodeURIComponent(capture.url ?? "");
+    expect(decoded).toContain("name=ilike.*rock*");
+    expect(decoded).toContain("next_performance_at=gte.2026-12-12T03:00:00.000Z");
+    expect(decoded).toContain("status=in.(sold_out)");
+    expect(decoded).toContain('venue->>city=in.("Providencia")');
+    expect(decoded).toContain('sources=cs.[{"source":"puntoticket"}]');
+    // El keyset es el ÚNICO or= top-level: debe aparecer exactamente una vez.
+    expect((capture.url ?? "").match(/[?&]or=/g) ?? []).toHaveLength(1);
+    expect(decoded).toContain(
+      "or=(next_performance_at.gt.2026-12-01T00:00:00Z,and(next_performance_at.eq.2026-12-01T00:00:00Z,id.gt.10))"
+    );
+  });
+
+  it("applies facet filters in phase B (NULL zone) too", async () => {
+    const { impl, capture } = fetchSpy([]);
+    const client = makeClient(impl);
+    await client.listEvents({
+      limit: 20,
+      cursor: { phase: "null", nextAt: null, id: 0 },
+      filters: { statuses: ["available"] }
+    });
+    const decoded = decodeURIComponent(capture.url ?? "");
+    expect(decoded).toContain("next_performance_at=is.null");
+    expect(decoded).toContain("status=in.(available)");
+  });
+
+  it("produces a byte-identical data URL when filters is undefined or empty (backward compatible)", async () => {
+    const noFilters = fetchSpy([]);
+    await makeClient(noFilters.impl).listEvents({
+      limit: 20,
+      cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 }
+    });
+    const emptyFilters = fetchSpy([]);
+    await makeClient(emptyFilters.impl).listEvents({
+      limit: 20,
+      cursor: { phase: "nonnull", nextAt: "2026-12-01T00:00:00Z", id: 10 },
+      filters: { sources: [], cities: [], statuses: [] }
+    });
+    expect(noFilters.capture.url).toBe(emptyFilters.capture.url);
+    expect(noFilters.capture.url).not.toContain("status=");
+    expect(noFilters.capture.url).not.toContain("venue");
+    expect(noFilters.capture.url).not.toContain("sources=");
+  });
+
   it("includes name=ilike in the data query when searching", async () => {
     const { impl, capture } = fetchSpy([]);
     const client = makeClient(impl);

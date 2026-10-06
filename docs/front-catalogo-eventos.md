@@ -65,6 +65,71 @@ America/Santiago):
 El chip activo se refleja en `?rango=` con `history.replaceState` (sin recargar
 ni crear entradas de historial). El término de búsqueda se refleja en `?q=`.
 
+## Filtros avanzados (Etapa 5)
+
+`/eventos` suma filtros de faceta **server-side** sobre `catalog_events_v2`, sin
+tocar la base (ver `.agents/tasks/miShow-feat-etapa5-filtros-2026-10-04/`). Tres
+facetas viables confirmadas en Fase 1:
+
+| Faceta | UI | Traducción PostgREST |
+|---|---|---|
+| **Fuente** | Ticketmaster / PuntoTicket | `sources=cs.[{"source":"<code>"}]` (solo con 1 valor efectivo; 0 o ambas = sin filtro) |
+| **Lugar** (ciudad) | `venue.city` | `venue->>city=in.("Ciudad A","Ciudad B")` |
+| **Estado** | Disponible / Agotado | `status=in.(available,sold_out)` |
+
+Reglas de composición:
+
+- AND entre facetas, OR dentro de cada faceta. Ninguna faceta añade un segundo
+  `or=`, así que el único `or=` top-level sigue siendo el del keyset: componen
+  limpio con `?q=` (`name=ilike`), `?rango=` (`next_performance_at` gte/lte) y la
+  paginación en dos fases.
+- Los filtros se aplican en la query de DATOS **y** en la de CONTEO
+  (`Prefer: count=exact`), de modo que el total ("37 eventos") refleja la
+  combinación activa.
+- Sin filtros, la request es byte-idéntica a la histórica (retrocompatible; hay
+  test de byte-identidad en `packages/catalog-client/tests/client.test.ts`).
+
+Contrato del cliente: `listEvents({ filters: { sources?, cities?, statuses? } })`
+(`ListEventsFilters` en `@mishow/catalog-client`). Un arreglo vacío equivale a la
+clave ausente.
+
+Rótulo de UI: la sección de ciudad se rotula **"Lugar"**; los identificadores
+internos (`venue`, tipo `CatalogVenue`, ruta `/venues`, `venue.*`) NO cambian.
+
+UI y accesibilidad:
+
+- Botón "Filtros" junto al buscador con contador de filtros activos; abre un
+  **bottom sheet** accesible (`role="dialog"`, `aria-modal`, foco atrapado,
+  cierre con Esc y overlay, restaura el foco al disparador). Pills con
+  `aria-checked`, área táctil ≥44px, foco visible, contraste AA en claro y
+  oscuro. Patrón de borrador: "Aplicar" confirma, "Limpiar" vacía el borrador.
+- Sobre la lista: chips de filtros activos con "quitar" individual + "Limpiar
+  todo"; el conteo total se anuncia con `aria-live`.
+- Estado vacío honesto ("Sin resultados para estos filtros" + acción de limpiar).
+- Cambiar cualquier filtro resetea el scroll y re-consulta (nuevo cursor).
+
+URL (helpers puros en `lib/filters.ts`, con tests en `tests/filters.test.ts`):
+`?fuente=ticketmaster&ciudad=Santiago%20Centro&estado=sold_out`, combinable con
+`?q=` y `?rango=`, reflejada con `history.replaceState` (sin recargar ni crear
+historial). Recargar restaura los filtros. Multi-valor por CSV o parámetro
+repetido; se serializa un CSV por faceta y se omiten las vacías.
+
+Catálogo de ciudades del sheet: se **deriva de los eventos ya cargados** (más las
+ciudades seleccionadas vía URL), sin endpoint nuevo ni lista hardcodeada; se
+ordena alfabéticamente (es-CL).
+
+El chip **"Gratis"** sigue como estaba (post-filtro cliente `isFree`, vacío
+honesto); NO se convirtió en server-side.
+
+**LUGAR por nombre de recinto (`venue.name`) — typeahead futuro, NO implementado.**
+La faceta "Lugar" de la Etapa 5 filtra por **ciudad** (`venue->>city`), no por el
+nombre del recinto. Filtrar por `venue.name` (35 valores distintos hoy) queda
+**fuera de alcance por decisión TL/PO**: su diseño natural es un **typeahead**
+(autocompletado por texto), no chips de selección múltiple, y no se implementa en
+esta etapa. Cuando se aborde, iría como entrada de búsqueda incremental sobre
+`venue->>name` (traversal jsonb análogo al de ciudad), reutilizando el mismo
+contrato de facetas. Hasta entonces, "Lugar" en la UI = ciudad.
+
 ## Preservación del listado
 
 En `/eventos` se conservan intactos del listado previo:

@@ -5,9 +5,9 @@
 
 ## Estado (2026-10-04)
 
-Etapas 1-4 **implementadas y en producción** (https://mishow.pages.dev). Falta la
-Etapa 5 (filtros avanzados), acotada en `005-etapa5-filtros.md` porque la Etapa 4
-ya absorbió los chips de rango y las secciones de descubrimiento.
+Etapas 1-4 **implementadas y en producción** (https://mishow.pages.dev). La
+Etapa 5 (filtros avanzados), acotada en `005-etapa5-filtros.md`, está
+**implementada** (facetas fuente/Lugar/estado server-side); pendiente de merge.
 
 | Etapa | Objetivo | Estado | PR |
 |---|---|---|---|
@@ -15,7 +15,7 @@ ya absorbió los chips de rango y las secciones de descubrimiento.
 | 2 | Paginación (scroll infinito keyset) | ✅ | #15 |
 | 3 | Tokens de color + modo oscuro (toggle 3 modos) | ✅ | #16 |
 | 4 | Rediseño fiel a Figma 03 Screens (Home + Catálogo) | ✅ | #18 |
-| 5 | Filtros avanzados (fuente, ciudad/recinto, estado) | 📋 brief | — |
+| 5 | Filtros avanzados (fuente, Lugar/ciudad, estado) | ✅ | pendiente de merge |
 
 ## Orden recomendado y por qué
 
@@ -134,18 +134,34 @@ Figma, con identidad miShow; preserva scroll infinito, tema, hora y ticketera.
 
 ---
 
-## Etapa 5 — Filtros avanzados (Obj.5) 📋 brief pendiente de aprobación
+## Etapa 5 — Filtros avanzados (Obj.5) ✅ implementada
 
 **Reencuadrada:** la Etapa 4 ya entregó los chips de rango (Hoy/Semana/Mes/Gratis)
-y las secciones de descubrimiento. Lo que resta de la Etapa 5 es un panel de
-**filtros avanzados** sobre el catálogo (`/eventos`): fuente, ciudad/recinto y
-estado, en bottom sheet accesible, con chips activos, resumen de conteo y
-recuperación ante combinación vacía. Detalle y datos verificados en
-`005-etapa5-filtros.md`.
+y las secciones de descubrimiento. La Etapa 5 añade un panel de **filtros
+avanzados** sobre el catálogo (`/eventos`): fuente, **Lugar** (ciudad) y estado,
+en bottom sheet accesible, con chips activos, resumen de conteo y recuperación
+ante combinación vacía. Detalle y datos verificados en `005-etapa5-filtros.md` y
+en `.agents/tasks/miShow-feat-etapa5-filtros-2026-10-04/`.
 
-**Resultado visible:** en `/eventos`, el usuario combina fuente + ciudad/recinto
-+ estado con feedback de conteo y puede limpiar; combinaciones vacías ofrecen
-salida.
+**Implementado (todo server-side, sin tocar la base):**
+
+- `@mishow/catalog-client`: `listEvents({ filters: { sources?, cities?, statuses? } })`
+  traduce las facetas a PostgREST (`sources=cs.[…]`, `venue->>city=in.(…)`,
+  `status=in.(…)`) en datos y conteo, componiendo AND entre facetas y con
+  `q`/`rango`/keyset sin segundo `or=`. Sin filtros, request byte-idéntica.
+- Front `/eventos`: botón "Filtros" con contador, bottom sheet accesible
+  (`role=dialog`, `aria-modal`, foco atrapado, Esc/overlay, restaura foco),
+  secciones Fuente/Lugar/Estado con pills `aria-checked`, chips de filtros
+  activos (quitar individual + "Limpiar todo"), conteo con `aria-live`, estado
+  vacío honesto y reset de scroll. Helpers puros filtros↔URL en `lib/filters.ts`.
+- URL `?fuente=&ciudad=&estado=` vía `history.replaceState`, combinable con
+  `?q=`/`?rango=`; recargar restaura. "Gratis" permanece como post-filtro cliente.
+
+**Rótulo:** la ciudad se muestra como **"Lugar"** en la UI; los identificadores
+internos (`venue`, `/venues`, `CatalogVenue`) no cambian.
+
+**Resultado visible:** en `/eventos`, el usuario combina fuente + Lugar + estado
+con feedback de conteo y puede limpiar; combinaciones vacías ofrecen salida.
 
 ---
 
