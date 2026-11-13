@@ -1,4 +1,4 @@
-import type { NormalizedEvent } from "@mishow/domain";
+﻿import type { NormalizedEvent } from "@mishow/domain";
 import type { SourceAdapter } from "../adapter.js";
 import {
   PersistenceError,
@@ -9,7 +9,7 @@ import {
   type ScrapeRun,
   type StartRunInput
 } from "./contracts.js";
-import { mapEventForPersistence, mapScrapeError, mapStartRun, sanitizePersistenceMessage } from "./mapping.js";
+import { mapEventForPersistence, mapFinishRun, mapScrapeError, mapStartRun, sanitizePersistenceMessage } from "./mapping.js";
 
 const RETRYABLE_SQLSTATES = new Set(["40001", "40P01"]);
 
@@ -19,7 +19,7 @@ export interface SupabaseServerConfig {
 }
 
 export interface RpcRequest {
-  functionName: "start_scrape_run" | "persist_normalized_event" | "record_scrape_error" | "finish_scrape_run";
+  functionName: "start_scrape_run" | "persist_normalized_event" | "record_scrape_error" | "finish_scrape_run" | "record_venue_source_checks";
   parameters: Record<string, unknown>;
 }
 
@@ -54,7 +54,7 @@ export class SupabaseEventPersistence implements EventPersistence {
   }
 
   async finishRun(runId: string, result: FinishRunInput): Promise<void> {
-    await this.invoke("finish_scrape_run", { p_run_id: runId, p_result: result });
+    await this.invoke("finish_scrape_run", { p_run_id: runId, p_result: mapFinishRun(this.adapter, result) });
   }
 
   private async invoke(functionName: RpcRequest["functionName"], parameters: Record<string, unknown>): Promise<unknown> {
@@ -115,6 +115,101 @@ export function createSupabaseRpcTransport(config: SupabaseServerConfig, fetchIm
     }
     return payload;
   };
+}
+
+export interface TableSelectRequest {
+  table: "venue_sources";
+  columns: readonly string[];
+  /** Filtros de igualdad (`columna = valor`). */
+  eq: Readonly<Record<string, string>>;
+}
+
+export type TableSelectTransport = (request: TableSelectRequest) => Promise<unknown>;
+
+/** Transporte de lectura (PostgREST GET) con las mismas credenciales y errores que el transporte RPC. */
+export function createSupabaseTableSelectTransport(
+  config: SupabaseServerConfig,
+  fetchImplementation: typeof fetch = fetch
+): TableSelectTransport {
+  return async ({ table, columns, eq }) => {
+    const query = new URLSearchParams({ select: columns.join(",") });
+    for (const [column, value] of Object.entries(eq)) query.set(column, `eq.${value}`);
+    let response: Response;
+    try {
+      response = await fetchImplementation(`${config.url}/rest/v1/${table}?${query.toString()}`, {
+        method: "GET",
+        headers: { apikey: config.secretKey, accept: "application/json" }
+      });
+    } catch (error) {
+      throw new PersistenceError("transport_error", sanitizePersistenceMessage(error instanceof Error ? error.message : error, [config.secretKey]));
+    }
+
+    const payload = parseJson(await response.text());
+    if (!response.ok) {
+      const body = objectResult(payload, false);
+      const code = typeof body?.code === "string" ? body.code : `http_${response.status}`;
+      const message = typeof body?.message === "string" ? body.message : "Data API rechazo la operacion.";
+      throw new PersistenceError(code, sanitizePersistenceMessage(message, [config.secretKey]), response.status);
+    }
+    return payload;
+  };
+}
+
+export type VenueSourceStatus = "candidate" | "active" | "not_found";
+
+export interface VenueSourceRow {
+  source_slug: string;
+  source_url: string;
+  /** Ausente => "candidate". */
+  status?: VenueSourceStatus;
+  last_checked_at?: string | null;
+}
+
+export interface VenueSourceCheck {
+  source_slug: string;
+  status: "active" | "not_found";
+}
+
+/** Lee `source_slug, source_url` de `venue_sources` para `source`; valida la forma de cada fila. */
+export async function listVenueSources(source: string, select: TableSelectTransport): Promise<VenueSourceRow[]> {
+  if (typeof source !== "string" || !source.trim()) {
+    throw new PersistenceError("validation_error", "source es obligatorio.");
+  }
+  const payload = await select({ table: "venue_sources", columns: ["source_slug", "source_url", "status", "last_checked_at"], eq: { source } });
+  if (!Array.isArray(payload)) throw invalidResponse();
+  return payload.map((row) => {
+    if (
+      !row ||
+      typeof row !== "object" ||
+      typeof (row as Record<string, unknown>).source_slug !== "string" ||
+      typeof (row as Record<string, unknown>).source_url !== "string"
+    ) {
+      throw invalidResponse();
+    }
+    const { source_slug, source_url, status, last_checked_at } = row as Record<string, unknown> & VenueSourceRow;
+    if (status !== undefined && status !== null && status !== "candidate" && status !== "active" && status !== "not_found") throw invalidResponse();
+    if (last_checked_at !== undefined && last_checked_at !== null && (typeof last_checked_at !== "string" || Number.isNaN(Date.parse(last_checked_at)))) {
+      throw invalidResponse();
+    }
+    return { source_slug, source_url, status: status ?? "candidate", last_checked_at: last_checked_at ?? null };
+  });
+}
+
+/** Registra el resultado de verificar páginas de venue (best-effort para el llamador). No hace nada sin checks. */
+export async function recordVenueSourceChecks(source: string, checks: readonly VenueSourceCheck[], rpc: RpcTransport): Promise<void> {
+  if (typeof source !== "string" || !source.trim()) throw new PersistenceError("validation_error", "source es obligatorio.");
+  for (const check of checks) {
+    if (typeof check.source_slug !== "string" || !check.source_slug || (check.status !== "active" && check.status !== "not_found")) {
+      throw new PersistenceError("validation_error", "check de venue_sources invalido.");
+    }
+  }
+  if (checks.length === 0) return;
+  await rpc({ functionName: "record_venue_source_checks", parameters: { p_source: source, p_checks: checks.map(({ source_slug, status }) => ({ source_slug, status })) } });
+}
+
+/** Loader compatible con `VenueSourcesLoader` de `scrapers/puntoticket`. */
+export function createVenueSourcesLoader(select: TableSelectTransport): (source: string) => Promise<VenueSourceRow[]> {
+  return (source) => listVenueSources(source, select);
 }
 
 function parseJson(value: string): unknown {

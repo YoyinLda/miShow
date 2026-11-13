@@ -1,0 +1,942 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Agregar tipos de descubrimiento secundario en `scrapers/core/src/adapter.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999473
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575009700
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575086424
+      }
+    ],
+    "1.2 Ajustar `validateAcquisitionUrl` en `scrapers/core/src/acquisition/policy.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999533
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575089369
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575143530
+      }
+    ],
+    "1.3 Escribir pruebas de compatibilidad de la política": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999564
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575154336
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371018
+      }
+    ],
+    "2.1 Crear `scrapers/core/tests/helpers/prng.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999596
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575009740
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575086452
+      }
+    ],
+    "2.2 Crear el espejo `scrapers/puntoticket/tests/helpers/prng.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999628
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575009768
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575086525
+      }
+    ],
+    "3.1 Crear `scrapers/core/src/acquisition/discovery.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999670
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575090167
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575144331
+      }
+    ],
+    "3.2 Escribir test de propiedad para la serialización de referencias": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999718
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575154387
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371050
+      }
+    ],
+    "3.3 Escribir test de propiedad para la canonicalización": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999752
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575154424
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371078
+      }
+    ],
+    "3.4 Escribir test de propiedad para clasificación, dedupe e invariante del reporte": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999786
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575154450
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371135
+      }
+    ],
+    "3.5 Escribir test de propiedad para orden determinista y prioridad de `/musica`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999817
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371826
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575430701
+      }
+    ],
+    "4. Checkpoint - Core base": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999845
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576057149
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576150153
+      }
+    ],
+    "5.1 Modificar `scrapers/core/src/acquisition/orchestrator.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999877
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575154298
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575370969
+      }
+    ],
+    "5.2 Escribir test de propiedad para preservación sin descubrimiento": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999909
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575438288
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575565259
+      }
+    ],
+    "5.3 Escribir test de propiedad para presupuestos de solicitudes": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999940
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575438317
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575566054
+      }
+    ],
+    "5.4 Escribir test de propiedad para tolerancia a fallos parciales": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794574999971
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575438352
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575566851
+      }
+    ],
+    "6. Checkpoint - Core completo": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000000
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576157289
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576213331
+      }
+    ],
+    "7.1 Exportar helpers de `scrapers/puntoticket/src/extraction/listing.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000028
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575009797
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575086498
+      }
+    ],
+    "7.2 Crear `scrapers/puntoticket/src/extraction/venue.ts` con `parseVenuePage(html, pageUrl)`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000060
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575090973
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575145133
+      }
+    ],
+    "7.3 Crear la fuente `fixed-list` en `scrapers/puntoticket/src/discovery/fixed-list.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000090
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575091533
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575145762
+      }
+    ],
+    "7.4 Agregar `createPuntoticketAdapter(opts?)` en `scrapers/puntoticket/src/adapter.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000120
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575438393
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575567579
+      }
+    ],
+    "7.5 Extender `scrapePuntoTicket` en `scrapers/puntoticket/src/acquisition/orchestrator.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000146
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575571619
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575604747
+      }
+    ],
+    "7.6 Escribir test de propiedad para render → parse de venue": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000192
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575372625
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575431444
+      }
+    ],
+    "7.7 Escribir test de propiedad para referencias seguras": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000235
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575373055
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575432248
+      }
+    ],
+    "7.8 Escribir test de propiedad para la política de URL": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000263
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575607794
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575920885
+      }
+    ],
+    "7.9 Escribir test de propiedad para idempotencia de la corrida": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000294
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575608578
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575921021
+      }
+    ],
+    "7.10 Escribir pruebas por ejemplo del adapter": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000326
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575609271
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575921063
+      }
+    ],
+    "8.1 Agregar flags en `puntoticket-scrape.ts`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000355
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575609840
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575921104
+      }
+    ],
+    "8.2 Escribir pruebas del CLI": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000387
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575924386
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576050290
+      }
+    ],
+    "9.1 Actualizar `docs/`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000417
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575925058
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576049272
+      }
+    ],
+    "9.2 Documentar la variable en `.env.example`": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000445
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575925681
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576049703
+      }
+    ],
+    "10. Checkpoint final - typecheck, lint y tests": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575000476
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576216130
+      },
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576299036
+      }
+    ],
+    "1. Extender el contrato del core (aditivo)": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575371107
+      }
+    ],
+    "3. Lógica pura de descubrimiento en el core": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575430741
+      }
+    ],
+    "5. Integrar el descubrimiento en el orquestador del core": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794575566879
+      }
+    ],
+    "9. Documentación y variables": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576049736
+      }
+    ],
+    "8. CLI": [
+      {
+        "executionId": "f6a35cac-b157-4bf7-b20a-41aa9e09b2e9",
+        "chatSessionId": "sess_6438deaf-143d-4330-9cb6-7288f0ff8bcf",
+        "timestamp": 1794576050326
+      }
+    ],
+    "11.1 Crear la migración de `venue_sources` en `supabase/migrations/`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478609
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577486553
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577661966
+      }
+    ],
+    "11.2 Crear la migración de `scrape_runs.discovery_report`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478647
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577486595
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577662004
+      }
+    ],
+    "11.3 Escribir pruebas/verificación de las migraciones": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478680
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577664751
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822346
+      }
+    ],
+    "12.1 Reemplazar las constantes de topes en `scrapers/core/src/acquisition/discovery.ts` y `orchestrator.ts`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478714
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577486621
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577662061
+      }
+    ],
+    "12.2 Escribir test de propiedad para la resolución de topes": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478749
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577665551
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822411
+      }
+    ],
+    "13.1 Extender contratos y workflow de persistencia en `scrapers/core/src/persistence/`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478784
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577666099
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822464
+      }
+    ],
+    "13.2 Pasar el reporte desde `scrapePuntoTicket`/CLI al persistir": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478820
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577825285
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578024881
+      }
+    ],
+    "13.3 Escribir test de propiedad para el reporte persistido": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478852
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577826071
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578024933
+      }
+    ],
+    "14.1 Agregar la lectura de `venue_sources` en `scrapers/core/src/persistence/`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478887
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577826871
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578024988
+      }
+    ],
+    "14.2 Crear `scrapers/puntoticket/src/discovery/db-venues.ts`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478920
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577486695
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577662092
+      }
+    ],
+    "14.3 Conectar la allowlist y la fuente en `scrapers/puntoticket/src/adapter.ts`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478952
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577666904
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822556
+      }
+    ],
+    "14.4 Escribir test de propiedad para URLs canónicas y allowlist = conjunto de slugs": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577478984
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577667507
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822597
+      }
+    ],
+    "14.5 Escribir test de propiedad para rechazo fuera de la allowlist": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479017
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577827395
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578025027
+      }
+    ],
+    "14.6 Escribir pruebas por ejemplo de `db-venues`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479049
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578030397
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578258880
+      }
+    ],
+    "15.1 Actualizar `scrapers/puntoticket/src/cli/puntoticket-scrape.ts`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479083
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578031204
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578259449
+      }
+    ],
+    "15.2 Escribir test de propiedad para la activación por entorno": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479116
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578261983
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578334689
+      }
+    ],
+    "15.3 Escribir pruebas del CLI de la fase 2": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479150
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578262786
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578335483
+      }
+    ],
+    "16.1 Actualizar `docs/`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479195
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578263577
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578336284
+      }
+    ],
+    "16.2 Actualizar `.env.example`": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479262
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578264031
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578336630
+      }
+    ],
+    "17. Checkpoint final de la fase 2 - typecheck, lint y tests": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577479293
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578340974
+      },
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578427400
+      }
+    ],
+    "11. Migraciones de Supabase": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822507
+      }
+    ],
+    "12. Topes configurables (core)": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794577822655
+      }
+    ],
+    "14. Fuente de índice `db-venues` y allowlist exacta": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578258941
+      }
+    ],
+    "15. Activación por entorno y CLI": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578335521
+      }
+    ],
+    "16. Documentación y variables (fase 2)": [
+      {
+        "executionId": "469203e2-8f85-4c4c-a50a-81d5600f50e1",
+        "chatSessionId": "sess_5bc863f2-5652-4946-b156-deb9d0e1c7bc",
+        "timestamp": 1794578336671
+      }
+    ]
+  }
+}

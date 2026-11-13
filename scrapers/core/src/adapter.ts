@@ -1,10 +1,59 @@
-import type { ExtractionResult, RawEventDetail, RawEventReference } from "@mishow/domain";
+﻿import type { ExtractionResult, RawEventDetail, RawEventReference } from "@mishow/domain";
 import type { ExtractedDetail } from "./extraction/detail.js";
 
 export type AcquisitionStage = "listing" | "detail";
 
 export interface AcquisitionUrlContext {
   discoveredDetailUrl?: string;
+  /** Marca solicitudes de descubrimiento secundario (páginas de venue). */
+  secondaryListing?: boolean;
+}
+
+export interface SecondaryIndexContext {
+  /** Pasa por el HttpClient con contexto secundario. */
+  getHtml(url: string): Promise<string>;
+}
+
+export interface SecondaryIndexSource {
+  /** "fixed-list" | "sitemap" | "index-page" | "derived-from-details" */
+  readonly kind: string;
+  /** URLs absolutas candidatas. */
+  list(ctx: SecondaryIndexContext): Promise<string[]>;
+  /** Opcional: entradas del índice omitidas en la última `list()`; el orquestador las registra como errores. */
+  rejections?(): readonly SecondaryIndexRejection[];
+  /** Opcional: el orquestador informa el resultado de cada página solicitada. */
+  reportPages?(results: SecondaryPageResult[]): void;
+}
+
+/** Resultado de solicitar una página secundaria; `status` solo en fallos HTTP. */
+export interface SecondaryPageResult {
+  url: string;
+  ok: boolean;
+  status?: number;
+}
+
+/** Resultado de solicitar una página secundaria; `status` solo en fallos HTTP. */
+export interface SecondaryPageResult {
+  url: string;
+  ok: boolean;
+  status?: number;
+}
+
+export interface SecondaryIndexRejection {
+  code: string;
+  source_url?: string;
+  message: string;
+}
+
+export interface SecondaryDiscovery {
+  /** p. ej. "venues" */
+  readonly id: string;
+  /** ¿La ruta es una página secundaria permitida? (allowlist explícita, no heurística) */
+  isSecondaryPagePath(pathname: string): boolean;
+  /** Fuente del índice de páginas secundarias (enchufable). */
+  readonly index: SecondaryIndexSource;
+  /** Extrae referencias de evento desde el HTML de una página secundaria. */
+  parsePage(html: string, pageUrl: string): RawEventReference[];
 }
 
 /**
@@ -23,6 +72,8 @@ export interface SourceAdapter {
   readonly host: string;
   readonly listingUrl: string;
   readonly purchasePathPatterns: RegExp[];
+  /** Descubrimiento secundario opcional (p. ej. páginas de venue). */
+  readonly discovery?: SecondaryDiscovery;
 
   /** ¿La ruta es un listado válido para esta fuente? */
   isListingPath(pathname: string): boolean;

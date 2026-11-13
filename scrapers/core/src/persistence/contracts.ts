@@ -1,4 +1,5 @@
 import type { NormalizedEvent } from "@mishow/domain";
+import type { DiscoveryReport } from "../acquisition/discovery.js";
 
 export type ScrapeRunStatus = "running" | "succeeded" | "partial" | "failed";
 export type PersistenceSeverity = "warning" | "error";
@@ -47,6 +48,8 @@ export interface FinishRunInput {
   failed_count: number;
   warnings_count: number;
   snapshot_complete: false;
+  /** Reporte de descubrimiento; `null`/ausente si la corrida no ejecutó descubrimiento. */
+  discovery_report?: DiscoveryReport | null;
 }
 
 export interface EventPersistence {

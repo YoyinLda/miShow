@@ -1,10 +1,10 @@
-import type { SourceAdapter, AcquisitionStage, AcquisitionUrlContext } from "../adapter.js";
+﻿import type { SourceAdapter, AcquisitionStage, AcquisitionUrlContext } from "../adapter.js";
 import { acquisitionConfig, type AcquisitionConfig, validateAcquisitionUrl } from "./policy.js";
 
 export type HttpErrorCode = "http_error" | "invalid_content_type" | "response_too_large" | "redirect_rejected" | "too_many_redirects" | "timeout" | "network_error";
 
 export class HttpAcquisitionError extends Error {
-  constructor(readonly code: HttpErrorCode, message: string, readonly attempts: number) {
+  constructor(readonly code: HttpErrorCode, message: string, readonly attempts: number, readonly status?: number) {
     super(message);
     this.name = "HttpAcquisitionError";
   }
@@ -111,7 +111,7 @@ export class HttpClient {
       }
 
       if (response.status < 200 || response.status >= 300) {
-        throw new HttpAcquisitionError("http_error", `HTTP ${response.status}.`, attempts);
+        throw new HttpAcquisitionError("http_error", `HTTP ${response.status}.`, attempts, response.status);
       }
       if (!isAllowedHtml(header(response.headers, "content-type"))) {
         throw new HttpAcquisitionError("invalid_content_type", "Content-Type no permitido.", attempts);

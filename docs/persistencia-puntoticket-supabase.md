@@ -11,7 +11,9 @@ El adaptador usa la Data API mediante cuatro RPC:
 - `start_scrape_run`: crea una corrida breve en estado `running`;
 - `persist_normalized_event`: ejecuta una transacción atómica por evento;
 - `record_scrape_error`: registra un error o warning sanitizado;
-- `finish_scrape_run`: finaliza la corrida con sus contadores.
+- `finish_scrape_run`: finaliza la corrida con sus contadores y persiste
+  `scrape_runs.discovery_report` (migración resuelta; ver
+  `ejecucion-fixture-first-puntoticket.md`, "Descubrimiento por venue").
 
 Las llamadas HTTP ocurren fuera de las transacciones de base de datos. El
 adaptador reintenta como máximo dos veces y únicamente ante SQLSTATE `40001` o

@@ -173,7 +173,12 @@ export function validateAcquisitionUrl(
   if (url.username || url.password || hasUserinfo(value, baseUrl)) throw new AcquisitionPolicyError("La URL no debe incluir credenciales.");
   if (url.port && url.port !== "443") throw new AcquisitionPolicyError("Puerto no permitido.");
   if (adapter.isBlockedPath(url.pathname, stage)) throw new AcquisitionPolicyError("Ruta bloqueada para adquisicion.");
-  if (stage === "listing" && !adapter.isListingPath(url.pathname)) throw new AcquisitionPolicyError("Listing no permitido.");
+  if (stage === "listing") {
+    const allowed = context.secondaryListing
+      ? adapter.discovery?.isSecondaryPagePath(url.pathname) === true
+      : adapter.isListingPath(url.pathname);
+    if (!allowed) throw new AcquisitionPolicyError("Listing no permitido.");
+  }
   url.search = "";
   url.hash = "";
   if (stage === "detail" && !adapter.isDetailPath(url.pathname, context)) throw new AcquisitionPolicyError("Detalle no permitido.");

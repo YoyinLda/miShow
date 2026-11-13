@@ -1,7 +1,8 @@
 import type { EventPerformance, EventStatus, NormalizedEvent, SourceUrlOptions } from "@mishow/domain";
 import { allowedPurchaseUrl, canonicalSourceUrl } from "@mishow/domain";
 import type { SourceAdapter } from "../adapter.js";
-import { PersistenceError, type ScrapeErrorInput, type StartRunInput } from "./contracts.js";
+import type { DiscoveryReport } from "../acquisition/discovery.js";
+import { PersistenceError, type FinishRunInput, type ScrapeErrorInput, type StartRunInput } from "./contracts.js";
 
 const STATUSES = new Set<EventStatus>(["available", "sold_out", "upcoming", "unknown"]);
 const ISO_INSTANT = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.\d+)?(?:Z|[+-](\d\d):(\d\d))$/;
@@ -99,6 +100,51 @@ export function mapStartRun(adapter: SourceAdapter, input: StartRunInput): Start
   requireInstant(input.started_at, "started_at");
   if (!isPlainObject(input.parameters)) throw validationError("parameters debe ser un objeto.");
   return { ...input, parameters: sortObject(input.parameters) };
+}
+
+/** Valida y normaliza FinishRunInput; `discovery_report` siempre sale presente (objeto limpio o `null`). */
+export function mapFinishRun(adapter: SourceAdapter, input: FinishRunInput): FinishRunInput & { discovery_report: DiscoveryReport | null } {
+  return { ...input, discovery_report: mapDiscoveryReport(adapter, input.discovery_report) };
+}
+
+export function mapDiscoveryReport(adapter: SourceAdapter, report: DiscoveryReport | null | undefined): DiscoveryReport | null {
+  if (report === undefined || report === null) return null;
+  if (!isPlainObject(report)) throw validationError("discovery_report debe ser un objeto o null.");
+  const counts = ["musica_unique", "venue_unique", "both", "missing_count", "total_unique"] as const;
+  for (const key of counts) requireCount(report[key], `discovery_report.${key}`);
+  const pages: unknown = report.venue_pages;
+  if (!isPlainObject(pages)) throw validationError("discovery_report.venue_pages debe ser un objeto.");
+  const venuePages = pages as Record<string, unknown>;
+  for (const key of ["requested", "succeeded", "failed"]) requireCount(venuePages[key], `discovery_report.venue_pages.${key}`);
+  if (!Array.isArray(report.missing)) throw validationError("discovery_report.missing debe ser un arreglo.");
+  const options = urlOptions(adapter);
+  const missing = report.missing.map((url, index) => {
+    let canonical: string | undefined;
+    try {
+      canonical = typeof url === "string" ? canonicalSourceUrl(url, "source_url", options) : undefined;
+    } catch {
+      canonical = undefined;
+    }
+    if (canonical === undefined || canonical !== url) throw validationError(`discovery_report.missing[${index}] debe ser una URL canonica.`);
+    return canonical;
+  });
+  return {
+    musica_unique: report.musica_unique,
+    venue_unique: report.venue_unique,
+    both: report.both,
+    missing_count: report.missing_count,
+    total_unique: report.total_unique,
+    missing,
+    venue_pages: {
+      requested: venuePages.requested as number,
+      succeeded: venuePages.succeeded as number,
+      failed: venuePages.failed as number
+    }
+  };
+}
+
+function requireCount(value: unknown, label: string): void {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) throw validationError(`${label} debe ser un entero no negativo.`);
 }
 
 export function mapScrapeError(error: ScrapeErrorInput): ScrapeErrorInput {

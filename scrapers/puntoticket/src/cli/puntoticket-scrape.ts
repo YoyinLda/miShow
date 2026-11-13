@@ -1,8 +1,9 @@
-import { createFetchTransport, PuntoTicketHttpClient } from "../acquisition/http.js";
-import { acquisitionConfig, type AcquisitionConfig, PUNTOTICKET_ACQUISITION_DEFAULTS } from "../acquisition/policy.js";
-import { scrapePuntoTicket } from "../acquisition/orchestrator.js";
-import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig } from "../persistence/supabase-data-api.js";
+﻿import { createFetchTransport } from "../acquisition/http.js";
+import { PUNTOTICKET_ACQUISITION_DEFAULTS } from "../acquisition/policy.js";
+import { createSupabaseRpcTransport, recordVenueSourceChecks, SupabaseEventPersistence, supabaseServerConfig } from "../persistence/supabase-data-api.js";
 import { executePersistedPuntoTicketScrape, PersistedRunError } from "../persistence/workflow.js";
+import { CliUsageError } from "./scrape-args.js";
+import { buildScrape } from "./scrape-run.js";
 
 const args = process.argv.slice(2);
 
@@ -16,9 +17,15 @@ Opciones:
   --delay-ms <n>        Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.delayMs}, minimo ${PUNTOTICKET_ACQUISITION_DEFAULTS.minDelayMs}
   --timeout-ms <n>      Default: ${PUNTOTICKET_ACQUISITION_DEFAULTS.timeoutMs}, maximo ${PUNTOTICKET_ACQUISITION_DEFAULTS.maxTimeoutMs}
   --persist             Persiste mediante SUPABASE_URL y SUPABASE_SECRET_KEY
+  --venue-discovery     Descubre eventos en paginas de venue (o PUNTOTICKET_VENUE_DISCOVERY=true). Default: desactivado
+  --max-venue-pages <n> Paginas de venue maximas (env PUNTOTICKET_MAX_VENUE_PAGES, default MAX_EVENTS), tope PUNTOTICKET_MAX_VENUE_PAGES_LIMIT (default MAX_EVENTS_LIMIT)
+  --venue-url <url>     Venue fijo, repetible (o PUNTOTICKET_VENUE_URLS separado por comas); prevalece sobre db-venues
 
 Los limites MAX_EVENTS y MAX_EVENTS_LIMIT se leen del entorno; el flag CLI, si se
-entrega, tiene prioridad sobre el valor del entorno.`);
+entrega, tiene prioridad sobre el valor del entorno.
+
+Con el descubrimiento habilitado y sin lista fija, los venues se leen de la tabla
+venue_sources (db-venues) y requieren SUPABASE_URL y SUPABASE_SECRET_KEY.`);
   process.exit(0);
 }
 
@@ -26,23 +33,22 @@ run().catch((error) => {
   if (error instanceof PersistedRunError) {
     console.log(JSON.stringify({ run_id: error.runId, status: "failed" }, null, 2));
   }
-  fail(safeMessage(error));
+  fail(error instanceof CliUsageError ? error.message : safeMessage(error));
 });
 
 async function run(): Promise<void> {
   if (!args.includes("--live")) fail("Se requiere --live para habilitar adquisicion HTTP.");
-  const config = parseConfig(args);
   const persist = args.includes("--persist");
+  const { config, scrape, dbVenuesIndex } = buildScrape(args, process.env, { transport: createFetchTransport(), now: () => new Date() });
   if (!persist) {
-    const client = new PuntoTicketHttpClient({ config, transport: createFetchTransport() });
-    const result = await scrapePuntoTicket({ config, client, now: () => new Date() });
+    const result = await scrape();
     console.log(JSON.stringify(result, null, 2));
     return;
   }
 
   const serverConfig = supabaseServerConfig(process.env);
-  const persistence = new SupabaseEventPersistence(createSupabaseRpcTransport(serverConfig));
-  const client = new PuntoTicketHttpClient({ config, transport: createFetchTransport() });
+  const rpc = createSupabaseRpcTransport(serverConfig);
+  const persistence = new SupabaseEventPersistence(rpc);
   const result = await executePersistedPuntoTicketScrape({
     persistence,
     start: {
@@ -56,34 +62,18 @@ async function run(): Promise<void> {
         timeout_ms: config.timeoutMs
       }
     },
-    scrape: () => scrapePuntoTicket({ config, client, now: () => new Date() }),
+    scrape,
     now: () => new Date()
   });
+  if (dbVenuesIndex) {
+    try {
+      await recordVenueSourceChecks("puntoticket", dbVenuesIndex.pendingChecks(), rpc);
+    } catch (error) {
+      console.error(`Advertencia: no se registraron verificaciones de venue_sources: ${sanitize(safeMessage(error))}`);
+    }
+  }
   console.log(JSON.stringify(result, null, 2));
   if (result.status === "failed") process.exitCode = 1;
-}
-
-function parseConfig(values: string[]): AcquisitionConfig {
-  const config: Partial<AcquisitionConfig> = {};
-  for (let index = 0; index < values.length; index += 1) {
-    const arg = values[index];
-    if (arg === "--live" || arg === "--persist") continue;
-    const next = values[index + 1];
-    if (!next || next.startsWith("--")) fail(`Falta valor para ${arg}.`);
-    if (arg === "--listing-url") config.listingUrl = next;
-    else if (arg === "--max-events") config.maxEvents = integer(next, arg);
-    else if (arg === "--concurrency") config.concurrency = integer(next, arg);
-    else if (arg === "--delay-ms") config.delayMs = integer(next, arg);
-    else if (arg === "--timeout-ms") config.timeoutMs = integer(next, arg);
-    else fail(`Argumento no soportado: ${arg}.`);
-    index += 1;
-  }
-  return acquisitionConfig(config);
-}
-
-function integer(value: string, name: string): number {
-  if (!/^\d+$/.test(value)) fail(`${name} debe ser un entero no negativo.`);
-  return Number(value);
 }
 
 function fail(message: string): never {

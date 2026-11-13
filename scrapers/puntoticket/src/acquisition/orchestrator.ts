@@ -2,9 +2,11 @@ import {
   scrape,
   type AcquisitionConfig,
   type AcquisitionErrorStage,
+  type DiscoveryOptions,
   type HttpClient,
   type ScrapeError,
-  type ScrapeResult
+  type ScrapeResult,
+  type SourceAdapter
 } from "@mishow/scraper-core";
 import { puntoticketAdapter } from "../adapter.js";
 
@@ -18,8 +20,13 @@ export interface PuntoticketScraperOptions {
   config?: Partial<AcquisitionConfig>;
   client: HttpClient;
   now: () => Date;
+  /** Descubrimiento secundario opcional (desactivado por defecto). */
+  discovery?: DiscoveryOptions;
+  /** Adapter a usar; por defecto `puntoticketAdapter`. */
+  adapter?: SourceAdapter;
 }
 
 export async function scrapePuntoTicket(options: PuntoticketScraperOptions): Promise<PuntoticketScrapeResult> {
-  return scrape({ adapter: puntoticketAdapter, ...options });
+  const { adapter = puntoticketAdapter, ...rest } = options;
+  return scrape({ ...rest, adapter });
 }

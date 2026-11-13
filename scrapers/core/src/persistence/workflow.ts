@@ -50,7 +50,8 @@ export async function executePersistedScrape(options: {
       succeeded_count: 0,
       failed_count: 0,
       warnings_count: 0,
-      snapshot_complete: false
+      snapshot_complete: false,
+      discovery_report: null
     }, message);
     throw new PersistedRunError(run.run_id, message);
   }
@@ -104,7 +105,8 @@ export async function executePersistedScrape(options: {
     succeeded_count: persistedCount,
     failed_count: failedCount,
     warnings_count: warningCount,
-    snapshot_complete: false
+    snapshot_complete: false,
+    discovery_report: scraped.discovery ?? null
   });
 
   return {
