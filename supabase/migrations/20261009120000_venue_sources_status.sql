@@ -1,4 +1,4 @@
-﻿-- Candidatos automáticos por ticketera y estado de verificación de venue_sources.
+-- Candidatos automáticos por ticketera y estado de verificación de venue_sources.
 -- Cada ticketera puede tener un slug distinto por venue (unique por source + source_slug).
 -- Los venues nuevos reciben una fila candidata por trigger; el scraper marca cada fila
 -- como active (la página respondió) o not_found (404) y reintenta las not_found tras N días.
