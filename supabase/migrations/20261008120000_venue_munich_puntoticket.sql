@@ -1,4 +1,4 @@
-﻿-- Agrega el venue Munich y su fuente PuntoTicket (https://www.puntoticket.com/munich).
+-- Agrega el venue Munich y su fuente PuntoTicket (https://www.puntoticket.com/munich).
 -- Idempotente: reutiliza el venue si ya existe (por normalized_name o slug) y no
 -- duplica la fila de venue_sources. Nombre y slug de la fuente provistos por TL/PO.
 -- Nota: el nombre 'Munich' es el que se asume para el match por normalized_name;
