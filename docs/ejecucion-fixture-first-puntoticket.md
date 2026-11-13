@@ -449,24 +449,26 @@ handoff.
 
 ### Candidatos por ticketera y estado de enue_sources
 
-Migración 20261009120000_venue_sources_status.sql. Cada ticketera puede tener un
-slug distinto por venue (único por source + source_slug; un venue puede tener
+Migraciï¿½n 20261009120000_venue_sources_status.sql. Cada ticketera puede tener un
+slug distinto por venue (ï¿½nico por source + source_slug; un venue puede tener
 varias filas, una por fuente).
 
 - Todo venue nuevo recibe por trigger una fila **candidata** por fuente conocida
   (puntoticket), con source_slug = venues.slug. ensure_venue_source_candidates(source)
   hace lo mismo para los existentes y no pisa venues que ya tienen fila de esa fuente
-  (así se respetan los slugs corregidos a mano).
-- status: candidate (sin verificar), ctive (la página respondió) o 
+  (asï¿½ se respetan los slugs corregidos a mano).
+- status: candidate (sin verificar), ctive (la pï¿½gina respondiï¿½) o 
 ot_found (404).
 - Con --venue-discovery --persist la corrida registra tras terminar ctive (HTTP 200)
   o 
-ot_found (HTTP 404) vía ecord_venue_source_checks. Timeouts, 429 y 5xx no
+ot_found (HTTP 404) vï¿½a ecord_venue_source_checks. Timeouts, 429 y 5xx no
   cambian el estado. Si el registro falla, solo se escribe una advertencia en stderr.
 - Orden de consulta: ctive, candidate, 
 ot_found vencidas. Una 
 ot_found se
-  reintenta pasados PUNTOTICKET_VENUE_NOTFOUND_RETRY_DAYS días (default 30), así los
+  reintenta pasados PUNTOTICKET_VENUE_NOTFOUND_RETRY_DAYS dï¿½as (default 30), asï¿½ los
   404 no gastan cupo de PUNTOTICKET_MAX_VENUE_PAGES en cada corrida.
 - Para corregir un slug de una ticketera: actualizar source_slug/source_url de esa
   fila con service_role y dejar status = 'candidate'.
+
+Nota: las pÃ¡ginas de venue de PuntoTicket traen los eventos como JSON embebido (Vue) y no como tarjetas HTML; parseVenuePage lee urlCompra de esos registros. Estado en producciÃ³n y prÃ³ximos pasos: [estado-puntoticket-venue-discovery.md](estado-puntoticket-venue-discovery.md).
