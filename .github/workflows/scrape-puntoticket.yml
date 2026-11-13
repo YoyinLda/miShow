@@ -62,6 +62,11 @@ jobs:
           # estos valores como default (el flag CLI, si existiera, tendría prioridad).
           MAX_EVENTS: ${{ vars.MAX_EVENTS || '60' }}
           MAX_EVENTS_LIMIT: ${{ vars.MAX_EVENTS_LIMIT || '200' }}
+          # Descubrimiento por venues: APAGADO salvo que la variable del repo sea 'true'.
+          PUNTOTICKET_VENUE_DISCOVERY: ${{ vars.PUNTOTICKET_VENUE_DISCOVERY || 'false' }}
+          PUNTOTICKET_MAX_VENUE_PAGES: ${{ vars.PUNTOTICKET_MAX_VENUE_PAGES || '60' }}
+          PUNTOTICKET_MAX_VENUE_PAGES_LIMIT: ${{ vars.PUNTOTICKET_MAX_VENUE_PAGES_LIMIT || '200' }}
+          PUNTOTICKET_VENUE_NOTFOUND_RETRY_DAYS: ${{ vars.PUNTOTICKET_VENUE_NOTFOUND_RETRY_DAYS || '30' }}
         run: >-
           npm --silent run puntoticket:scrape --
           --live
