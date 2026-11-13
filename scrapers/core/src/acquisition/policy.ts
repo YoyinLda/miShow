@@ -61,6 +61,23 @@ export function acquisitionDefaults(adapter: SourceAdapter): AcquisitionDefaults
   };
 }
 
+/**
+ * Opciones opt-in de resiliencia. `undefined` (default) = comportamiento
+ * actual; cada campo omitido también conserva el comportamiento actual.
+ */
+export interface ResilienceConfig {
+  /** Clasifica 401/403, desafíos y redirecciones bloqueadas con códigos específicos. */
+  classifyBlocking?: boolean;
+  /** Proporción 0–1 de jitter sobre el backoff lineal. */
+  jitterRatio?: number;
+  /** Mínimo de referencias del listado (entero ≥ 0). */
+  minListingRefs?: number;
+  /** Ratio 0–1 de fallas de detalle desde el cual la corrida es degradada. */
+  degradedRatio?: number;
+  /** Ratio 0–1 de fallas de detalle desde el cual la corrida es fallida. */
+  failedRatio?: number;
+}
+
 export interface AcquisitionConfig {
   listingUrl: string;
   userAgent: string;
@@ -72,6 +89,7 @@ export interface AcquisitionConfig {
   maxHtmlBytes: number;
   maxEvents: number;
   maxRetryAfterMs: number;
+  resilience?: ResilienceConfig;
 }
 
 export class AcquisitionPolicyError extends Error {
@@ -108,7 +126,29 @@ export function acquisitionConfig(adapter: SourceAdapter, input: Partial<Acquisi
   validateInteger(config.maxRetryAfterMs, "max-retry-after-ms", 0, defaults.maxTimeoutMs);
   if (!config.userAgent.trim()) throw new AcquisitionPolicyError("user-agent es obligatorio.");
   validateAcquisitionUrl(adapter, config.listingUrl, "listing");
-  return config;
+  if (input.resilience === undefined) return config;
+  return { ...config, resilience: validateResilience(input.resilience) };
+}
+
+function validateResilience(input: ResilienceConfig): ResilienceConfig {
+  const resilience: ResilienceConfig = { ...input };
+  if (input.classifyBlocking !== undefined && typeof input.classifyBlocking !== "boolean") {
+    throw new AcquisitionPolicyError("classifyBlocking debe ser booleano.");
+  }
+  if (input.jitterRatio !== undefined) validateRatio(input.jitterRatio, "jitterRatio");
+  if (input.degradedRatio !== undefined) validateRatio(input.degradedRatio, "degradedRatio");
+  if (input.failedRatio !== undefined) validateRatio(input.failedRatio, "failedRatio");
+  if (input.minListingRefs !== undefined) validateInteger(input.minListingRefs, "minListingRefs", 0, Number.MAX_SAFE_INTEGER);
+  if (input.degradedRatio !== undefined && input.failedRatio !== undefined && input.degradedRatio > input.failedRatio) {
+    throw new AcquisitionPolicyError("degradedRatio no puede superar failedRatio.");
+  }
+  return resilience;
+}
+
+function validateRatio(value: number, name: string): void {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) {
+    throw new AcquisitionPolicyError(`${name} debe estar entre 0 y 1.`);
+  }
 }
 
 export function validateAcquisitionUrl(

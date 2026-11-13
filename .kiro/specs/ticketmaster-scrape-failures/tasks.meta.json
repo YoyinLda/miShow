@@ -1,0 +1,127 @@
+{
+  "pbtResults": {
+    "1. Write bug condition exploration test": {
+      "status": "passed",
+      "failingExample": "403 listado -> Error plano sin code/httpStatus (esperado blocked); 403 detalle -> http_error sin http_status; redirect /queue -> redirect_rejected; listado sin grid_element -> succeeded (no PersistedRunError/listing_empty); detalles 50% sin JSON-LD -> sin failure_breakdown/health; 503x2 -> sleeps idénticos [1500,1000,1500,2000,1500] con random 0 y 1; CLI sin TM_FAIL_ON_PARTIAL/::warning::; falla global -> code global_acquisition_failure",
+      "lastRunTimestamp": 1794572909801
+    }
+  },
+  "executionHistory": {
+    "1. Write bug condition exploration test": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791182
+      },
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572795808
+      },
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794573027734
+      }
+    ],
+    "2. Write preservation property tests (BEFORE implementing fix)": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791232
+      },
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572796258
+      },
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794573027691
+      }
+    ],
+    "3.1 Agregar `ResilienceConfig` opt-in en `scrapers/core/src/acquisition/policy.ts`": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791264
+      },
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794573030087
+      }
+    ],
+    "3.2 Clasificar bloqueos y backoff con jitter en `scrapers/core/src/acquisition/http.ts`": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791298
+      }
+    ],
+    "3.3 Validación semántica y diagnóstico en `scrapers/core/src/acquisition/orchestrator.ts`": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791343
+      }
+    ],
+    "3.4 Estado y errores globales en `scrapers/core/src/persistence/workflow.ts`": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791370
+      }
+    ],
+    "3.5 Activar `resilience` y política de salida en Ticketmaster": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791402
+      }
+    ],
+    "3.6 Exponer variables en `.github/workflows/scrape-ticketmaster.yml`": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791435
+      }
+    ],
+    "3.7 Verify bug condition exploration test now passes": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791474
+      }
+    ],
+    "3.8 Verify preservation tests still pass": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791513
+      }
+    ],
+    "3.9 Tests unitarios e integración": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791544
+      }
+    ],
+    "4. Actualizar documentación": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791574
+      }
+    ],
+    "5. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "516427cb-8fb2-4f04-9456-6d06ecd7ecb4",
+        "chatSessionId": "sess_a679bb1e-d08f-404e-ba9b-a2c1482d1151",
+        "timestamp": 1794572791601
+      }
+    ]
+  }
+}
