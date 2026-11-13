@@ -211,6 +211,125 @@ Authorization, sesión, Playwright, PostgreSQL ni infraestructura externa. Las
 pruebas reemplazan transporte, reloj y espera para seguir siendo deterministas
 y no abrir sockets.
 
+### Descubrimiento por venue (opcional)
+
+Segunda vía de descubrimiento además de `/musica`: páginas de venue que pueden
+listar eventos que `/musica` no muestra. **Desactivado por defecto**; sin
+`--venue-discovery` el comportamiento y la salida JSON son idénticos a los
+anteriores.
+
+```bash
+# Fuente por defecto db-venues (requiere SUPABASE_URL y SUPABASE_SECRET_KEY)
+npm --silent run puntoticket:scrape -- --live --venue-discovery --persist
+
+# Respaldo / pruebas: lista fija (prevalece sobre db-venues)
+npm --silent run puntoticket:scrape -- --live --venue-discovery \
+  --venue-url https://www.puntoticket.com/<source_slug>
+```
+
+#### Variables y flags
+
+| Variable / flag | Efecto |
+|---|---|
+| `PUNTOTICKET_VENUE_DISCOVERY` / `--venue-discovery` | Habilita la vía. Valores válidos de la variable: `true` o `false`; otro valor es error de uso. Ausente = `false`. El flag habilita con independencia de la variable. |
+| `PUNTOTICKET_MAX_VENUE_PAGES` / `--max-venue-pages <n>` | Páginas de venue por corrida. Default = `MAX_EVENTS`. El flag, si se entrega, prevalece. |
+| `PUNTOTICKET_MAX_VENUE_PAGES_LIMIT` | Tope duro de páginas de venue. Default = `MAX_EVENTS_LIMIT`. El valor efectivo no puede superarlo (si lo hace, error). |
+| `--venue-url <url>` / `PUNTOTICKET_VENUE_URLS` | Lista fija (coma-separada en la variable); respaldo y pruebas. Si existe, se usa en vez de `db-venues`. |
+
+Los ejemplos de variables están en `.env.example`, sin valores reales.
+
+#### Fuente `db-venues` y tabla `venue_sources`
+
+`public.venue_sources` (migración `20261005120000_venue_sources.sql`) asocia un
+venue canónico (`venues.id`) con su identificador y URL en una ticketera:
+`source`, `source_slug`, `source_url`, único por (`source`, `source_slug`);
+`source_url` debe ser HTTPS. Lectura pública por RLS; escritura solo
+`service_role`.
+
+Con la vía habilitada y sin lista fija, el índice `db-venues` lee las filas con
+`source = 'puntoticket'` y solicita `https://www.puntoticket.com/<source_slug>`.
+Las filas cuya `source_url` no coincida con ese patrón se omiten. La allowlist
+de rutas secundarias es exacta (`/<source_slug>` de las filas válidas); las
+rutas bloqueadas siguen aplicando. Si la lectura de la tabla falla, la corrida
+registra `venue_index_failed` y continúa con `/musica`.
+
+**Supuesto de slug derivado:** el poblado inicial
+(`backfill_venue_sources_puntoticket()`, idempotente, no sobrescribe filas)
+asume que `venues.slug` coincide con el slug de la página de venue en
+PuntoTicket. No está verificado. Si un slug no coincide, se corrige **fila a
+fila** actualizando `venue_sources.source_slug` y `source_url` de esa fila con
+`service_role`; el backfill no la volverá a pisar.
+
+#### Reporte en `scrape_runs.discovery_report`
+
+La columna `scrape_runs.discovery_report` (jsonb, objeto o null; migración
+`20261006120000_scrape_runs_discovery_report.sql`) guarda el `DiscoveryReport`
+(solo URLs canónicas y conteos). `finish_scrape_run` la persiste (migración
+`20261007120000_finish_scrape_run_discovery_report.sql`); queda null si no hubo
+descubrimiento. El reporte también va en `ScrapeResult` y en el JSON del CLI.
+
+#### Impacto en tiempo de corrida
+
+Cada página de venue es una solicitud adicional con la misma cortesía de
+siempre: pausa ≥ 1 s entre solicitudes (limitador global) y concurrencia ≤ 2.
+Con N páginas, la corrida añade al menos ~N × 1 s (con el default de 1500 ms,
+~N × 1,5 s), más los detalles nuevos que aparezcan. Ajustar
+`PUNTOTICKET_MAX_VENUE_PAGES` según la duración aceptable del workflow.
+
+#### Modo estudio
+
+El scraper opera en modo estudio: debe evitarse dañar la infraestructura del
+sitio, por lo que los límites de cortesía no se relajan. Esta feature no amplía
+el alcance legal ni sustituye la revisión de los términos de uso de la fuente.
+
+Las referencias de `/musica` y de venue se unen y deduplican por `source_url`
+canónica (las de `/musica` van primero, así `--max-events` nunca las desplaza).
+Los detalles siguen el pipeline existente, con los mismos límites de cortesía
+(pausa ≥ 1000 ms, concurrencia ≤ 2, reintentos ≤ 2). Una página de venue que
+falla se registra en `errors` (etapa `listing` o `parse`) y la corrida continúa.
+
+Con el flag, el JSON agrega `discovery` (`DiscoveryReport`):
+
+```ts
+interface DiscoveryReport {
+  musica_unique: number;   // refs únicas de /musica
+  venue_unique: number;    // refs únicas de las páginas de venue
+  both: number;            // en ambas vías
+  missing_count: number;   // solo en venue (no estaban en /musica)
+  total_unique: number;    // unión; = musica_unique + missing_count
+  missing: string[];       // source_url canónicas de los faltantes
+  venue_pages: { requested: number; succeeded: number; failed: number };
+}
+```
+
+Invariantes: `venue_unique = both + missing_count`;
+`requested = succeeded + failed`.
+
+Rutas bloqueadas: `/Categoria`, `/Confirma`, `/Envio`, `/Direccion`, `/Error`,
+`/Register` y `/SignIn` se agregaron a `isBlockedPath` (se rechazan como venue,
+listado o detalle).
+
+**Decisiones de TL/PO (resueltas)** (ver `requirements.md` del spec
+`puntoticket-venue-discovery`):
+
+- Índice: `db-venues` sobre `venue_sources`; `fixed-list` solo respaldo/pruebas.
+- Topes: `PUNTOTICKET_MAX_VENUE_PAGES` (default `MAX_EVENTS`) y
+  `PUNTOTICKET_MAX_VENUE_PAGES_LIMIT` (default `MAX_EVENTS_LIMIT`).
+- Cortesía sin cambios: concurrencia ≤ 2, pausa ≥ 1000 ms, ≤ 2 reintentos.
+- El venue de origen no se persiste; sin cambios en `NormalizedEvent`.
+- El reporte se guarda en `scrape_runs.discovery_report` (además de
+  `ScrapeResult` y CLI). La migración de `finish_scrape_run` que lo persiste
+  está hecha.
+- Sin filtro de categoría ni de eventos pasados/agotados.
+- Ante 403/429 (tras reintentos) se registra el error y se continúa.
+- Apagado por defecto; se activa con `PUNTOTICKET_VENUE_DISCOVERY=true` o
+  `--venue-discovery`.
+- Términos de uso: modo estudio, solo nota en docs.
+
+Sin decisiones bloqueantes pendientes. Único supuesto por validar: que
+`venues.slug` coincida con el slug de PuntoTicket (corregible en
+`venue_sources`).
+
 ## Restricciones deliberadas
 
 Las pruebas deben continuar siendo locales, deterministas e idempotentes:
@@ -327,3 +446,27 @@ Validar en un checkout limpio que:
 
 No se requiere compra, login, despliegue ni acceso a la fuente real para este
 handoff.
+
+### Candidatos por ticketera y estado de enue_sources
+
+Migraci�n 20261009120000_venue_sources_status.sql. Cada ticketera puede tener un
+slug distinto por venue (�nico por source + source_slug; un venue puede tener
+varias filas, una por fuente).
+
+- Todo venue nuevo recibe por trigger una fila **candidata** por fuente conocida
+  (puntoticket), con source_slug = venues.slug. ensure_venue_source_candidates(source)
+  hace lo mismo para los existentes y no pisa venues que ya tienen fila de esa fuente
+  (as� se respetan los slugs corregidos a mano).
+- status: candidate (sin verificar), ctive (la p�gina respondi�) o 
+ot_found (404).
+- Con --venue-discovery --persist la corrida registra tras terminar ctive (HTTP 200)
+  o 
+ot_found (HTTP 404) v�a ecord_venue_source_checks. Timeouts, 429 y 5xx no
+  cambian el estado. Si el registro falla, solo se escribe una advertencia en stderr.
+- Orden de consulta: ctive, candidate, 
+ot_found vencidas. Una 
+ot_found se
+  reintenta pasados PUNTOTICKET_VENUE_NOTFOUND_RETRY_DAYS d�as (default 30), as� los
+  404 no gastan cupo de PUNTOTICKET_MAX_VENUE_PAGES en cada corrida.
+- Para corregir un slug de una ticketera: actualizar source_slug/source_url de esa
+  fila con service_role y dejar status = 'candidate'.

@@ -1,13 +1,38 @@
-import type { AcquisitionStage, AcquisitionUrlContext, SourceAdapter } from "@mishow/scraper-core";
-import { hasEncodedPathSeparator, hasUserinfo } from "@mishow/domain";
+import type { AcquisitionStage, AcquisitionUrlContext, SecondaryIndexSource, SourceAdapter } from "@mishow/scraper-core";
+import { hasUserinfo } from "@mishow/domain";
 import { parseMusicListing } from "./extraction/listing.js";
 import { extractDetail, parseEventDetail } from "./extraction/detail.js";
+import { parseVenuePage } from "./extraction/venue.js";
+import { isBlockedPath, isListingPath } from "./paths.js";
+
+export { isBlockedPath };
 
 const HOST = "www.puntoticket.com";
 const PUNTOTICKET_QUEUE_PATH = /^\/queue\/enqueue\/[^/?#]+$/i;
 const PUNTOTICKET_BUY_PATH = /^\/comprar\/evento\/[^/?#]+\/cal\/[^/?#]+$/i;
 
-export const puntoticketAdapter: SourceAdapter = {
+export interface PuntoticketAdapterOptions {
+  /** Si se pasa, habilita el descubrimiento secundario (páginas de venue). */
+  venueIndex?: VenueIndex;
+}
+
+/**
+ * Índice de venues: `db-venues` expone `allowedPaths()`; `fixed-list` (respaldo)
+ * expone `isSecondaryPagePath`. Se prefiere `allowedPaths()` si existe.
+ */
+export type VenueIndex = SecondaryIndexSource &
+  (
+    | { allowedPaths(): ReadonlySet<string>; isSecondaryPagePath?: (pathname: string) => boolean }
+    | { allowedPaths?: undefined; isSecondaryPagePath(pathname: string): boolean }
+  );
+
+function isAllowedVenuePath(index: VenueIndex, pathname: string): boolean {
+  if (isBlockedPath(pathname, "listing")) return false;
+  if (typeof index.allowedPaths === "function") return index.allowedPaths().has(pathname);
+  return index.isSecondaryPagePath(pathname);
+}
+
+const baseAdapter: SourceAdapter = {
   source: "puntoticket",
   name: "PuntoTicket",
   baseUrl: "https://www.puntoticket.com",
@@ -40,8 +65,24 @@ export const puntoticketAdapter: SourceAdapter = {
   }
 };
 
-function isListingPath(pathname: string): boolean {
-  return pathname === "/musica" || pathname === "/musica/";
+export const puntoticketAdapter: SourceAdapter = baseAdapter;
+
+/**
+ * Sin `venueIndex` devuelve el adapter base (sin discovery). Con `venueIndex`
+ * habilita descubrimiento secundario con allowlist exacta.
+ */
+export function createPuntoticketAdapter(opts?: PuntoticketAdapterOptions): SourceAdapter {
+  const venueIndex = opts?.venueIndex;
+  if (!venueIndex) return baseAdapter;
+  return {
+    ...baseAdapter,
+    discovery: {
+      id: "venues",
+      isSecondaryPagePath: (pathname) => isAllowedVenuePath(venueIndex, pathname),
+      index: venueIndex,
+      parsePage: parseVenuePage
+    }
+  };
 }
 
 // La política de detalle acepta rutas canónicas /evento/<slug> y root-landings
@@ -71,25 +112,4 @@ function isCanonicalDetailPath(pathname: string): boolean {
 
 function isRootLandingPath(pathname: string): boolean {
   return /^\/[A-Za-z0-9-]+\/?$/.test(pathname);
-}
-
-function isBlockedPath(pathname: string, stage: AcquisitionStage): boolean {
-  const decodedPathname = decodedPath(pathname);
-  if (/(?:^|\/)\.\.(?:\/|$)/.test(decodedPathname) || hasEncodedPathSeparator(pathname)) return true;
-  if (stage === "listing" && isListingPath(decodedPathname)) return false;
-  return /^\/(?:musica|deportes|teatro|familia|todos|especiales|destacados|nuevos|account|cliente|queue|login|registro|carrito|checkout|purchase|payment|pago|confirmacion|cuenta|seleccion|tickets|compra|comprar|auth|authentication)(?:\/|$)/i.test(decodedPathname);
-}
-
-function decodedPath(pathname: string): string {
-  let decoded = pathname;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      const next = decodeURIComponent(decoded);
-      if (next === decoded) return next;
-      decoded = next;
-    } catch {
-      return pathname;
-    }
-  }
-  return decoded;
 }

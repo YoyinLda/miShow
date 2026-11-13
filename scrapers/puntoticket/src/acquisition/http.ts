@@ -3,6 +3,7 @@ import {
   HttpClient,
   createFetchTransport,
   type HttpClientOptions,
+  type SourceAdapter,
   type HttpErrorCode,
   type HttpTransport,
   type HttpTransportRequest,
@@ -21,11 +22,14 @@ export {
   type Sleep
 };
 
-export type PuntoTicketHttpClientOptions = Omit<HttpClientOptions, "adapter">;
+export type PuntoTicketHttpClientOptions = Omit<HttpClientOptions, "adapter"> & {
+  /** Adapter a usar; por defecto `puntoticketAdapter` (sin discovery). */
+  adapter?: SourceAdapter;
+};
 
 /** Cliente HTTP ligado al adapter de PuntoTicket. */
 export class PuntoTicketHttpClient extends HttpClient {
   constructor(options: PuntoTicketHttpClientOptions) {
-    super({ ...options, adapter: puntoticketAdapter });
+    super({ ...options, adapter: options.adapter ?? puntoticketAdapter });
   }
 }

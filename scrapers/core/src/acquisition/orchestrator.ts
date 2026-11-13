@@ -1,6 +1,7 @@
-import type { NormalizedEvent, RawEventReference } from "@mishow/domain";
+﻿import type { NormalizedEvent, RawEventReference } from "@mishow/domain";
 import type { SourceAdapter } from "../adapter.js";
 import { normalizeEvent } from "../normalization.js";
+import { buildDiscoveryReport, canonicalKey, mergeReferences, type DiscoveryOptions, type DiscoveryReport } from "./discovery.js";
 import { HttpAcquisitionError, HttpClient } from "./http.js";
 import { AcquisitionPolicyError, acquisitionConfig, type AcquisitionConfig, safeUrlForError, validateAcquisitionUrl } from "./policy.js";
 
@@ -27,6 +28,8 @@ export interface ScrapeResult {
   };
   events: NormalizedEvent[];
   errors: ScrapeError[];
+  /** Presente solo si el descubrimiento secundario se ejecutó. */
+  discovery?: DiscoveryReport;
 }
 
 export interface ScraperOptions {
@@ -34,6 +37,7 @@ export interface ScraperOptions {
   config?: Partial<AcquisitionConfig>;
   client: HttpClient;
   now: () => Date;
+  discovery?: DiscoveryOptions;
 }
 
 export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
@@ -53,6 +57,15 @@ export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
     references = adapter.parseListing(listingHtml, listingUrl);
   } catch (error) {
     throw globalFailure(error);
+  }
+
+  let discoveryReport: DiscoveryReport | undefined;
+  let discoveryErrors: ScrapeError[] = [];
+  if (options.discovery?.enabled && adapter.discovery) {
+    const outcome = await runSecondaryDiscovery(options, config.concurrency, references);
+    references = outcome.references;
+    discoveryReport = outcome.report;
+    discoveryErrors = outcome.errors;
   }
 
   const eligibleReferences = references.flatMap((reference) => {
@@ -89,7 +102,7 @@ export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
   });
 
   const events = detailResults.flatMap((result) => result.event ? [result.event] : []);
-  const errors = detailResults.flatMap((result) => result.errors);
+  const errors = [...discoveryErrors, ...detailResults.flatMap((result) => result.errors)];
   const finishedAt = options.now().toISOString();
   return {
     source: adapter.source,
@@ -103,8 +116,83 @@ export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
       failed: selected.length - events.length
     },
     events,
-    errors
+    errors,
+    ...(discoveryReport ? { discovery: discoveryReport } : {})
   };
+}
+
+async function runSecondaryDiscovery(
+  options: ScraperOptions,
+  concurrency: number,
+  musica: RawEventReference[]
+): Promise<{ references: RawEventReference[]; report: DiscoveryReport; errors: ScrapeError[] }> {
+  const adapter = options.adapter;
+  const secondary = adapter.discovery!;
+  const context = { secondaryListing: true };
+  const errors: ScrapeError[] = [];
+  const budget = Math.max(0, Math.min(Math.floor(options.discovery!.maxPages), Math.floor(options.discovery!.maxPagesLimit)));
+
+  let pages: string[] = [];
+  try {
+    const candidates = await secondary.index.list({ getHtml: (url) => options.client.getHtml(url, "listing", context) });
+    const seen = new Set<string>();
+    for (const candidate of candidates) {
+      const key = canonicalKey(adapter, candidate) ?? candidate;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      pages.push(key);
+    }
+    pages = pages.slice(0, budget);
+    for (const rejection of secondary.index.rejections?.() ?? []) {
+      const base = scrapeError("listing", "", rejection.code, rejection.message, 1);
+      if (rejection.source_url) base.source_url = safeUrlForError(rejection.source_url);
+      else delete base.source_url;
+      errors.push(base);
+    }
+  } catch (error) {
+    pages = [];
+    errors.push({
+      stage: "listing",
+      code: "venue_index_failed",
+      message: error instanceof HttpAcquisitionError ? clean(`${error.code}: ${error.message}`) : safeMessage(error),
+      attempts: error instanceof HttpAcquisitionError ? error.attempts : 1
+    });
+  }
+
+  const results = await mapStable(pages, concurrency, async (page) => {
+    const sourceUrl = safeUrlForError(page);
+    try {
+      const url = validateAcquisitionUrl(adapter, page, "listing", undefined, context);
+      const html = await options.client.getHtml(url, "listing", context);
+      try {
+        return { page: sourceUrl, status: 200, refs: secondary.parsePage(html, url) };
+      } catch (error) {
+        return { page: sourceUrl, status: 200, error: scrapeError("parse", sourceUrl, "parse_error", safeMessage(error), 1) };
+      }
+    } catch (error) {
+      if (error instanceof HttpAcquisitionError) return { page: sourceUrl, failedStatus: error.status, error: scrapeError("listing", sourceUrl, error.code, error.message, error.attempts) };
+      if (error instanceof AcquisitionPolicyError) return { page: sourceUrl, error: scrapeError("listing", sourceUrl, error.code, error.message, 1) };
+      return { page: sourceUrl, error: scrapeError("listing", sourceUrl, "venue_page_failed", safeMessage(error), 1) };
+    }
+  });
+
+  try {
+    secondary.index.reportPages?.(
+      results.map((r) => ({
+        url: r.page,
+        ok: r.status === 200,
+        ...(r.failedStatus !== undefined ? { status: r.failedStatus } : {})
+      }))
+    );
+  } catch {
+    // El hook es informativo; un fallo no debe romper la corrida.
+  }
+
+  const ok = results.flatMap((r) => (r.refs ? [{ page: r.page, refs: r.refs }] : []));
+  errors.push(...results.flatMap((r) => (r.error ? [r.error] : [])));
+  const merged = mergeReferences(adapter, musica, ok);
+  const report = buildDiscoveryReport(merged, { requested: results.length, succeeded: ok.length, failed: results.length - ok.length });
+  return { references: merged.map((m) => m.reference), report, errors };
 }
 
 function globalFailure(error: unknown): Error {

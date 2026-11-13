@@ -4,7 +4,7 @@ import type { RawEventReference } from "@mishow/domain";
 import { canonicalSourceUrl, hasExternalWhitespace, hasUserinfo } from "@mishow/domain";
 
 const BASE_URL = "https://www.puntoticket.com";
-const EVENT_PATH = /^\/evento\/[A-Za-z0-9-]+\/?$/i;
+export const EVENT_PATH = /^\/evento\/[A-Za-z0-9-]+\/?$/i;
 const NON_EVENT_PATH = /^\/(?:musica|conciertos|festivales|recintos|servicios|contacto|ayuda|login|registro|carrito|queue)(?:\/|$)/i;
 
 export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`): RawEventReference[] {
@@ -39,7 +39,7 @@ export function parseMusicListing(html: string, baseUrl = `${BASE_URL}/musica`):
 // tarjeta) usadas por fixtures y otras variantes de listado.
 // Resuelve el título de la tarjeta desde el propio enlace o su tarjeta contenedora.
 // Prioriza encabezados y `data-event-title`; cae a `alt` de la imagen o `title`.
-function eventTitle($: cheerio.CheerioAPI, element: AnyNode): string | undefined {
+export function eventTitle($: cheerio.CheerioAPI, element: AnyNode): string | undefined {
   const link = $(element);
   const card = link.closest("article.event-item, .filtr-item.event-item, .evento--box, article, [data-event-card], .event-card");
   const scope = card.length ? card : link;
@@ -50,7 +50,7 @@ function eventTitle($: cheerio.CheerioAPI, element: AnyNode): string | undefined
   return link.attr("title")?.trim() || undefined;
 }
 
-function isEventCardLink(element: AnyNode, $: cheerio.CheerioAPI): boolean {
+export function isEventCardLink(element: AnyNode, $: cheerio.CheerioAPI): boolean {
   const card = $(element).closest(
     "article.event-item, .filtr-item.event-item, .evento--box, article, [data-event], [data-event-card], .event-card, .card-event, [class*='event-card']"
   );

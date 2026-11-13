@@ -1,6 +1,7 @@
-import {
+﻿import {
   SupabaseEventPersistence as CoreSupabaseEventPersistence,
   createSupabaseRpcTransport,
+  recordVenueSourceChecks,
   supabaseServerConfig,
   type RpcRequest,
   type RpcTransport,
@@ -8,7 +9,7 @@ import {
 } from "@mishow/scraper-core";
 import { puntoticketAdapter } from "../adapter.js";
 
-export { createSupabaseRpcTransport, supabaseServerConfig, type RpcRequest, type RpcTransport, type SupabaseServerConfig };
+export { createSupabaseRpcTransport, recordVenueSourceChecks, supabaseServerConfig, type RpcRequest, type RpcTransport, type SupabaseServerConfig };
 
 /** Adaptador de persistencia Supabase ligado a la fuente PuntoTicket. */
 export class SupabaseEventPersistence extends CoreSupabaseEventPersistence {

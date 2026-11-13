@@ -1,4 +1,5 @@
 export * from "./adapter.js";
+export * from "./acquisition/discovery.js";
 export * from "./acquisition/http.js";
 export * from "./acquisition/orchestrator.js";
 export * from "./acquisition/policy.js";
