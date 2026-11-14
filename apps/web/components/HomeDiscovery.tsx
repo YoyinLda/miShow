@@ -41,13 +41,15 @@ function HomeDiscoveryContent() {
   }
 
   return (
-    <div className="flex flex-col gap-10 sm:gap-12">
+    <div className="flex flex-col gap-8 lg:gap-10">
       <SearchHero
         title="Música en vivo, planes reales"
         subtitle="Conciertos, tocatas, festivales y más."
+        desktopTitle="Encuentra algo que valga la pena ver en vivo"
+        desktopSubtitle="Conciertos, tocatas y experiencias musicales en Chile."
         defaultQuery={initialQuery}
       />
-      <FilterChips value={rango} onChange={updateRango} />
+      <FilterChips value={rango} onChange={updateRango} moreFiltersHref="/eventos?filtros=abrir" />
       <FeaturedSection rango={rango} />
       <UpcomingSection rango={rango} />
       <div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRange, formatDayMonth, isFree, parseRango, selectFeatured } from "../lib/discovery";
+import { dateRange, formatDayMonth, formatEventCount, isFree, parseRango, selectFeatured } from "../lib/discovery";
 import type { CatalogEvent, CatalogEventSource } from "@mishow/catalog-client";
 
 // `now` fijo: 2026-12-12T18:00:00Z. En Santiago (verano, -03:00) son las
@@ -136,5 +136,17 @@ describe("formatDayMonth", () => {
   it("devuelve undefined para instantes vacíos o inválidos", () => {
     expect(formatDayMonth(null)).toBeUndefined();
     expect(formatDayMonth("no-es-fecha")).toBeUndefined();
+  });
+});
+
+describe("formatEventCount", () => {
+  it("usa singular para 1 y plural para el resto", () => {
+    expect(formatEventCount(1)).toBe("1 evento");
+    expect(formatEventCount(0)).toBe("0 eventos");
+    expect(formatEventCount(152)).toBe("152 eventos");
+  });
+
+  it("separa miles al estilo es-CL", () => {
+    expect(formatEventCount(1234)).toBe("1.234 eventos");
   });
 });
