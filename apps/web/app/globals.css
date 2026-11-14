@@ -47,6 +47,11 @@
   --accent-contrast: #ffffff;
   --event-image: #ede9fe; /* violet-100, placeholder de imagen */
 
+  /* Logo miShow / Bloque (Figma Brand / Logo Horizontal, Theme=Light 13:93).
+     Colores propios de la marca: no se reemplazan por --brand/--text. */
+  --logo-mi: #7c4dff;
+  --logo-show: #12131a;
+
   /* Estados: danger */
   --danger: #b91c1c; /* red-700 sobre --bg => ~6.3:1 AA */
   --danger-contrast: #ffffff;
@@ -98,6 +103,10 @@
   --accent-contrast: #18181b; /* texto sobre --accent => ~13.9:1 AA/AAA */
   --event-image: #37205f; /* placeholder de imagen de evento */
 
+  /* Logo miShow / Bloque (Figma Brand / Logo Horizontal, Theme=Dark 13:50). */
+  --logo-mi: #7c4dff;
+  --logo-show: #f7f7f7;
+
   --danger: #f87171; /* red-400 sobre --bg => ~5.9:1 AA */
   --danger-contrast: #1a0b0b;
   --danger-surface: #2a1414;
@@ -134,6 +143,9 @@
     --accent: #facc15;
     --accent-contrast: #18181b;
     --event-image: #37205f;
+
+    --logo-mi: #7c4dff;
+    --logo-show: #f7f7f7;
 
     --danger: #f87171;
     --danger-contrast: #1a0b0b;

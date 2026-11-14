@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogEvent } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
-import { dateRange, isFree, selectFeatured, type RangoKind } from "../lib/discovery";
+import { dateRange, formatEventCount, isFree, selectFeatured, type RangoKind } from "../lib/discovery";
 import { SectionHeader } from "./ui/SectionHeader";
 import { EventRow } from "./ui/EventRow";
 
@@ -22,6 +22,7 @@ const FETCH_LIMIT = 20;
 
 export function UpcomingSection({ rango }: { rango: RangoKind | null }) {
   const [events, setEvents] = useState<CatalogEvent[]>([]);
+  const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const tokenRef = useRef(0);
@@ -42,6 +43,9 @@ export function UpcomingSection({ rango }: { rango: RangoKind | null }) {
         const byProximity = selectFeatured(result.items, result.items.length);
         const filtered = rango === "gratis" ? byProximity.filter((e) => isFree(e.sources)) : byProximity;
         setEvents(filtered.slice(0, PREVIEW_COUNT));
+        // El total del catálogo respeta el rango de fecha; con "gratis" (post
+        // filtro cliente) no hay conteo fiable, así que no se muestra.
+        setTotal(rango === "gratis" ? null : result.total);
       })
       .catch(() => {
         if (token !== tokenRef.current) return;
@@ -57,7 +61,10 @@ export function UpcomingSection({ rango }: { rango: RangoKind | null }) {
 
   return (
     <section>
-      <SectionHeader title="Próximos conciertos" />
+      <SectionHeader
+        title="Próximos conciertos"
+        subtitle={total !== null && !error ? formatEventCount(total) : undefined}
+      />
       {loading && events.length === 0 ? (
         <div className="flex flex-col gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -73,7 +80,7 @@ export function UpcomingSection({ rango }: { rango: RangoKind | null }) {
             : "No hay próximos eventos para este filtro."}
         </p>
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:gap-2">
           {events.map((event) => (
             <EventRow key={event.id} event={event} />
           ))}
