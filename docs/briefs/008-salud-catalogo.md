@@ -1,6 +1,6 @@
 # Brief 008 — Salud del catálogo (Etapa 0)
 
-Estado: en curso (2026-11-14).
+Estado: completado y desplegado (2026-11-14).
 
 ## Diagnóstico (producción, 2026-11-14)
 
@@ -24,8 +24,8 @@ Estado: en curso (2026-11-14).
 
 - [x] **A. Ticketmaster:** schedule desactivado, bugfix (tareas 3.1–3.9, 4 y 5 del spec) y guía de ejecución local. Con esto `npm run qa` vuelve a pasar.
 - [x] **B. Eventos pasados:** filtro en los listados y aviso en el detalle.
-- [ ] **C. Alertas:** issue tras 2 fallas seguidas, aplicado a las dos fuentes.
-- [ ] **D. Ruido de PuntoTicket:** que los 404 de venues candidatas no se registren como error.
+- [x] **C. Alertas:** issue tras 2 fallas seguidas, aplicado a las dos fuentes.
+- [x] **D. Ruido de PuntoTicket:** que los 404 de venues candidatas no se registren como error.
 
 ## Verificación
 
