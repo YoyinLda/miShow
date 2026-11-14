@@ -1,12 +1,28 @@
 ﻿import type { SourceAdapter, AcquisitionStage, AcquisitionUrlContext } from "../adapter.js";
 import { acquisitionConfig, type AcquisitionConfig, validateAcquisitionUrl } from "./policy.js";
 
-export type HttpErrorCode = "http_error" | "invalid_content_type" | "response_too_large" | "redirect_rejected" | "too_many_redirects" | "timeout" | "network_error";
+export type HttpErrorCode =
+  | "http_error"
+  | "invalid_content_type"
+  | "response_too_large"
+  | "redirect_rejected"
+  | "too_many_redirects"
+  | "timeout"
+  | "network_error"
+  // Solo con `resilience.classifyBlocking` (bugfix ticketmaster-scrape-failures):
+  | "blocked"
+  | "blocked_redirect"
+  | "challenge";
 
 export class HttpAcquisitionError extends Error {
   constructor(readonly code: HttpErrorCode, message: string, readonly attempts: number, readonly status?: number) {
     super(message);
     this.name = "HttpAcquisitionError";
+  }
+
+  /** Alias explícito del estado HTTP (diagnóstico). */
+  get httpStatus(): number | undefined {
+    return this.status;
   }
 }
 
@@ -32,6 +48,8 @@ export interface HttpClientOptions {
   transport: HttpTransport;
   sleep?: Sleep;
   nowMs?: () => number;
+  /** Fuente de aleatoriedad para el jitter (inyectable en tests). Default `Math.random`. */
+  random?: () => number;
 }
 
 export class HttpClient {
@@ -45,10 +63,25 @@ export class HttpClient {
     this.limiter = new RequestLimiter(this.config.delayMs, options.sleep ?? realSleep);
     this.transport = options.transport;
     this.nowMs = options.nowMs ?? Date.now;
+    this.random = options.random ?? Math.random;
   }
 
   private readonly transport: HttpTransport;
   private readonly nowMs: () => number;
+  private readonly random: () => number;
+
+  private get classifyBlocking(): boolean {
+    return this.config.resilience?.classifyBlocking === true;
+  }
+
+  /** Backoff lineal; con `jitterRatio` suma hasta `ratio`×base, acotado por `maxRetryAfterMs`. */
+  private backoff(attempt: number): number {
+    const base = backoffMs(attempt);
+    const ratio = this.config.resilience?.jitterRatio;
+    if (!ratio) return base;
+    const jittered = base * (1 + ratio * Math.min(1, Math.max(0, this.random())));
+    return Math.round(Math.min(jittered, this.config.maxRetryAfterMs));
+  }
 
   async getHtml(url: string, stage: AcquisitionStage, context: AcquisitionUrlContext = {}): Promise<string> {
     let currentUrl = validateAcquisitionUrl(this.adapter, url, stage, undefined, context);
@@ -83,7 +116,7 @@ export class HttpClient {
         const code = transportErrorCode(error);
         if (code && retriesUsed < this.config.retries) {
           retriesUsed += 1;
-          retryDelayMs = backoffMs(retriesUsed);
+          retryDelayMs = this.backoff(retriesUsed);
           continue;
         }
         throw new HttpAcquisitionError(code ?? "network_error", safeMessage(error, "Error de red durante adquisicion."), attempts);
@@ -98,6 +131,10 @@ export class HttpClient {
         try {
           currentUrl = validateAcquisitionUrl(this.adapter, location, stage, currentUrl, context);
         } catch (error) {
+          if (this.classifyBlocking) {
+            const code = isChallengePath(location, currentUrl) ? "challenge" : "blocked_redirect";
+            throw new HttpAcquisitionError(code, `Redireccion de bloqueo (${response.status}): ${safeMessage(error, "Redireccion rechazada.")}`, attempts, response.status);
+          }
           throw new HttpAcquisitionError("redirect_rejected", safeMessage(error, "Redireccion rechazada."), attempts);
         }
         redirects += 1;
@@ -106,14 +143,21 @@ export class HttpClient {
 
       if (isRetryableStatus(response.status) && retriesUsed < this.config.retries) {
         retriesUsed += 1;
-        retryDelayMs = retryAfterMs(header(response.headers, "retry-after"), this.config.maxRetryAfterMs, this.nowMs()) ?? backoffMs(retriesUsed);
+        retryDelayMs = retryAfterMs(header(response.headers, "retry-after"), this.config.maxRetryAfterMs, this.nowMs()) ?? this.backoff(retriesUsed);
         continue;
       }
 
+      // D5: 401/403 no se reintentan (nunca lo fueron); D4: no se cambian headers.
+      if (this.classifyBlocking && (response.status === 401 || response.status === 403)) {
+        throw new HttpAcquisitionError("blocked", `Bloqueado por la fuente (HTTP ${response.status}).`, attempts, response.status);
+      }
       if (response.status < 200 || response.status >= 300) {
         throw new HttpAcquisitionError("http_error", `HTTP ${response.status}.`, attempts, response.status);
       }
       if (!isAllowedHtml(header(response.headers, "content-type"))) {
+        if (this.classifyBlocking) {
+          throw new HttpAcquisitionError("challenge", "Respuesta no HTML (posible desafio o cola de espera).", attempts, response.status);
+        }
         throw new HttpAcquisitionError("invalid_content_type", "Content-Type no permitido.", attempts);
       }
       if (byteLength(response.body) > this.config.maxHtmlBytes) {
@@ -187,6 +231,15 @@ function retryAfterMs(value: string | undefined, maxMs: number, nowMs: number): 
   const date = Date.parse(value);
   if (!Number.isNaN(date)) return Math.min(Math.max(0, date - nowMs), maxMs);
   return undefined;
+}
+
+/** ¿La redirección apunta a una cola de espera o desafío anti-bot? */
+function isChallengePath(location: string, baseUrl: string): boolean {
+  try {
+    return /^\/(?:queue|challenge|captcha|waiting-room)(?:\/|$)/i.test(new URL(location, baseUrl).pathname);
+  } catch {
+    return false;
+  }
 }
 
 function backoffMs(attempt: number): number {

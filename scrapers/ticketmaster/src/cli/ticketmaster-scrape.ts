@@ -1,5 +1,11 @@
 import { createFetchTransport, TicketmasterHttpClient } from "../acquisition/http.js";
-import { acquisitionConfig, type AcquisitionConfig, TICKETMASTER_ACQUISITION_DEFAULTS } from "../acquisition/policy.js";
+import {
+  acquisitionConfig,
+  failOnPartial,
+  ticketmasterResilience,
+  type AcquisitionConfig,
+  TICKETMASTER_ACQUISITION_DEFAULTS
+} from "../acquisition/policy.js";
 import { scrapeTicketmaster } from "../acquisition/orchestrator.js";
 import { createSupabaseRpcTransport, SupabaseEventPersistence, supabaseServerConfig } from "../persistence/supabase-data-api.js";
 import { executePersistedTicketmasterScrape, PersistedRunError } from "../persistence/workflow.js";
@@ -60,7 +66,13 @@ async function run(): Promise<void> {
     now: () => new Date()
   });
   console.log(JSON.stringify(result, null, 2));
+  // D3 (brief 008): `failed` => exit 1; `partial` => anotación ::warning:: y exit 0,
+  // salvo TM_FAIL_ON_PARTIAL=true.
   if (result.status === "failed") process.exitCode = 1;
+  if (result.status === "partial") {
+    console.log(`::warning::Ticketmaster corrida ${result.run_id} parcial: ${result.summary.failed} de ${result.summary.attempted} detalles fallaron.`);
+    if (failOnPartial(process.env)) process.exitCode = 1;
+  }
 }
 
 function parseConfig(values: string[]): AcquisitionConfig {
@@ -78,7 +90,12 @@ function parseConfig(values: string[]): AcquisitionConfig {
     else fail(`Argumento no soportado: ${arg}.`);
     index += 1;
   }
-  return acquisitionConfig(config);
+  try {
+    failOnPartial(process.env); // valida TM_FAIL_ON_PARTIAL antes de adquirir
+    return acquisitionConfig({ ...config, resilience: ticketmasterResilience(process.env) });
+  } catch (error) {
+    fail(safeMessage(error));
+  }
 }
 
 function integer(value: string, name: string): number {

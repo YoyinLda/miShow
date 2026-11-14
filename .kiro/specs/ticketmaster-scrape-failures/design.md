@@ -75,7 +75,7 @@ Todo input que no cumpla `isBugCondition` queda sin cambios. Incluye corridas sa
 | D4 | Cambiar User-Agent/headers | **No** se cambia (no se eluden bloqueos) | n/a |
 | D5 | Reintentar 403 | No reintentar 401/403; sí 408/429/5xx | fijo |
 
-Estos valores no están aprobados: quedan marcados como **OPEN** hasta que TL/PO decida. Se recomienda además revisar últimos runs de Actions y `scrape_run_errors` para confirmar el modo de falla dominante antes de fijar D1–D3.
+Estado: **aprobados por TL/PO el 2026-11-14 (brief 008)** con los defaults propuestos. Se recomienda además revisar últimos runs de Actions y `scrape_run_errors` para confirmar el modo de falla dominante antes de fijar D1–D3.
 
 ## Hypothesized Root Cause
 
