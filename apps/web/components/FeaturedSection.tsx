@@ -55,7 +55,7 @@ export function FeaturedSection({ rango }: { rango: RangoKind | null }) {
     // rango de fecha. 'hoy'/'semana'/'mes' sí acotan por next_performance_at.
     const range = rango === "hoy" || rango === "semana" || rango === "mes" ? dateRange(rango) : undefined;
     catalogClient()
-      .listEvents({ limit: FETCH_LIMIT, range })
+      .listEvents({ limit: FETCH_LIMIT, range, upcomingOnly: true })
       .then((result) => {
         if (token !== tokenRef.current) return;
         // Si en el futuro existe el dato, priorizar los marcados destacados.

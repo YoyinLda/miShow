@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { CatalogEvent } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
 import { formatDate, formatPrice, performanceStatusLabel, sourceLinks, statusLabel } from "../lib/format";
+import { isPastEvent } from "../lib/discovery";
 
 type LoadState =
   | { kind: "loading" }
@@ -74,6 +75,12 @@ export function EventDetail({ slug, id }: { slug?: string; id?: number }) {
       ) : null}
 
       <h1 className="mt-4 text-2xl font-bold">{event.name}</h1>
+      {isPastEvent(event) ? (
+        // Brief 008: los eventos pasados no se listan, pero su detalle sigue accesible.
+        <p role="status" className="mt-2 inline-block rounded-md border border-border bg-surface-2 px-3 py-1.5 text-sm font-medium text-text-muted">
+          Este evento ya pasó.
+        </p>
+      ) : null}
       {event.artists.length ? (
         <p className="mt-1 text-text-muted">
           {event.artists.map((artist, index) => (

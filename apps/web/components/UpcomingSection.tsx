@@ -37,7 +37,7 @@ export function UpcomingSection({ rango }: { rango: RangoKind | null }) {
     setError(false);
     const range = rango === "hoy" || rango === "semana" || rango === "mes" ? dateRange(rango) : undefined;
     catalogClient()
-      .listEvents({ limit: FETCH_LIMIT, range })
+      .listEvents({ limit: FETCH_LIMIT, range, upcomingOnly: true })
       .then((result) => {
         if (token !== tokenRef.current) return;
         const byProximity = selectFeatured(result.items, result.items.length);

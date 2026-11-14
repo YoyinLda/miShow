@@ -109,10 +109,13 @@ export class CatalogClient {
     const limit = params.limit && params.limit > 0 ? params.limit : DEFAULT_LIMIT;
     const search = params.search?.trim();
     const range = params.range;
+    // Solo zona no-nula: con rango de fecha o con `upcomingOnly` (brief 008).
+    const nonNullOnly = Boolean(range) || params.upcomingOnly === true;
+    const upcomingFilter = params.upcomingOnly === true && !range;
     // Con rango de fecha activo solo tiene sentido la zona no-nula: forzamos
     // fase A ignorando un cursor que apunte a la zona NULL, para no mezclar
     // filas sin `next_performance_at` dentro del rango.
-    const cursor = range ? (params.cursor?.phase === "nonnull" ? params.cursor : null) : params.cursor ?? null;
+    const cursor = nonNullOnly ? (params.cursor?.phase === "nonnull" ? params.cursor : null) : params.cursor ?? null;
 
     // Total GLOBAL: solo en la primera página. Query de conteo sin orden ni
     // filtros de fase/keyset; `select=id&limit=1` minimiza payload y
@@ -123,6 +126,7 @@ export class CatalogClient {
       const countQuery = new URLSearchParams({ select: "id", limit: "1" });
       if (search) countQuery.set("name", `ilike.*${search}*`);
       applyRange(countQuery, range);
+      if (upcomingFilter) countQuery.set("next_performance_at", "not.is.null");
       applyFilters(countQuery, params.filters);
       const { contentRange } = await this.requestWithRange<CatalogEvent[]>(
         `/rest/v1/catalog_events_v2?${countQuery.toString()}`,
@@ -136,9 +140,10 @@ export class CatalogClient {
 
     // Con `range` presente la fase es siempre A (no-nulos); sin range, se
     // respeta el cursor (comportamiento histórico).
-    const phase: EventCursor["phase"] = range ? "nonnull" : cursor?.phase ?? "nonnull";
+    const phase: EventCursor["phase"] = nonNullOnly ? "nonnull" : cursor?.phase ?? "nonnull";
     if (phase === "nonnull") {
       applyRange(query, range);
+      if (upcomingFilter) query.set("next_performance_at", "not.is.null");
       query.set("order", "next_performance_at.asc.nullslast,id.asc");
       if (cursor) {
         // Keyset "después de (a,i)" en fase A.
@@ -165,7 +170,7 @@ export class CatalogClient {
 
     // Con `range` no hay zona NULL que recorrer: una página incompleta en fase A
     // significa fin de datos (nextCursor null), nunca un salto a fase B.
-    const nextCursor = computeNextCursor(phase, items, limit, Boolean(range));
+    const nextCursor = computeNextCursor(phase, items, limit, nonNullOnly);
     return { items, total, nextCursor };
   }
 

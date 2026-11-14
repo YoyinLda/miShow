@@ -53,6 +53,9 @@ export function ArtistDetail({ slug }: { slug?: string }) {
   const { artist } = state;
   const links = Object.entries(artist.links ?? {}).filter(([, url]) => Boolean(url));
 
+  // Brief 008: solo eventos con función futura (los pasados no se listan).
+  const upcoming = artist.events.filter((event) => Boolean(event.next_at));
+
   return (
     <article>
       <a href="/" className="text-sm text-text-muted underline">← Volver</a>
@@ -87,11 +90,11 @@ export function ArtistDetail({ slug }: { slug?: string }) {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Próximos eventos</h2>
-        {artist.events.length === 0 ? (
+        {upcoming.length === 0 ? (
           <p className="mt-2 text-sm text-text-muted">No hay eventos publicados para este artista.</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-2">
-            {artist.events.map((event) => (
+            {upcoming.map((event) => (
               <li key={event.id} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
                 <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-brand">
                   {event.name}

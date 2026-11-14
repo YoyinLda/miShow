@@ -211,7 +211,8 @@ function EventListContent() {
           limit: PAGE_SIZE,
           search: term || undefined,
           range: rangeForChip(activeRango),
-          filters: toListEventsFilters(activeFilters)
+          filters: toListEventsFilters(activeFilters),
+          upcomingOnly: true
         })
         .then((pageResult) => {
           if (token !== requestTokenRef.current) return;
@@ -257,7 +258,8 @@ function EventListContent() {
         search: current.term || undefined,
         cursor: current.cursor,
         range: rangeForChip(rangoRef.current),
-        filters: toListEventsFilters(filtersRef.current)
+        filters: toListEventsFilters(filtersRef.current),
+        upcomingOnly: true
       })
       .then((pageResult) => {
         if (token !== requestTokenRef.current) return;

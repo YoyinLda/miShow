@@ -187,3 +187,12 @@ const COUNT_FORMAT = new Intl.NumberFormat("es-CL");
 export function formatEventCount(total: number): string {
   return `${COUNT_FORMAT.format(total)} ${total === 1 ? "evento" : "eventos"}`;
 }
+
+/**
+ * ¿El evento ya pasó? Tiene funciones registradas pero ninguna futura
+ * (`next_performance_at` nulo). Un evento sin funciones no cuenta como pasado
+ * (fecha por confirmar). Brief 008.
+ */
+export function isPastEvent(event: Pick<CatalogEvent, "next_performance_at" | "performances">): boolean {
+  return !event.next_performance_at && (event.performances?.length ?? 0) > 0;
+}
