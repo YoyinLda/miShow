@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
 /**
- * Encabezado de sección del rediseño (Figma Home): título en negrita y, de
- * forma opcional, un subtítulo gris a su lado (desktop) o debajo (mobile). El
- * subtítulo es contenido editorial opcional; cuando no se pasa, solo se
- * renderiza el título.
+ * Encabezado de sección (Figma Home 3:2 / 3:123): título SemiBold 600 (22 en
+ * mobile, 24 desde `lg`) y, opcionalmente, una descripción o conteo gris 14 a
+ * su lado (gap 12). Como en el Figma mobile, la descripción solo se muestra
+ * desde `lg`.
  */
 export function SectionHeader({
   title,
@@ -14,9 +14,9 @@ export function SectionHeader({
   subtitle?: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-col gap-x-3 gap-y-0.5 sm:flex-row sm:items-baseline">
-      <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h2>
-      {subtitle ? <p className="text-sm text-text-muted">{subtitle}</p> : null}
+    <div className="mb-4 flex items-baseline gap-3 lg:mb-5">
+      <h2 className="text-[1.375rem] font-semibold tracking-tight lg:text-2xl">{title}</h2>
+      {subtitle ? <p className="hidden text-sm text-text-muted lg:block">{subtitle}</p> : null}
     </div>
   );
 }
