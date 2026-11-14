@@ -90,7 +90,16 @@ function EventListContent() {
   // reflejan con history.replaceState. El reseteo del listado lo dispara el
   // efecto de carga (depende de `filters`), igual que `rango`/término.
   const [filters, setFilters] = useState<FiltersState>(() => parseFilters(searchParams.toString()));
-  const [sheetOpen, setSheetOpen] = useState(false);
+  // `?filtros=abrir` (chip "+ Filtros" de la Home) abre el sheet al llegar. El
+  // parámetro se limpia de la URL al montar para no reabrirlo al recargar.
+  const [sheetOpen, setSheetOpen] = useState(() => searchParams.get("filtros") === "abrir");
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("filtros")) return;
+    params.delete("filtros");
+    const query = params.toString();
+    window.history.replaceState(window.history.state, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
+  }, []);
   // Catálogo de ciudades para el sheet: se deriva de los eventos cargados (sin
   // endpoint nuevo ni hardcode). Se acumula para no perder opciones al paginar.
   const [cityCatalog, setCityCatalog] = useState<string[]>([]);

@@ -177,3 +177,13 @@ export function formatDayMonth(
   const month = monthRaw.replace(/\.$/u, "").toUpperCase();
   return { day, month };
 }
+
+const COUNT_FORMAT = new Intl.NumberFormat("es-CL");
+
+/**
+ * Conteo del encabezado "Próximos conciertos" (Figma: "152 eventos"). Singular
+ * para 1 y separador de miles es-CL ("1.234 eventos").
+ */
+export function formatEventCount(total: number): string {
+  return `${COUNT_FORMAT.format(total)} ${total === 1 ? "evento" : "eventos"}`;
+}

@@ -12,7 +12,8 @@ pantalla. Fuente de verdad: `apps/web/app/globals.css`.
   sigue al sistema **solo** cuando no hay atributo (elección "sistema").
 - El toggle (`components/ThemeToggle.tsx`) escribe la elección en `localStorage`
   (clave `mishow-theme`) y aplica/quita `data-theme`; un script anti-flash en
-  `layout.tsx` lo aplica antes del paint.
+  `layout.tsx` lo aplica antes del paint. El Figma no incluye el selector: en
+  desktop vive tras el botón ◐ del header (panel) y en mobile dentro del menú ☰.
 
 ## Tabla de tokens
 
@@ -41,6 +42,8 @@ grande / componentes de UI ≥ 3:1 (AA). Los ratios de texto se evalúan sobre
 | `--success` | `text-success` / `bg-success` | `#15803d` | `#4ade80` | ~5.2:1 claro / ~9.0:1 oscuro |
 | `--success-contrast` | `text-success-contrast` | `#ffffff` | `#06130a` | texto sobre `--success` |
 | `--success-surface` | `bg-success-surface` | `#f0fdf4` | `#0f2417` | fondo de aviso de éxito |
+| `--logo-mi` | (solo SVG del logo) | `#7c4dff` | `#7c4dff` | "mi" del logo, color de marca del Figma |
+| `--logo-show` | (solo SVG del logo) | `#12131a` | `#f7f7f7` | "Show" del logo (Figma Theme=Light / Theme=Dark) |
 
 ## Notas
 
@@ -52,3 +55,8 @@ grande / componentes de UI ≥ 3:1 (AA). Los ratios de texto se evalúan sobre
 - Rediseño de jerarquía y densidad de tarjetas: Etapa 4 (ver Brief 005). Donde el
   resultado se ve pobre pero legible queda anotado `// TODO Etapa 4` sin
   rediseñar en esta etapa.
+- Logo: `components/brand/Logo.tsx` es el vector miShow / Bloque exportado de
+  Figma (02 Components → Brand / Logo Horizontal). Se dibuja en línea con
+  `--logo-mi` / `--logo-show` para seguir el tema; no redibujar los paths, se
+  re-exportan desde Figma si cambia el logo. El favicon (`app/icon.svg`) es el
+  Brand / App Icon (Theme=Dark).

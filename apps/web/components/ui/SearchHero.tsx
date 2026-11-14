@@ -4,26 +4,32 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 
 /**
- * Hero editorial de la Home (Figma): título grande, subtítulo y un buscador
- * "¿Qué quieres ver?". La búsqueda server-side vive en el Catálogo (/eventos),
- * así que al enviar (Enter o blur con texto) navegamos a /eventos?q=<término>
- * en vez de duplicar aquí el listado. `defaultQuery` siembra el input desde
- * `?q=` si llegara con uno.
+ * Hero editorial de la Home (Figma Home Mobile 3:123 / Desktop 3:2).
  *
- * Mobile-first: título a ~2xl/3xl, desktop a 5xl. El input ocupa el ancho.
+ * - Mobile: título 34 Bold, subtítulo 15 y buscador "¿Qué quieres ver?".
+ * - Desktop (`lg`+), si se pasa `desktopTitle`: título 48 Bold y subtítulo 18
+ *   propios, SIN buscador (en desktop la búsqueda vive en el header).
+ *
+ * La búsqueda server-side vive en el Catálogo (/eventos): al enviar navegamos a
+ * /eventos?q=<término>. `defaultQuery` siembra el input desde `?q=`.
  */
 export function SearchHero({
   title,
   subtitle,
+  desktopTitle,
+  desktopSubtitle,
   defaultQuery = "",
   placeholder = "¿Qué quieres ver?"
 }: {
   title: ReactNode;
   subtitle?: ReactNode;
+  desktopTitle?: ReactNode;
+  desktopSubtitle?: ReactNode;
   defaultQuery?: string;
   placeholder?: string;
 }) {
   const [term, setTerm] = useState(defaultQuery);
+  const splitDesktop = desktopTitle !== undefined;
 
   function goToCatalog() {
     const trimmed = term.trim();
@@ -32,13 +38,30 @@ export function SearchHero({
   }
 
   return (
-    <section className="flex flex-col gap-4 py-2">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-5xl">{title}</h1>
-        {subtitle ? <p className="text-sm text-text-muted sm:text-base">{subtitle}</p> : null}
+    <section className="flex flex-col gap-5 lg:gap-7">
+      <div className="flex flex-col gap-5 lg:gap-7">
+        <h1 className="text-[2.125rem] font-bold leading-tight tracking-tight lg:text-5xl">
+          {splitDesktop ? (
+            <>
+              <span className="lg:hidden">{title}</span>
+              <span className="hidden lg:inline">{desktopTitle}</span>
+            </>
+          ) : (
+            title
+          )}
+        </h1>
+        {splitDesktop ? (
+          <>
+            {subtitle ? <p className="text-[0.9375rem] text-text-muted lg:hidden">{subtitle}</p> : null}
+            {desktopSubtitle ? <p className="hidden text-lg text-text-muted lg:block">{desktopSubtitle}</p> : null}
+          </>
+        ) : subtitle ? (
+          <p className="text-[0.9375rem] text-text-muted lg:text-lg">{subtitle}</p>
+        ) : null}
       </div>
       <form
         role="search"
+        className={splitDesktop ? "lg:hidden" : undefined}
         onSubmit={(event) => {
           event.preventDefault();
           goToCatalog();
@@ -51,7 +74,7 @@ export function SearchHero({
             value={term}
             onChange={(event) => setTerm(event.target.value)}
             placeholder={placeholder}
-            className="w-full rounded-[10px] border border-border bg-surface px-4 py-3 text-sm outline-none focus:border-brand sm:text-base"
+            className="h-[46px] w-full rounded-[10px] border border-border bg-surface px-3.5 text-sm outline-none focus:border-brand"
           />
         </label>
       </form>
