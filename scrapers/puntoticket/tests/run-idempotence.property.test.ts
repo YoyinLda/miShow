@@ -68,6 +68,14 @@ function genWorld(prng: Prng): World {
   return { days, listing, venues };
 }
 
+function withoutCategory(events: Map<string, NormalizedEvent>): Map<string, NormalizedEvent> {
+  return new Map([...events].map(([key, event]) => {
+    const copy = { ...event };
+    delete copy.category;
+    return [key, copy];
+  }));
+}
+
 function makeRun(world: World, listing: string[], venues: string[][] | null, store: Map<string, NormalizedEvent>, writes: { count: number }) {
   const venueUrls = (venues ?? []).map((_, i) => `${ORIGIN}/recintos/v${i}`);
   const adapter = createPuntoticketAdapter(venues ? { venueIndex: createFixedListSource(venueUrls) } : undefined);
@@ -75,6 +83,8 @@ function makeRun(world: World, listing: string[], venues: string[][] | null, sto
     if (req.url === `${ORIGIN}/musica`) return html(cards(listing));
     const venue = /\/recintos\/v(\d+)$/.exec(req.url);
     if (venue && venues) return html(cards(venues[Number(venue[1])]));
+    // Listados de categoría (brief 007): vacíos, así todo queda como música.
+    if (/\/(deportes|teatro|familia)$/.test(req.url)) return html(cards([]));
     const detail = /\/evento\/([A-Za-z0-9-]+)$/.exec(req.url);
     if (detail && world.days.has(detail[1])) return html(detailHtml(detail[1], world.days.get(detail[1])!));
     throw new Error(`unexpected ${req.url}`);
@@ -129,8 +139,10 @@ describe("Feature: puntoticket-venue-discovery — idempotencia de la corrida", 
       await makeRun(world, [], [all], viaVenue, { count: 0 })();
 
       // Cada evento, sin importar la vía, persiste una vez con NormalizedEvent igual.
-      expect(once).toEqual(viaListing);
+      // Sin descubrimiento por venue no se clasifica (category ausente = conservar).
+      expect(withoutCategory(once)).toEqual(viaListing);
       expect(once).toEqual(viaVenue);
+      expect([...once.values()].every((event) => event.category === "musica")).toBe(true);
     });
   });
 });

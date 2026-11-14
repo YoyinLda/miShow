@@ -174,9 +174,11 @@ export function validateAcquisitionUrl(
   if (url.port && url.port !== "443") throw new AcquisitionPolicyError("Puerto no permitido.");
   if (adapter.isBlockedPath(url.pathname, stage)) throw new AcquisitionPolicyError("Ruta bloqueada para adquisicion.");
   if (stage === "listing") {
-    const allowed = context.secondaryListing
-      ? adapter.discovery?.isSecondaryPagePath(url.pathname) === true
-      : adapter.isListingPath(url.pathname);
+    const allowed = context.categoryListing
+      ? (adapter.discovery?.categoryListings ?? []).some((listing) => new URL(listing.url).pathname === url.pathname)
+      : context.secondaryListing
+        ? adapter.discovery?.isSecondaryPagePath(url.pathname) === true
+        : adapter.isListingPath(url.pathname);
     if (!allowed) throw new AcquisitionPolicyError("Listing no permitido.");
   }
   url.search = "";

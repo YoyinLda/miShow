@@ -1,7 +1,15 @@
 ﻿import type { NormalizedEvent, RawEventReference } from "@mishow/domain";
 import type { SourceAdapter } from "../adapter.js";
 import { normalizeEvent } from "../normalization.js";
-import { buildDiscoveryReport, canonicalKey, mergeReferences, type DiscoveryOptions, type DiscoveryReport } from "./discovery.js";
+import {
+  buildDiscoveryReport,
+  canonicalKey,
+  classifyMerged,
+  mergeReferences,
+  type DiscoveryOptions,
+  type DiscoveryReport,
+  type MergedReference
+} from "./discovery.js";
 import { HttpAcquisitionError, HttpClient } from "./http.js";
 import { AcquisitionPolicyError, acquisitionConfig, type AcquisitionConfig, safeUrlForError, validateAcquisitionUrl } from "./policy.js";
 
@@ -61,11 +69,15 @@ export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
 
   let discoveryReport: DiscoveryReport | undefined;
   let discoveryErrors: ScrapeError[] = [];
+  let categories = new Map<string, string>();
   if (options.discovery?.enabled && adapter.discovery) {
     const outcome = await runSecondaryDiscovery(options, config.concurrency, references);
     references = outcome.references;
     discoveryReport = outcome.report;
     discoveryErrors = outcome.errors;
+    const classified = await classifyByCategoryListings(options, config.concurrency, outcome.merged);
+    categories = classified.categories;
+    discoveryErrors.push(...classified.errors);
   }
 
   const eligibleReferences = references.flatMap((reference) => {
@@ -88,7 +100,9 @@ export async function scrape(options: ScraperOptions): Promise<ScrapeResult> {
       const extracted = adapter.extractDetail(parsed.value);
       const parserErrors = [...parsed.errors, ...extracted.errors].map((message) => scrapeError("parse", sourceUrl, "parser_warning", message, 1));
       if (!extracted.value) return { errors: [...parserErrors, scrapeError("normalize", sourceUrl, "normalize_error", "No se pudo normalizar el detalle extraido.", 1)] };
-      const event = normalizeEvent(adapter, parsed.value, extracted.value, { extracted_at: startedAt });
+      const normalized = normalizeEvent(adapter, parsed.value, extracted.value, { extracted_at: startedAt });
+      const category = categories.get(canonicalKey(adapter, reference.source_url) ?? reference.source_url);
+      const event = category ? { ...normalized, category } : normalized;
       return { event, errors: parserErrors };
     } catch (error) {
       if (error instanceof HttpAcquisitionError) {
@@ -125,7 +139,7 @@ async function runSecondaryDiscovery(
   options: ScraperOptions,
   concurrency: number,
   musica: RawEventReference[]
-): Promise<{ references: RawEventReference[]; report: DiscoveryReport; errors: ScrapeError[] }> {
+): Promise<{ references: RawEventReference[]; merged: MergedReference[]; report: DiscoveryReport; errors: ScrapeError[] }> {
   const adapter = options.adapter;
   const secondary = adapter.discovery!;
   const context = { secondaryListing: true };
@@ -192,7 +206,46 @@ async function runSecondaryDiscovery(
   errors.push(...results.flatMap((r) => (r.error ? [r.error] : [])));
   const merged = mergeReferences(adapter, musica, ok);
   const report = buildDiscoveryReport(merged, { requested: results.length, succeeded: ok.length, failed: results.length - ok.length });
-  return { references: merged.map((m) => m.reference), report, errors };
+  return { references: merged.map((m) => m.reference), merged, report, errors };
+}
+
+/**
+ * Lee los listados de categorías no musicales (solo si hay eventos que llegaron
+ * únicamente por páginas secundarias) y clasifica las referencias (brief 007).
+ * Respeta la misma concurrencia y cliente HTTP (límites de cortesía).
+ */
+async function classifyByCategoryListings(
+  options: ScraperOptions,
+  concurrency: number,
+  merged: MergedReference[]
+): Promise<{ categories: Map<string, string>; errors: ScrapeError[] }> {
+  const adapter = options.adapter;
+  const listings = adapter.discovery?.categoryListings ?? [];
+  const venueOnly = merged.some((item) => !item.origins.includes("musica"));
+  if (listings.length === 0 || !venueOnly) return { categories: classifyMerged(merged, new Map(), true), errors: [] };
+
+  const context = { categoryListing: true };
+  const results = await mapStable([...listings], concurrency, async (listing) => {
+    const sourceUrl = safeUrlForError(listing.url);
+    try {
+      const url = validateAcquisitionUrl(adapter, listing.url, "listing", undefined, context);
+      const html = await options.client.getHtml(url, "listing", context);
+      return { category: listing.category, refs: adapter.parseListing(html, url) };
+    } catch (error) {
+      if (error instanceof HttpAcquisitionError) return { error: scrapeError("listing", sourceUrl, "category_listing_failed", `${error.code}: ${error.message}`, error.attempts) };
+      return { error: scrapeError("listing", sourceUrl, "category_listing_failed", safeMessage(error), 1) };
+    }
+  });
+
+  const categoryByUrl = new Map<string, string>();
+  for (const result of results) {
+    for (const ref of result.refs ?? []) {
+      const key = canonicalKey(adapter, ref.source_url);
+      if (key && !categoryByUrl.has(key)) categoryByUrl.set(key, result.category!);
+    }
+  }
+  const errors = results.flatMap((result) => (result.error ? [result.error] : []));
+  return { categories: classifyMerged(merged, categoryByUrl, errors.length === 0), errors };
 }
 
 function globalFailure(error: unknown): Error {

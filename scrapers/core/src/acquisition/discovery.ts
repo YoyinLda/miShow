@@ -159,3 +159,34 @@ export function deserializeReferences(text: string): RawEventReference[] {
     return title === undefined ? { source_url } : { source_url, title };
   });
 }
+
+/** Categoría por defecto: el foco del catálogo público. */
+export const MUSIC_CATEGORY = "musica";
+
+/**
+ * Clasifica referencias unidas (brief 007). Devuelve `source_url` canónica →
+ * categoría; una clave ausente significa "sin clasificar" (la base conserva la
+ * categoría vigente):
+ * - vista en `/musica` → `musica` (la música gana si también está en otra categoría);
+ * - solo por venue y presente en un listado de categoría → esa categoría;
+ * - solo por venue, ausente de todos y todos los listados se leyeron → `musica`;
+ * - solo por venue, ausente y algún listado falló → sin clasificar.
+ */
+export function classifyMerged(
+  merged: readonly MergedReference[],
+  categoryByUrl: ReadonlyMap<string, string>,
+  allListingsOk: boolean
+): Map<string, string> {
+  const result = new Map<string, string>();
+  for (const item of merged) {
+    const key = item.reference.source_url;
+    if (item.origins.includes("musica")) {
+      result.set(key, MUSIC_CATEGORY);
+      continue;
+    }
+    const listed = categoryByUrl.get(key);
+    if (listed) result.set(key, listed);
+    else if (allListingsOk) result.set(key, MUSIC_CATEGORY);
+  }
+  return result;
+}

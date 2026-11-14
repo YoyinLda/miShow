@@ -3,7 +3,7 @@ import { hasUserinfo } from "@mishow/domain";
 import { parseMusicListing } from "./extraction/listing.js";
 import { extractDetail, parseEventDetail } from "./extraction/detail.js";
 import { parseVenuePage } from "./extraction/venue.js";
-import { isBlockedPath, isListingPath } from "./paths.js";
+import { CATEGORY_LISTINGS, isBlockedPath, isListingPath } from "./paths.js";
 
 export { isBlockedPath };
 
@@ -80,7 +80,8 @@ export function createPuntoticketAdapter(opts?: PuntoticketAdapterOptions): Sour
       id: "venues",
       isSecondaryPagePath: (pathname) => isAllowedVenuePath(venueIndex, pathname),
       index: venueIndex,
-      parsePage: parseVenuePage
+      parsePage: parseVenuePage,
+      categoryListings: CATEGORY_LISTINGS
     }
   };
 }

@@ -7,6 +7,15 @@ export interface AcquisitionUrlContext {
   discoveredDetailUrl?: string;
   /** Marca solicitudes de descubrimiento secundario (páginas de venue). */
   secondaryListing?: boolean;
+  /** Marca solicitudes a listados de categoría no musical (clasificación). */
+  categoryListing?: boolean;
+}
+
+/** Listado de una categoría de la fuente usado para clasificar eventos. */
+export interface CategoryListing {
+  /** Valor persistido en `events.category` (p. ej. "deportes"). */
+  readonly category: string;
+  readonly url: string;
 }
 
 export interface SecondaryIndexContext {
@@ -54,6 +63,12 @@ export interface SecondaryDiscovery {
   readonly index: SecondaryIndexSource;
   /** Extrae referencias de evento desde el HTML de una página secundaria. */
   parsePage(html: string, pageUrl: string): RawEventReference[];
+  /**
+   * Listados de categorías NO musicales de la fuente. Un evento que llegó solo
+   * por páginas secundarias y aparece en uno de ellos toma esa categoría (brief
+   * 007). Se leen con `parseListing` del adapter.
+   */
+  readonly categoryListings?: readonly CategoryListing[];
 }
 
 /**

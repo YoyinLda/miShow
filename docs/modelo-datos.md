@@ -13,7 +13,7 @@ escritura solo `service_role`):
 
 - **`sources`** — ticketera/fuente (`code`, `name`, `base_url`). Se conserva.
 - **`events`** — evento **canónico**, independiente de la fuente:
-  `id, slug (único), match_key (único), name, category (default 'musica'),
+  `id, slug (único), match_key (único), name, category (default 'musica'; brief 007: las vistas públicas solo exponen 'musica'),
   subcategory, description, venue_id, status, image_url, needs_review,
   first_seen_at, last_seen_at`.
 - **`event_sources`** — observación de un evento canónico en una fuente:
