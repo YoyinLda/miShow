@@ -84,8 +84,8 @@ export function FeaturedSection({ rango }: { rango: RangoKind | null }) {
       {loading && events.length === 0 ? (
         <div className="h-56 animate-pulse rounded-[14px] border border-border bg-surface-event" aria-hidden="true" />
       ) : primary ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          <div className="lg:col-span-1">
+        <div className="grid gap-4 lg:grid-cols-[520fr_380fr_380fr]">
+          <div className="[&>article]:h-full">
             <FeaturedCard event={primary} variant="primary" />
           </div>
           {mini.map((event) => (

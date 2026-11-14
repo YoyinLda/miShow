@@ -1,6 +1,6 @@
 # Brief 006 — Front fiel al Figma (marca, Home y Catálogo)
 
-Estado: en curso. Entrega 1 en PR #27 (rama `feat/front-marca-header`); entrega 2 en rama `feat/front-home` (parte de la 1).
+Estado: entregas 1–3 implementadas. PR #27 (1, `feat/front-marca-header`), #28 (2, `feat/front-home`), entrega 3 en `feat/front-catalogo`. Cada PR parte del anterior.
 
 ## Objetivo
 
@@ -35,13 +35,12 @@ Figma `TJO1DJlVF1xfcP9QKWTR7g` ("miShow — UX/UI Reference"):
 - Títulos de sección SemiBold 600 (22 mobile / 24 desktop); descripción o conteo a la derecha solo desde `lg`, como el Figma. "Próximos conciertos" muestra el total real (`formatEventCount`, p. ej. "282 eventos"); con "Gratis" no se muestra (post-filtro cliente).
 - EventRow: mobile título en 2 líneas, imagen 48×56 y precio bajo el venue (decisión TL/PO; el Figma lo oculta); desktop imagen 72×52 y precio antes de la flecha.
 
-### 3. Secciones y Catálogo — pendiente
-- Escena local: tarjetas chicas (nombre, fecha en acento, género), 2 columnas en mobile.
-- Destacados: imagen del evento en las mini cards.
-- `/eventos` según frames Catálogo.
+### 3. Secciones y Catálogo — hecho (rama `feat/front-catalogo`)
+- Escena local e Historias ocultas (y sus enlaces del header) tras `SHOW_EDITORIAL_SECTIONS` en `lib/sections.ts` (decisión TL/PO): sin dato real no se muestran placeholders. Al activarlas, rehacer las tarjetas chicas del Figma (2 columnas en mobile).
+- Destacados: mini cards con imagen del evento (16:9, placeholder si no hay); grilla desktop 520/380/380 como el Figma.
+- `/eventos`: título 34/48 y subtítulo "Encuentra tu próximo concierto."; en desktop el buscador queda solo en el header (salvo si se llega con `?q=`) y "Filtros" pasa a chip "+ Filtros" con contador; en mobile se mantiene el botón Filtros (decisión TL/PO). "Todos los eventos" lleva el conteo al lado desde `lg`.
 
 ## Ideas por decidir (TL/PO)
-- Ocultar Escena local e Historias mientras solo muestren "Próximamente".
 - Filtrar eventos que no son música (p. ej. partidos de fútbol en Claro Arena).
 
 ## Forma de trabajo

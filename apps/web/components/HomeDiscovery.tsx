@@ -9,6 +9,7 @@ import { FeaturedSection } from "./FeaturedSection";
 import { UpcomingSection } from "./UpcomingSection";
 import { LocalSceneSection } from "./LocalSceneSection";
 import { StoriesSection } from "./StoriesSection";
+import { SHOW_EDITORIAL_SECTIONS } from "../lib/sections";
 
 /**
  * Orquestador client-side de la Home. Es el único dueño del estado del rango
@@ -18,8 +19,9 @@ import { StoriesSection } from "./StoriesSection";
  * en un solo lugar y los átomos quedan como presentación.
  *
  * Composición fiel al Figma Home: hero + chips + Destacados + Próximos
- * conciertos + enlace "Ver todos los eventos" (→ /eventos) + Escena local +
- * Historias. El listado completo con scroll infinito vive en /eventos
+ * conciertos + enlace "Ver todos los eventos" (→ /eventos). Escena local e
+ * Historias quedan ocultas tras `SHOW_EDITORIAL_SECTIONS` hasta tener datos
+ * reales (decisión TL/PO, brief 006). El listado completo con scroll infinito vive en /eventos
  * (FEAT-003).
  */
 function HomeDiscoveryContent() {
@@ -60,8 +62,12 @@ function HomeDiscoveryContent() {
           Ver todos los eventos <span aria-hidden="true">→</span>
         </a>
       </div>
-      <LocalSceneSection />
-      <StoriesSection />
+      {SHOW_EDITORIAL_SECTIONS ? (
+        <>
+          <LocalSceneSection />
+          <StoriesSection />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import type { RangoKind } from "../../lib/discovery";
 
 /**
@@ -35,11 +36,19 @@ const INACTIVE = "border border-chip-border bg-surface text-text hover:border-br
 export function FilterChips({
   value,
   onChange,
-  moreFiltersHref
+  moreFiltersHref,
+  moreFilters
 }: {
   value: RangoKind | null;
   onChange: (next: RangoKind | null) => void;
   moreFiltersHref?: string;
+  /** Variante botón del chip "+ Filtros" (desktop): abre el sheet en la misma página. */
+  moreFilters?: {
+    onOpen: () => void;
+    expanded: boolean;
+    count: number;
+    buttonRef?: Ref<HTMLButtonElement>;
+  };
 }) {
   return (
     <div role="group" aria-label="Filtrar por" className="flex flex-wrap gap-2 lg:gap-2.5">
@@ -68,6 +77,22 @@ export function FilterChips({
         <a href={moreFiltersHref} className={`${BASE} ${INACTIVE} hidden lg:inline-flex`}>
           + Filtros
         </a>
+      ) : moreFilters ? (
+        <button
+          ref={moreFilters.buttonRef}
+          type="button"
+          onClick={moreFilters.onOpen}
+          aria-haspopup="dialog"
+          aria-expanded={moreFilters.expanded}
+          className={`${BASE} ${INACTIVE} hidden gap-2 lg:inline-flex`}
+        >
+          + Filtros
+          {moreFilters.count > 0 ? (
+            <span className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-xs font-semibold text-brand-contrast">
+              {moreFilters.count}
+            </span>
+          ) : null}
+        </button>
       ) : null}
     </div>
   );
