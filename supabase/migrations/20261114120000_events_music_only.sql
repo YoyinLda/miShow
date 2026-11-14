@@ -13,7 +13,7 @@
 create index if not exists events_category_idx on public.events (category);
 
 -- 2) Vistas públicas: solo category = 'musica'. Mismas columnas => create or replace.
-create view public.catalog_events_v2
+create or replace view public.catalog_events_v2
 with (security_invoker = true)
 as
 select
