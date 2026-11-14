@@ -35,6 +35,8 @@ export interface PersistedEventPayload {
   source_code?: string;
   image_url?: string;
   purchase_url?: string;
+  /** Ausente = sin clasificar (la base conserva la categoría vigente). */
+  category?: string;
   price?: { min?: number; max?: number; currency?: string };
   artists: Array<{ name: string; normalized_name: string; position: number }>;
   venue?: { name?: string; normalized_name?: string; address?: string; city?: string; latitude?: number; longitude?: number };
@@ -86,6 +88,7 @@ export function mapEventForPersistence(adapter: SourceAdapter, event: Normalized
     ...optionalText("source_code", event.source_code),
     ...optionalText("image_url", event.image_url),
     ...optionalText("purchase_url", event.purchase_url),
+    ...optionalText("category", optionalCategory(event.category)),
     ...(price ? { price } : {}),
     artists,
     ...(venue ? { venue } : {}),
@@ -275,4 +278,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function sortObject(value: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+/** Categoría opcional: identificador simple en minúsculas (p. ej. "deportes"). */
+function optionalCategory(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  if (!/^[a-z]+$/.test(value)) throw validationError("category debe ser un identificador en minúsculas.");
+  return value;
 }

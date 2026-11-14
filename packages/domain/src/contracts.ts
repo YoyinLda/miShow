@@ -45,6 +45,12 @@ export interface NormalizedEvent {
   performances: EventPerformance[];
   status: EventStatus;
   price?: { min?: number; max?: number; currency?: string };
+  /**
+   * Categoría según la fuente ("musica", "deportes", "teatro", "familia").
+   * Ausente = sin clasificar: la base conserva la categoría vigente (o
+   * `musica` por defecto al crear). Solo el catálogo de música es público.
+   */
+  category?: string;
 }
 
 export interface ExtractionResult<T> {

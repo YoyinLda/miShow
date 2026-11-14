@@ -49,7 +49,7 @@ function setup(opts: {
 }
 
 describe("PuntoTicket venue adapter: cortesía", () => {
-  it("aplica delay >= 1000 ms antes de cada solicitud (musica, venues y detalles)", async () => {
+  it("aplica delay >= 1000 ms antes de cada solicitud (musica, venues, categorías y detalles)", async () => {
     const sleeps: number[] = [];
     const calls: string[] = [];
     const { run } = setup({
@@ -64,8 +64,10 @@ describe("PuntoTicket venue adapter: cortesía", () => {
       }
     });
     const result = await run();
-    expect(calls).toHaveLength(5);
-    expect(sleeps).toHaveLength(5);
+    // musica + 2 venues + 3 listados de categoría (brief 007: hay eventos solo por venue) + 2 detalles.
+    expect(calls).toHaveLength(8);
+    expect(calls.filter((url) => /\/(deportes|teatro|familia)$/.test(url))).toHaveLength(3);
+    expect(sleeps).toHaveLength(8);
     expect(Math.min(...sleeps)).toBeGreaterThanOrEqual(1000);
     expect(result.events).toHaveLength(2);
   });
