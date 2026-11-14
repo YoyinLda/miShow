@@ -26,8 +26,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col px-4 sm:px-12">
           <SiteHeader />
           <main className="flex-1 py-8 sm:py-10">{children}</main>
-          <footer className="border-t border-border py-6 text-xs text-text-muted">
-            Datos obtenidos de fuentes públicas. Cada evento enlaza a su ticketera original.
+          <footer className="flex flex-col gap-2 border-t border-border py-6 text-xs text-text-muted sm:flex-row sm:items-center sm:justify-between">
+            <p>Datos obtenidos de fuentes públicas. Cada evento enlaza a su ticketera original.</p>
+            <nav aria-label="Legal" className="flex flex-wrap gap-x-4 gap-y-1">
+              <a href="/contacto" className="underline hover:text-text">
+                Contacto y retiro de contenido
+              </a>
+              <a href="/privacidad" className="underline hover:text-text">
+                Privacidad
+              </a>
+            </nav>
           </footer>
         </div>
       </body>

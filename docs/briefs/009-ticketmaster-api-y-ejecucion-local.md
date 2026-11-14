@@ -35,16 +35,25 @@ Herramienta lista: workflow manual **Evaluar Discovery API Ticketmaster** (`.git
 - [ ] El runner solo acepta workflows de `main`. Como el repo es público, los PR de forks no se ejecutan en tu red.
 - [ ] Guía de instalación: Raspberry Pi OS Lite de 64 bits, Node LTS, Playwright Chromium en ARM64 si hace falta, el runner como servicio systemd, actualizaciones automáticas de seguridad y acceso por SSH con llave.
 
-### C. Canal de retiro de contenido
-- [ ] Link «Contacto y retiro de contenido» en el footer, que lleva a la página `/contacto` con un formulario: nombre, organización, correo, URL del evento en miShow y motivo.
-- [ ] Tabla `content_requests` en Supabase con RLS de solo inserción para el rol `anon`, rate limit y captcha liviano (Cloudflare Turnstile, que es gratuito).
-- [ ] Notificación inmediata: una Database Webhook o Edge Function envía un correo al TL y abre un issue en GitHub con el label `retiro-contenido`.
-- [ ] Mecanismos para retirar contenido:
-  - `events.hidden_at`, para ocultar un evento puntual. Las vistas públicas lo filtran.
-  - Kill switch por fuente, `sources.enabled = false`, para ocultar todo el contenido de una ticketera en minutos.
-- [ ] Un correo de contacto visible en el footer, como alias dedicado. Hoy el sitio vive en `pages.dev`, así que sirve uno de Gmail mientras no haya dominio.
-- [ ] Política de privacidad breve en el footer, porque los términos de la API lo exigen: qué datos se recogen (formulario y analítica si la hay) y para qué.
-- [ ] Runbook de 24 h: recibir la solicitud, ocultar el contenido, responder y cerrar el issue.
+### C. Canal de retiro de contenido — implementado (migración pendiente de aplicar)
+Decisiones TL/PO (2026-11-14): el aviso llega por un issue que abre una Action cada 30 min; antispam con rate limit en la base más honeypot, sin Turnstile; verificación con dry-run en producción, porque aquí no hay Docker.
+
+- [x] Link «Contacto y retiro de contenido» y «Privacidad» en el footer. Página `/contacto` con formulario: nombre, organización, correo, URL del evento y motivo.
+- [x] Tabla `content_requests` (migración `20261115120000_content_requests.sql`):
+  - RLS: `anon` solo puede insertar columnas permitidas; sin lectura y sin poder fijar `status`.
+  - Trigger de rate limit: 3 por correo por hora y 30 por hora en total.
+  - Honeypot en el cliente.
+- [x] Aviso: `.github/workflows/content-requests.yml` corre cada 30 min y abre un issue `retiro-contenido` **sin datos personales**, porque el repo es público. Nombre, correo y motivo se revisan en Supabase.
+- [x] Retiro de contenido:
+  - `events.hidden_at`, para un evento puntual.
+  - `sources.enabled` como kill switch: oculta los eventos de esa fuente y quita sus enlaces y precios de los eventos compartidos.
+  - Las tres vistas públicas exigen además al menos una fuente habilitada. Con esto se ocultan 3 eventos actuales que no tienen ninguna fuente.
+- [ ] Correo de contacto visible en el footer: falta definir la dirección (TL/PO).
+- [x] Política de privacidad breve: `/privacidad`.
+- [x] Runbook de 24 h: `docs/runbook-retiro-contenido.md`.
+- Verificación:
+  - Dry-run en producción con rollback: ocultar un evento (277 → 276 → 277), Ticketmaster deshabilitado (180 visibles, 0 enlaces de TM), 3 envíos de `anon` aceptados y el 4.º `rate_limited`, correo inválido rechazado, `anon` sin lectura ni control de `status`. Después se confirmó que la base quedó intacta.
+  - Test pgTAP `content_requests.test.sql`: sin ejecutar, porque no hay Docker.
 
 ## Condiciones de la API (investigadas el 2026-11-14)
 
