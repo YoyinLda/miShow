@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateRange, formatDayMonth, formatEventCount, isFree, parseRango, selectFeatured } from "../lib/discovery";
+import { dateRange, formatDayMonth, formatEventCount, isFree, isPastEvent, parseRango, selectFeatured } from "../lib/discovery";
 import type { CatalogEvent, CatalogEventSource } from "@mishow/catalog-client";
 
 // `now` fijo: 2026-12-12T18:00:00Z. En Santiago (verano, -03:00) son las
@@ -148,5 +148,16 @@ describe("formatEventCount", () => {
 
   it("separa miles al estilo es-CL", () => {
     expect(formatEventCount(1234)).toBe("1.234 eventos");
+  });
+});
+
+describe("isPastEvent", () => {
+  const perf = { starts_at: "2026-01-01T23:00:00Z", timezone: "America/Santiago", status: "unknown" as const };
+  it("pasado: tiene funciones pero ninguna futura", () => {
+    expect(isPastEvent({ next_performance_at: null, performances: [perf] })).toBe(true);
+  });
+  it("no pasado: con función futura o sin funciones (fecha por confirmar)", () => {
+    expect(isPastEvent({ next_performance_at: "2099-01-01T23:00:00Z", performances: [perf] })).toBe(false);
+    expect(isPastEvent({ next_performance_at: null, performances: [] })).toBe(false);
   });
 });

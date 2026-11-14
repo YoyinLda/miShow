@@ -145,6 +145,12 @@ export interface ListEventsParams {
    * que `range`. Ausentes o vacíos => comportamiento byte-idéntico al histórico.
    */
   filters?: ListEventsFilters;
+  /**
+   * Solo eventos con una función futura (`next_performance_at` no nulo). Oculta
+   * los eventos pasados de los listados (brief 008). Ausente = histórico (incluye
+   * la zona NULL al final).
+   */
+  upcomingOnly?: boolean;
 }
 
 /**

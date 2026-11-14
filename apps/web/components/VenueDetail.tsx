@@ -59,6 +59,9 @@ export function VenueDetail({ slug }: { slug?: string }) {
         ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue.name, ...locationParts].join(", "))}`
         : undefined;
 
+  // Brief 008: solo eventos con función futura (los pasados no se listan).
+  const upcoming = venue.events.filter((event) => Boolean(event.next_at));
+
   return (
     <article>
       <a href="/" className="text-sm text-text-muted underline">← Volver</a>
@@ -74,11 +77,11 @@ export function VenueDetail({ slug }: { slug?: string }) {
 
       <section className="mt-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-text-muted">Próximos eventos</h2>
-        {venue.events.length === 0 ? (
+        {upcoming.length === 0 ? (
           <p className="mt-2 text-sm text-text-muted">No hay eventos publicados en este recinto.</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-2">
-            {venue.events.map((event) => (
+            {upcoming.map((event) => (
               <li key={event.id} className="rounded-lg border border-border bg-surface px-4 py-3 text-sm">
                 <a href={`/evento?slug=${encodeURIComponent(event.slug)}`} className="font-medium underline hover:text-brand">
                   {event.name}

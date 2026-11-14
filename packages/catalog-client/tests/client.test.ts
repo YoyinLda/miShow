@@ -204,6 +204,27 @@ describe("CatalogClient", () => {
     expect(result.nextCursor).toEqual({ phase: "null", nextAt: null, id: 0 });
   });
 
+  it("upcomingOnly filtra next_performance_at no nulo en conteo y datos, sin pasar a la zona NULL (brief 008)", async () => {
+    const { impl, urls } = fetchSequence([
+      { body: [], headers: { "content-range": "*/3" } },
+      { body: [rowWith(1, "2026-12-10T00:00:00Z")] }
+    ]);
+    const client = makeClient(impl);
+    const result = await client.listEvents({ limit: 20, upcomingOnly: true });
+    expect(decodeURIComponent(urls[0])).toContain("next_performance_at=not.is.null");
+    expect(decodeURIComponent(urls[1])).toContain("next_performance_at=not.is.null");
+    expect(result.total).toBe(3);
+    // Página incompleta = fin de datos; nunca salta a la fase NULL.
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it("upcomingOnly ignora un cursor de fase NULL", async () => {
+    const { impl, capture } = fetchSpy([]);
+    const client = makeClient(impl);
+    await client.listEvents({ limit: 20, upcomingOnly: true, cursor: { phase: "null", nextAt: null, id: 0 } });
+    expect(decodeURIComponent(capture.url ?? "")).not.toContain("next_performance_at=is.null");
+  });
+
   it("queries the NULL zone in phase B with next_performance_at=is.null and id=gt", async () => {
     const { impl, capture } = fetchSpy(Array.from({ length: 20 }, (_, i) => rowWith(200 + i, null)));
     const client = makeClient(impl);
