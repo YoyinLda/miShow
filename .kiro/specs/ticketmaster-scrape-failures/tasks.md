@@ -63,16 +63,16 @@ Corrección de fallas de scrape de Ticketmaster: clasificación de bloqueos, val
   - Marcar completa cuando estén escritos, ejecutados y pasando
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-- [ ] 3. Fix for fallas de scrape de Ticketmaster (clasificación, umbrales, jitter, salida, diagnóstico)
+- [x] 3. Fix for fallas de scrape de Ticketmaster (clasificación, umbrales, jitter, salida, diagnóstico)
 
-  - [ ] 3.1 Agregar `ResilienceConfig` opt-in en `scrapers/core/src/acquisition/policy.ts`
+  - [x] 3.1 Agregar `ResilienceConfig` opt-in en `scrapers/core/src/acquisition/policy.ts`
     - Campos: `classifyBlocking`, `jitterRatio`, `minListingRefs`, `degradedRatio`, `failedRatio`; default `undefined` = comportamiento actual
     - Validar rangos (0–1, enteros ≥ 0) sin tocar límites duros
     - _Bug_Condition: isBugCondition(input) from design_
     - _Preservation: PuntoTicket no activa `resilience`_
     - _Requirements: 2.1, 2.4, 2.5, 3.3, 3.6_
 
-  - [ ] 3.2 Clasificar bloqueos y backoff con jitter en `scrapers/core/src/acquisition/http.ts`
+  - [x] 3.2 Clasificar bloqueos y backoff con jitter en `scrapers/core/src/acquisition/http.ts`
     - `HttpErrorCode`: `blocked` (401/403), `blocked_redirect`, `challenge`; `HttpAcquisitionError.httpStatus?`
     - Sin `classifyBlocking` mantener `http_error`/`redirect_rejected`/`invalid_content_type`
     - No reintentar 401/403; sí 408/429/5xx, timeout y red (D5)
@@ -83,7 +83,7 @@ Corrección de fallas de scrape de Ticketmaster: clasificación de bloqueos, val
     - _Preservation: límites de política y PuntoTicket idéntico_
     - _Requirements: 2.1, 2.2, 2.5, 3.3_
 
-  - [ ] 3.3 Validación semántica y diagnóstico en `scrapers/core/src/acquisition/orchestrator.ts`
+  - [x] 3.3 Validación semántica y diagnóstico en `scrapers/core/src/acquisition/orchestrator.ts`
     - `ScrapeError.http_status?`; `globalFailure` conserva código, status y attempts (`ScrapeStageError`)
     - Con `resilience`: `listing_empty` (0 refs, falla global) y `listing_degraded` (< `minListingRefs`)
     - `summary.failure_breakdown` y `health: ok|degraded|failed` según `degradedRatio`/`failedRatio` (D1)
@@ -92,50 +92,50 @@ Corrección de fallas de scrape de Ticketmaster: clasificación de bloqueos, val
     - _Expected_Behavior: expectedBehavior(result) from design_
     - _Requirements: 2.2, 2.3, 2.4, 2.7, 3.5, 3.7_
 
-  - [ ] 3.4 Estado y errores globales en `scrapers/core/src/persistence/workflow.ts`
+  - [x] 3.4 Estado y errores globales en `scrapers/core/src/persistence/workflow.ts`
     - `health=degraded` → `partial`; `health=failed` → `failed`; sin `health` usar `runStatus` actual
     - Catch global: registrar `stage`, `code`, `attempts` reales; fallback a `global_acquisition_failure`
     - Mensajes vía `sanitizePersistenceMessage`
     - _Preservation: idempotencia por `source_id`, PuntoTicket sin `health`_
     - _Requirements: 2.3, 2.4, 2.7, 3.2, 3.6_
 
-  - [ ] 3.5 Activar `resilience` y política de salida en Ticketmaster
+  - [x] 3.5 Activar `resilience` y política de salida en Ticketmaster
     - `scrapers/ticketmaster/src/acquisition/policy.ts` y `src/cli/ticketmaster-scrape.ts`: leer `TM_DEGRADED_RATIO`, `TM_FAILED_RATIO`, `TM_MIN_LISTING_REFS`, `TM_FAIL_ON_PARTIAL` con validación tipo `envInteger`
     - Exit 1 si `failed`; exit 1 si `partial` y `TM_FAIL_ON_PARTIAL=true`; `::warning::` en `partial` por defecto
     - No tocar el CLI de PuntoTicket
     - Valores D1–D3 siguen **OPEN** hasta aprobación TL/PO; implementar como defaults configurables
     - _Requirements: 2.4, 2.6, 3.6_
 
-  - [ ] 3.6 Exponer variables en `.github/workflows/scrape-ticketmaster.yml`
+  - [x] 3.6 Exponer variables en `.github/workflows/scrape-ticketmaster.yml`
     - Variables `TM_*` vía `vars.*` con defaults propuestos; sin secretos nuevos
     - _Requirements: 2.6_
 
-  - [ ] 3.7 Verify bug condition exploration test now passes
+  - [x] 3.7 Verify bug condition exploration test now passes
     - **Property 1: Expected Behavior** - Fallas clasificadas y visibles
     - **IMPORTANT**: Re-ejecutar el MISMO test de la tarea 1; NO escribir uno nuevo
     - **EXPECTED OUTCOME**: Test PASA (confirma bug corregido)
     - Añadir PBT de fix-checking: delay ∈ [`delayMs`, `maxRetryAfterMs`]; `succeeded` nunca con N=0 refs; monotonía de `health` ante más fallas; sin credenciales en mensajes
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-  - [ ] 3.8 Verify preservation tests still pass
+  - [x] 3.8 Verify preservation tests still pass
     - **Property 2: Preservation** - Corridas sanas y PuntoTicket sin cambios
     - **IMPORTANT**: Re-ejecutar los MISMOS tests de la tarea 2; NO escribir nuevos
     - Incluye corrida PuntoTicket completa con fixtures: salida, códigos de error, `runStatus` y exit code idénticos a la línea base
     - **EXPECTED OUTCOME**: Tests PASAN (sin regresiones)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7_
 
-  - [ ] 3.9 Tests unitarios e integración
+  - [x] 3.9 Tests unitarios e integración
     - Unit: `getHtml` (401/403 sin reintento, 429/503 con `Retry-After`, `Content-Type` ausente), `scrape` (0 refs, bajo mínimo, `health` en bordes 0.25/0.75), workflow (forzado por `health`), CLI (`TM_FAIL_ON_PARTIAL`, `TM_*` inválidas)
     - Integración con persistencia en memoria: listado 403 → run `failed` con `blocked` en `scrape_run_errors`; corrida mixta → `partial` con eventos válidos persistidos
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 3.5_
 
-- [ ] 4. Actualizar documentación
+- [x] 4. Actualizar documentación
   - Actualizar `docs/`: contrato de códigos de error (`blocked`, `blocked_redirect`, `challenge`, `listing_empty`, `listing_degraded`, `degraded_details`), campos `http_status`/`attempts`/`failure_breakdown`/`health`, variables `TM_*` y política de salida
   - Documentar decisiones D1–D5 y su estado de aprobación TL/PO
   - Confirmar que no hay secretos ni credenciales en docs/workflow
   - _Requirements: 2.6, 2.7_
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ejecutar typecheck, lint y tests (scripts del `package.json` raíz) para `scrapers/core`, `scrapers/ticketmaster` y `scrapers/puntoticket`
   - Revisar diff: solo cambios previstos, PuntoTicket sin modificaciones de comportamiento
   - Ensure all tests pass, ask the user if questions arise.
