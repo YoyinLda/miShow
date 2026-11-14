@@ -21,10 +21,12 @@ Estado: propuesto (2026-11-14).
 ## Entregas
 
 ### A. Evaluación de la Discovery API (va primero)
+Herramienta lista: workflow manual **Evaluar Discovery API Ticketmaster** (`.github/workflows/eval-ticketmaster-api.yml`), que corre `.github/scripts/ticketmaster-api-eval.mjs`. Es de solo lectura y no tiene dependencias. Deja el informe en el resumen del job y como artifact `ticketmaster-api-report`.
+
 - [ ] Registrar una app en developer.ticketmaster.com y obtener la key. Se guarda como secreto `TICKETMASTER_API_KEY` y nunca se commitea.
-- [ ] Hacer una llamada de prueba desde un workflow de GitHub Actions para confirmar que no hay 403 desde datacenter.
-- [ ] Consultar `GET /discovery/v2/events.json?countryCode=CL&classificationName=music&size=200`, paginando hasta cubrir todo el resultado.
-- [ ] Comparar contra los eventos de Ticketmaster en la base: cuántos coinciden, cuántos faltan en cada lado, y la calidad de fechas, horas (America/Santiago), recintos, imágenes y URL de compra (¿apunta a ticketmaster.cl?).
+- [ ] Correr el workflow de evaluación: la primera llamada confirma si hay 403 desde datacenter.
+- [x] Script que consulta `GET /discovery/v2/events.json?countryCode=CL&classificationName=music&size=200`, paginando hasta el límite de deep paging (1000), a menos de 2 req/s.
+- [x] Script que compara contra los eventos de Ticketmaster en la base, emparejando por slug de `/event/<slug>` o por nombre y fecha: cuántos coinciden, cuántos faltan en cada lado, y la calidad de fechas, horas (America/Santiago), recintos, imágenes y URL de compra (¿apunta a ticketmaster.cl?).
 - [ ] Informe con una recomendación: API como fuente principal, como complemento o descartada.
 
 ### B. Runner local (si A no cubre lo suficiente, o para el scraper de respaldo)

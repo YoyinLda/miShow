@@ -1,0 +1,56 @@
+name: Evaluar Discovery API Ticketmaster
+
+# Brief 009 · Entrega A. Ejecución manual y solo lectura: consulta la Discovery API
+# (countryCode=CL, música) y la compara con los eventos de Ticketmaster en
+# catalog_events_v2. Deja el informe en el resumen del job y como artifact.
+# También sirve para confirmar si la API responde sin 403 desde GitHub Actions.
+#
+# Secrets requeridos:
+#   TICKETMASTER_API_KEY  key de developer.ticketmaster.com
+#   SUPABASE_URL          https://<ref>.supabase.co
+#   SUPABASE_SECRET_KEY   solo se usa para leer catalog_events_v2
+
+on:
+  workflow_dispatch:
+    inputs:
+      country:
+        description: "countryCode"
+        default: "CL"
+      classification:
+        description: "classificationName"
+        default: "music"
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24.21.0"
+
+      - name: Evaluar API
+        env:
+          TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TM_API_COUNTRY: ${{ inputs.country }}
+          TM_API_CLASSIFICATION: ${{ inputs.classification }}
+          REPORT_DIR: tm-api-report
+        run: node .github/scripts/ticketmaster-api-eval.mjs
+
+      - name: Subir informe
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ticketmaster-api-report
+          path: tm-api-report/
+          if-no-files-found: ignore
+          retention-days: 30
