@@ -13,4 +13,18 @@ export default tseslint.config(eslint.configs.recommended, ...tseslint.configs.r
 }, {
   files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
   rules: { "@typescript-eslint/no-explicit-any": "off" }
+}, {
+  // Scripts de CI en Node puro (.mjs, sin dependencias): globals del runtime.
+  files: [".github/scripts/**/*.mjs"],
+  languageOptions: {
+    globals: {
+      process: "readonly",
+      console: "readonly",
+      fetch: "readonly",
+      URL: "readonly",
+      URLSearchParams: "readonly",
+      setTimeout: "readonly",
+      clearTimeout: "readonly"
+    }
+  }
 });
