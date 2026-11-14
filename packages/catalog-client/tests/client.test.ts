@@ -504,3 +504,33 @@ describe("CatalogClient", () => {
     await expect(client.getFreshness("puntoticket")).resolves.toBeUndefined();
   });
 });
+
+describe("submitContentRequest (brief 009 · C)", () => {
+  function responder(status: number, body: string, capture: { url?: string; init?: RequestInit } = {}) {
+    return (async (input: string, init?: RequestInit) => {
+      capture.url = String(input);
+      capture.init = init;
+      return new Response(body, { status });
+    }) as unknown as typeof fetch;
+  }
+
+  it("inserta en content_requests con return=minimal y sin campos vacíos", async () => {
+    const capture: { url?: string; init?: RequestInit } = {};
+    await makeClient(responder(201, "", capture)).submitContentRequest({
+      name: " Ana ", email: "ana@ejemplo.cl", reason: "Retirar este evento por favor", organization: " ", eventUrl: "https://mishow.pages.dev/evento?slug=x"
+    });
+    expect(capture.url).toBe("https://project.supabase.co/rest/v1/content_requests");
+    expect(new Headers(capture.init?.headers).get("prefer")).toBe("return=minimal");
+    expect(JSON.parse(String(capture.init?.body))).toEqual({
+      name: "Ana", email: "ana@ejemplo.cl", reason: "Retirar este evento por favor", event_url: "https://mishow.pages.dev/evento?slug=x"
+    });
+  });
+
+  it("tipa rate_limited, invalid y network", async () => {
+    const input = { name: "A", email: "a@b.cl", reason: "motivo suficiente" };
+    await expect(makeClient(responder(400, '{"message":"rate_limited"}')).submitContentRequest(input)).rejects.toMatchObject({ kind: "rate_limited" });
+    await expect(makeClient(responder(400, '{"code":"23514"}')).submitContentRequest(input)).rejects.toMatchObject({ kind: "invalid", status: 400 });
+    const failing = (async () => { throw new TypeError("offline"); }) as unknown as typeof fetch;
+    await expect(makeClient(failing).submitContentRequest(input)).rejects.toMatchObject({ kind: "network" });
+  });
+});
