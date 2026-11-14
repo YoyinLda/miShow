@@ -150,9 +150,14 @@ describe("orquestador: fallos parciales (propiedad)", () => {
       expect(pages.succeeded).toBe(plan.length - failed.length);
       expect(pages.requested).toBe(pages.succeeded + pages.failed);
 
-      // Un error por página fallida, con stage y URL canónica de la página.
-      expect(result.errors).toHaveLength(failed.length);
-      for (const page of failed) {
+      // Un error por página fallida, con stage y URL canónica de la página; salvo
+      // 404 (venue candidata inexistente: se informa en el reporte, no como error; brief 008).
+      const reported = failed.filter((p) => !(p.kind === "http" && p.status === 404));
+      expect(result.errors).toHaveLength(reported.length);
+      for (const page of failed.filter((p) => p.kind === "http" && p.status === 404)) {
+        expect(result.errors.find((e) => e.source_url === page.url)).toBeUndefined();
+      }
+      for (const page of reported) {
         const error = result.errors.find((e) => e.source_url === page.url);
         expect(error, `sin error para ${page.url}`).toBeDefined();
         expect(error!.stage).toBe(page.kind === "parse" ? "parse" : "listing");

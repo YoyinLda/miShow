@@ -194,3 +194,21 @@ real). Resultado observado:
 Este workflow no modifica el esquema ni despliega recursos. Para desactivar el
 scraping automático basta deshabilitar el workflow o revertir el archivo YAML.
 Los datos ya persistidos no se ven afectados por esa acción.
+
+## Alerta por fallas seguidas (brief 008)
+
+Cada workflow de scraping (`scrape-puntoticket.yml`, `scrape-ticketmaster.yml`)
+termina con el paso **«Alerta por fallas seguidas»** (`if: always()`), que ejecuta
+`.github/scripts/scrape-alert.sh` solo con `GITHUB_TOKEN` (`issues: write`,
+`actions: read`):
+
+- Si el paso de scrape falla y la corrida completada anterior también falló, se
+  abre un issue `[scraper] <fuente> falla en corridas seguidas` con la etiqueta
+  `scraper-alert`. Si el issue ya existe, se agrega un comentario.
+- Cuando el scrape vuelve a terminar bien, el issue se cierra con un comentario.
+- La primera falla no abre issue, y una corrida cancelada no cuenta como falla.
+- Una corrida `partial` no falla el job (deja `::warning::`), así que no abre issue.
+
+Las páginas de venue candidatas que responden 404 ya no se registran en
+`scrape_errors`: es el resultado esperado de la verificación. Siguen contando en
+`discovery_report.venue_pages.failed` y quedan como `not_found` en `venue_sources`.
