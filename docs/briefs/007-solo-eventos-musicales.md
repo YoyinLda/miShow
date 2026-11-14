@@ -1,6 +1,6 @@
 # Brief 007 — Solo eventos musicales en el catálogo
 
-Estado: implementado (rama `feat/puntoticket-categoria`). La migración requiere `supabase db push` del TL/PO.
+Estado: completado y desplegado (2026-11-14). Migración `20261114120000` aplicada en producción.
 
 ## Problema
 
