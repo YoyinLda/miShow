@@ -271,7 +271,10 @@ async function runSecondaryDiscovery(
   }
 
   const ok = results.flatMap((r) => (r.refs ? [{ page: r.page, refs: r.refs }] : []));
-  errors.push(...results.flatMap((r) => (r.error ? [r.error] : [])));
+  // Brief 008: un 404 de página secundaria es el resultado esperado al verificar
+  // venues candidatas (queda `not_found` vía reportPages y en el informe), no un
+  // error de la corrida.
+  errors.push(...results.flatMap((r) => (r.error && r.failedStatus !== 404 ? [r.error] : [])));
   const merged = mergeReferences(adapter, musica, ok);
   const report = buildDiscoveryReport(merged, { requested: results.length, succeeded: ok.length, failed: results.length - ok.length });
   return { references: merged.map((m) => m.reference), merged, report, errors };

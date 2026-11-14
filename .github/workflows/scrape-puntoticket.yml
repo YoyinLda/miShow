@@ -36,6 +36,9 @@ concurrency:
 
 permissions:
   contents: read
+  # Brief 008: la alerta abre/cierra issues y lee corridas anteriores.
+  issues: write
+  actions: read
 
 jobs:
   scrape:
@@ -55,6 +58,7 @@ jobs:
         run: npm ci
 
       - name: Scrape and persist (PuntoTicket)
+        id: scrape
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
@@ -74,3 +78,9 @@ jobs:
           --concurrency 2
           --delay-ms 1500
           --timeout-ms 15000
+
+      - name: Alerta por fallas seguidas
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: .github/scripts/scrape-alert.sh puntoticket "${{ steps.scrape.outcome }}" scrape-puntoticket.yml
