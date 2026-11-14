@@ -48,6 +48,21 @@ function normalizeConfig(config: CatalogClientConfig): CatalogClientConfig {
  * (Worker/API propia) en el futuro, basta reimplementar estos métodos apuntando
  * al nuevo endpoint; la UI no cambia.
  */
+export interface ContentRequestInput {
+  name: string;
+  email: string;
+  reason: string;
+  organization?: string;
+  eventUrl?: string;
+}
+
+export class ContentRequestError extends Error {
+  constructor(readonly kind: "rate_limited" | "invalid" | "network", message: string, readonly status?: number) {
+    super(message);
+    this.name = "ContentRequestError";
+  }
+}
+
 export class CatalogClient {
   private readonly config: CatalogClientConfig;
 
@@ -196,6 +211,42 @@ export class CatalogClient {
     const query = new URLSearchParams({ select: "*", slug: `eq.${slug}`, limit: "1" });
     const rows = await this.request<CatalogVenue[]>(`/rest/v1/catalog_venues_v1?${query.toString()}`);
     return rows[0];
+  }
+
+  /**
+   * Envía una solicitud de contacto o retiro de contenido (brief 009 · C).
+   * `anon` solo puede INSERTAR en `content_requests` (sin lectura), así que se
+   * pide `return=minimal`. Errores tipados: `rate_limited` (trigger por correo
+   * y hora), `invalid` (restricciones de la tabla) o `network`.
+   */
+  async submitContentRequest(input: ContentRequestInput): Promise<void> {
+    const body = {
+      name: input.name.trim(),
+      email: input.email.trim(),
+      reason: input.reason.trim(),
+      ...(input.organization?.trim() ? { organization: input.organization.trim() } : {}),
+      ...(input.eventUrl?.trim() ? { event_url: input.eventUrl.trim() } : {})
+    };
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.config.url}/rest/v1/content_requests`, {
+        method: "POST",
+        headers: {
+          apikey: this.config.publishableKey,
+          "content-type": "application/json",
+          prefer: "return=minimal"
+        },
+        body: JSON.stringify(body)
+      });
+    } catch {
+      throw new ContentRequestError("network", "No se pudo enviar la solicitud. Revisa tu conexión.");
+    }
+    if (response.ok) return;
+    const text = await response.text().catch(() => "");
+    if (text.includes("rate_limited")) {
+      throw new ContentRequestError("rate_limited", "Recibimos varias solicitudes de este correo. Intenta de nuevo en una hora.");
+    }
+    throw new ContentRequestError("invalid", "Revisa los datos del formulario e intenta de nuevo.", response.status);
   }
 
   /**

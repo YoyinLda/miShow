@@ -1,0 +1,40 @@
+name: Avisar solicitudes de retiro de contenido
+
+# Brief 009 · C. Cada 30 min revisa `content_requests` pendientes y abre un issue
+# `retiro-contenido` por cada una (GitHub avisa por correo). El issue no incluye
+# datos personales: el repo es público. Runbook: docs/runbook-retiro-contenido.md.
+#
+# Secrets: SUPABASE_URL, SUPABASE_SECRET_KEY (los mismos de los scrapers).
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: content-requests
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24.21.0"
+
+      - name: Abrir issues de solicitudes pendientes
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node .github/scripts/content-requests-notify.mjs
