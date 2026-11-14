@@ -9,14 +9,49 @@ infraestructura ni crea recursos pagados: solo ejecuta el scraper existente con
 `--live --persist` de forma programada.
 
 > **Multi-fuente:** Ticketmaster tiene su propio workflow independiente,
-> `.github/workflows/scrape-ticketmaster.yml`, con horarios desfasados
-> (`0 13 * * *` y `0 23 * * *`) para no solapar carga. Comparte los mismos
-> secrets (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`), las mismas variables
+> `.github/workflows/scrape-ticketmaster.yml`. Comparte los mismos secrets
+> (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`), las mismas variables
 > (`MAX_EVENTS`, `MAX_EVENTS_LIMIT`) y los mismos límites de throttling
 > (concurrency 2, delay 1500ms). La persistencia es idempotente y por
-> `source_id`, así que ambas fuentes conviven sin interferencia. Todo lo descrito
-> abajo para PuntoTicket aplica igual a Ticketmaster cambiando el comando por
-> `npm --silent run ticketmaster:scrape -- --live --persist ...`.
+> `source_id`, así que ambas fuentes conviven sin interferencia.
+
+## Ticketmaster: ejecución manual o local (brief 008)
+
+Desde el 2026-11-14 **la ejecución programada de Ticketmaster está desactivada**:
+la fuente bloqueaba el listado con HTTP 403 en ~56% de las corridas. El workflow
+queda solo con `workflow_dispatch` (Actions → Scrape Ticketmaster → Run workflow)
+y, por un periodo, se ejecuta **localmente** desde la raíz del repo con el `.env`
+de servidor (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`; nunca se versiona):
+
+```bash
+set -a && . ./.env && set +a && npm --silent run ticketmaster:scrape -- --live --persist --concurrency 2 --delay-ms 1500 --timeout-ms 15000
+```
+
+No cambiar User-Agent ni headers para sortear el bloqueo (D4): si la fuente
+responde 403, la corrida termina `failed` con código `blocked` y se reintenta otro día.
+
+### Resiliencia y códigos de error (bugfix `ticketmaster-scrape-failures`)
+
+Activa solo en Ticketmaster (`resilience` en la configuración de adquisición);
+PuntoTicket no cambia.
+
+| Código | Significado |
+|---|---|
+| `blocked` | 401/403 de la fuente. No se reintenta (D5). |
+| `blocked_redirect` / `challenge` | Redirección a una ruta bloqueada, cola de espera o respuesta no HTML. |
+| `listing_empty` | Listado sin referencias (posible cambio de HTML): la corrida es `failed`, nunca `succeeded`. |
+| `listing_degraded` | Menos referencias que `TM_MIN_LISTING_REFS` (default 10). |
+| `incomplete_detail` | Detalle sin nombre ni funciones (p. ej. sin JSON-LD): cuenta como falla, no se persiste. |
+| `degraded_details` | Resumen con `failure_breakdown` cuando la corrida queda degradada o fallida. |
+
+- **Salud (D1):** ratio de detalles fallidos ≥ `TM_DEGRADED_RATIO` (0.25) → `partial`;
+  ≥ `TM_FAILED_RATIO` (0.75) → `failed`.
+- **Falla global:** `scrape_errors` registra el código, la etapa y los intentos reales
+  (antes: `global_acquisition_failure`). El mensaje incluye el estado HTTP.
+- **Reintentos (D5):** 408/429/5xx, timeout y red, con backoff lineal + jitter 50%,
+  acotado por `Retry-After` ≤ 30 s.
+- **Salida (D3):** `failed` → exit 1. `partial` → exit 0 con anotación `::warning::`,
+  salvo `TM_FAIL_ON_PARTIAL=true`.
 
 ## Frecuencia y racional
 

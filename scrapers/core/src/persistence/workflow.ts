@@ -1,4 +1,4 @@
-import type { ScrapeError, ScrapeResult } from "../acquisition/orchestrator.js";
+import { ScrapeStageError, type ScrapeError, type ScrapeResult } from "../acquisition/orchestrator.js";
 import {
   PersistenceError,
   type EventPersistence,
@@ -35,12 +35,14 @@ export async function executePersistedScrape(options: {
     scraped = await options.scrape();
   } catch (error) {
     const message = sanitizePersistenceMessage(error instanceof Error ? error.message : error);
+    // Con `resilience` la causa llega como ScrapeStageError (código, etapa e intentos reales).
+    const stageError = error instanceof ScrapeStageError ? error : undefined;
     await recordErrorBestEffort(options.persistence, run.run_id, {
-      stage: "listing",
+      stage: stageError?.stage ?? "listing",
       severity: "error",
-      code: "global_acquisition_failure",
+      code: stageError?.code ?? "global_acquisition_failure",
       message,
-      attempts: 1
+      attempts: stageError?.attempts ?? 1
     });
     await finishRunOrThrow(options.persistence, run.run_id, {
       finished_at: options.now().toISOString(),
@@ -95,7 +97,7 @@ export async function executePersistedScrape(options: {
 
   const failedCount = scraped.summary.failed + persistenceFailures;
   const warningCount = scraped.errors.filter((error) => error.code === "parser_warning").length + persistenceWarnings;
-  const status = runStatus(persistedCount, failedCount, warningCount);
+  const status = applyHealth(runStatus(persistedCount, failedCount, warningCount), scraped.health);
   const finishedAt = options.now().toISOString();
   await finishRunOrThrow(options.persistence, run.run_id, {
     finished_at: finishedAt,
@@ -123,6 +125,13 @@ function runStatus(succeeded: number, failed: number, warnings: number): Exclude
   if (succeeded === 0 && failed > 0) return "failed";
   if (failed > 0 || warnings > 0) return "partial";
   return "succeeded";
+}
+
+/** `health` (solo con `resilience`) solo puede empeorar el estado: degraded → partial, failed → failed. */
+function applyHealth(status: Exclude<ScrapeRunStatus, "running">, health: ScrapeResult["health"]): Exclude<ScrapeRunStatus, "running"> {
+  if (health === "failed") return "failed";
+  if (health === "degraded" && status === "succeeded") return "partial";
+  return status;
 }
 
 function toPersistenceError(error: unknown): PersistenceError {
