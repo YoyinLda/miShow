@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "./brand/Logo";
 import { ThemeToggle } from "./ThemeToggle";
+import { SHOW_EDITORIAL_SECTIONS } from "../lib/sections";
 
 /**
  * Header del sitio fiel al Figma "03 Screens" (Home / Desktop: nodo 3:3;
@@ -24,8 +25,12 @@ import { ThemeToggle } from "./ThemeToggle";
  */
 const NAV = [
   { href: "/eventos", label: "Eventos" },
-  { href: "/#escena-local", label: "Escena local" },
-  { href: "/#historias", label: "Historias" }
+  ...(SHOW_EDITORIAL_SECTIONS
+    ? [
+        { href: "/#escena-local", label: "Escena local" },
+        { href: "/#historias", label: "Historias" }
+      ]
+    : [])
 ];
 
 const ICON_BUTTON =

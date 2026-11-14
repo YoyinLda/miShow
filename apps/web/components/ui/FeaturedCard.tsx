@@ -38,18 +38,28 @@ export function FeaturedCard({
   const href = `/evento?slug=${encodeURIComponent(event.slug)}`;
 
   if (variant === "mini") {
+    // Figma "Mini featured" (3:41): card surface 12 de radio, fecha 12 en brand,
+    // nombre SemiBold 22 y venue 13. Entrega 3: imagen del evento arriba
+    // (placeholder event-image si no hay), recortada al ancho de la card.
     return (
       <a
         href={href}
-        className="group flex min-h-40 flex-col rounded-[14px] border border-border bg-surface-event p-5 transition hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        className="group flex h-full min-h-[300px] flex-col overflow-hidden rounded-xl border border-border bg-surface transition hover:border-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
-        {date ? (
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand">
-            {date.day} {date.month}
-          </p>
-        ) : null}
-        <h3 className="mt-2 line-clamp-2 text-lg font-bold leading-snug">{event.name}</h3>
-        {venue ? <p className="mt-1 text-sm text-text-muted">{venue}</p> : null}
+        {event.image_url ? (
+          <img src={event.image_url} alt="" loading="lazy" className="aspect-[16/9] w-full object-cover" />
+        ) : (
+          <div className="aspect-[16/9] w-full bg-event-image" aria-hidden="true" />
+        )}
+        <div className="flex flex-col gap-2 p-5">
+          {date ? (
+            <p className="text-xs font-semibold uppercase text-brand">
+              {date.day} {date.month}
+            </p>
+          ) : null}
+          <h3 className="line-clamp-2 text-[1.375rem] font-semibold leading-snug">{event.name}</h3>
+          {venue ? <p className="text-[0.8125rem] text-text-muted">{venue}</p> : null}
+        </div>
       </a>
     );
   }

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import type { CatalogFreshness } from "@mishow/catalog-client";
 import { catalogClient, catalogConfigured } from "../lib/catalog";
 import { formatRelativeTime } from "../lib/format";
-import { dateRange, isFree, parseRango, type RangoKind } from "../lib/discovery";
+import { dateRange, formatEventCount, isFree, parseRango, type RangoKind } from "../lib/discovery";
 import {
   appendPage,
   canLoadMore,
@@ -105,6 +105,7 @@ function EventListContent() {
   const [cityCatalog, setCityCatalog] = useState<string[]>([]);
   // Disparador del sheet, para restaurar el foco al cerrarlo.
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
+  const filterChipRef = useRef<HTMLButtonElement | null>(null);
 
   const [list, setList] = useState<EventListState>(() => resetForSearch(initialTerm));
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
@@ -374,7 +375,11 @@ function EventListContent() {
   const closeSheet = useCallback(() => {
     setSheetOpen(false);
     // Restaurar el foco al disparador tras cerrar.
-    requestAnimationFrame(() => filterButtonRef.current?.focus());
+    // Disparador visible: chip "+ Filtros" en desktop, botón "Filtros" en mobile.
+    requestAnimationFrame(() => {
+      const chip = filterChipRef.current;
+      (chip && chip.offsetParent !== null ? chip : filterButtonRef.current)?.focus();
+    });
   }, []);
   const applyFiltersFromSheet = useCallback(
     (next: FiltersState) => {
@@ -413,7 +418,9 @@ function EventListContent() {
         </p>
       ) : null}
 
-      <div className="mb-4 flex items-stretch gap-2">
+      {/* Buscador: en desktop (lg+) el Figma lo deja solo en el header; se
+          muestra igual si se llegó con ?q= para poder ver y limpiar el término. */}
+      <div className={`mb-4 flex items-stretch gap-2 ${initialTerm ? "" : "lg:hidden"}`}>
         <label className="block flex-1">
           <span className="sr-only">Buscar eventos</span>
           <input
@@ -430,7 +437,7 @@ function EventListContent() {
           onClick={openSheet}
           aria-haspopup="dialog"
           aria-expanded={sheetOpen}
-          className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] border border-border bg-surface px-4 py-3 text-sm font-medium text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-[10px] border border-border bg-surface px-4 py-3 text-sm font-medium text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:hidden"
         >
           <span>Filtros</span>
           {activeCount > 0 ? (
@@ -442,7 +449,11 @@ function EventListContent() {
       </div>
 
       <div className="mb-4">
-        <FilterChips value={rango} onChange={updateRango} />
+        <FilterChips
+          value={rango}
+          onChange={updateRango}
+          moreFilters={{ onOpen: openSheet, expanded: sheetOpen, count: activeCount, buttonRef: filterChipRef }}
+        />
       </div>
 
       <ActiveFilterChips value={filters} onRemove={(facet, value) => updateFilters(removeFilter(filters, facet, value))} onClearAll={() => updateFilters(clearFilters())} />
@@ -456,13 +467,12 @@ function EventListContent() {
       />
 
       {/* Encabezado del listado (Figma: "Todos los eventos" sobre la lista). */}
-      <SectionHeader title="Todos los eventos" />
-
-      {typeof list.total === "number" && !freeFilterActive ? (
-        <p className="mb-4 text-xs text-text-muted" aria-live="polite">
-          {list.total === 1 ? "1 evento" : `${list.total} eventos`}
-        </p>
-      ) : null}
+      <div aria-live="polite">
+        <SectionHeader
+          title="Todos los eventos"
+          subtitle={typeof list.total === "number" && !freeFilterActive ? formatEventCount(list.total) : undefined}
+        />
+      </div>
 
       {isLoadingInitial && !hasItems ? (
         <p className="text-sm text-text-muted">Cargando eventos…</p>
@@ -517,7 +527,7 @@ function EventListContent() {
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:gap-2">
         {visibleItems.map((event) => (
           <EventRow key={event.id} event={event} />
         ))}
